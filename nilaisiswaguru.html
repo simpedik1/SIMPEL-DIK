@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nilai Siswa - SIMPEDIK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+            --navbar-bg: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--navbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        .btn-back-dashboard {
+            margin-left: auto;
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        .btn-back-dashboard:hover {
+            background-color: white;
+            color: var(--navbar-bg);
+        }
+
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0;
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .table-responsive { 
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 550px;
+            margin-top: 15px;
+        }
+        
+        .table-responsive::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .custom-table { width: 100%; border-collapse: collapse; margin-top: 10px; white-space: nowrap; }
+        .custom-table th, .custom-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .custom-table th { background-color: #f8f9fa; color: #555; font-weight: 600; }
+        .custom-table tr:hover { background-color: #f9f9f9; }
+       
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; color: white; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-danger { background-color: #ef4444; }
+        .btn-warning { background-color: #f59e0b; }
+        .btn-success { background-color: #10b981; }
+        .btn-secondary { background-color: #e2e8f0; color: #475569; }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+
+        .input-nilai { width: 50px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; text-align: center; }
+        .input-text { width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        .input-readonly { background-color: #f9fafb; border: 1px solid #eee; color: #555; cursor: default; }
+       
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] { 
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; color: #333; font-size: 1.2rem; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: #888; transition: color 0.2s; }
+        .close-modal:hover { color: #ef4444; }
+       
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #666; font-size: 0.9rem; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; transition: border-color 0.3s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+       
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            .navbar-brand span {
+                font-size: 1rem;
+            }
+            /* Optimasi Tabel Biodata/Dropdown */
+            #biodataContainer table tr {
+                display: flex;
+                flex-direction: column;
+                margin-bottom: 10px;
+            }
+            #biodataContainer table td {
+                width: 100% !important;
+                padding: 4px 0 !important;
+            }
+            #biodataContainer table td:first-child {
+                border-bottom: 1px dashed #eee;
+            }
+            .custom-select, .custom-input {
+                width: 100%;
+            }
+            /* Toolbar Input Nilai */
+            .input-nilai-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .actions-wrapper {
+                flex-direction: column;
+                width: 100%;
+            }
+            .export-dropdown, .export-dropdown .btn, .actions-wrapper .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .custom-select, .custom-input {
+            width: 96%;
+            padding: 10px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background-color: #fff;
+            color: #334155;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .custom-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            cursor: pointer;
+            padding-right: 40px;
+        }
+
+        .custom-select:focus, .custom-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+
+        .custom-select:hover, .custom-input:hover {
+            border-color: #cbd5e1;
+        }
+
+        #biodataContainer, #previewContainer, #inputNilaiContainer {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        #biodataContainer:hover, #previewContainer:hover, #inputNilaiContainer:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+        }
+
+        .export-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .export-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #fff;
+            min-width: 160px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            z-index: 100;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            margin-top: 5px;
+        }
+        .export-menu.show {
+            display: block;
+        }
+        .export-menu a {
+            color: #333;
+            padding: 10px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+        .export-menu a:hover {
+            background-color: #f1f5f9;
+            color: var(--primary-color);
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .preview-card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+        }
+        .preview-card h4 {
+            color: #334155;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .preview-card h4 i {
+            color: var(--navbar-bg);
+        }
+        .preview-stats {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            flex: 1;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        .stat-value.tuntas {
+            color: #10b981;
+        }
+        .stat-value.tidak-tuntas {
+            color: #ef4444;
+        }
+        .preview-list {
+            margin-top: 15px;
+        }
+        .preview-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        .preview-list-item:last-child {
+            border-bottom: none;
+        }
+        .student-name {
+            font-weight: 500;
+            color: #334155;
+            font-size: 0.9rem;
+        }
+        .student-value {
+            font-weight: 600;
+            color: var(--primary-color);
+            background: #e0e7ff;
+            padding: 2px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+        .warning-text {
+            color: #ef4444;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 10px;
+            background: #fee2e2;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .info-text {
+            color: #64748b;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #previewContainer {
+            background-color: #1e293b;
+            color: #f8fafc;
+            border: 1px solid #334155;
+        }
+
+        #previewContainer h3 {
+            color: #f8fafc !important;
+        }
+
+        #previewContainer .preview-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            color: #1e293b;
+            transition: all 0.3s ease;
+        }
+
+        #previewContainer .preview-card h4 {
+            color: #1e293b;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        #previewContainer .stat-label {
+            color: #64748b;
+        }
+
+        #previewContainer .stat-value {
+            color: #ffffff;
+        }
+
+        #previewContainer .stat-value.tuntas {
+            color: #34d399;
+        }
+
+        #previewContainer .stat-value.tidak-tuntas {
+            color: #f87171;
+        }
+
+        #previewContainer .preview-list-item {
+            border-bottom-color: #f1f5f9;
+        }
+
+        #previewContainer .student-name {
+            color: #334155;
+        }
+
+        #previewContainer .student-value {
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+
+        #previewContainer .info-text {
+            color: #64748b;
+        }
+        
+        .student-value-warning {
+            background-color: #fee2e2 !important;
+            color: #991b1b !important;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+
+        #previewContainer .card-nh-high {
+            background-color: #ffffff;
+            border-color: #e2e8f0;
+        }
+        #previewContainer .card-nh-high h4 {
+            border-bottom-color: #10b981;
+        }
+
+        #previewContainer .card-nh-low {
+            background-color: #ffffff;
+            border-color: #e2e8f0;
+        }
+        #previewContainer .card-nh-low h4 {
+            border-bottom-color: #ef4444;
+        }
+
+        #previewContainer .card-uts-high {
+            background-color: #ffffff;
+            border-color: #e2e8f0;
+        }
+        #previewContainer .card-uts-high h4 {
+            border-bottom-color: #3b82f6;
+        }
+
+        #previewContainer .card-uts-low {
+            background-color: #ffffff;
+            border-color: #e2e8f0;
+        }
+        #previewContainer .card-uts-low h4 {
+            border-bottom-color: #ec4899;
+        }
+
+        #previewContainer .preview-card:hover {
+            border: 2px solid #facc15 !important;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .preview-card .section-title {
+            text-align: center;
+            font-weight: 800;
+            color: #1e293b;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .sub-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+        .sub-grid > div:first-child {
+            border-right: 1px solid #e2e8f0;
+            padding-right: 20px;
+        }
+        .sub-grid > div:last-child {
+            padding-left: 20px;
+        }
+        .sub-grid h5 {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        @media (max-width: 640px) {
+            .sub-grid {
+                grid-template-columns: 1fr;
+            }
+            .sub-grid > div:first-child {
+                border-right: none;
+                padding-right: 0;
+                border-bottom: 1px solid #e2e8f0;
+                padding-bottom: 20px;
+                margin-bottom: 20px;
+            }
+            .sub-grid > div:last-child {
+                padding-left: 0;
+            }
+        }
+
+        .input-nilai-header h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        .input-nilai-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+        .actions-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="adminguru.html" class="btn-back-dashboard">Kembali Ke Dashboard</a>
+    </nav>
+
+    <main class="main-content">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+            <div style="background: white; padding: 10px 20px; border-radius: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: #555; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;">
+                <i class="far fa-clock" style="color: var(--navbar-bg);"></i>
+                <span id="liveDateTime"></span>
+            </div>
+        </div>
+
+        <div class="dashboard-card" id="biodataContainer" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: #333; font-size: 1.2rem;">
+                    <i class="fas fa-id-card" style="color: var(--navbar-bg); margin-right: 10px;"></i>
+                    Biodata Guru
+                </h3>
+            </div>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+                <div style="flex: 0 0 auto; width: 120px; text-align: center;">
+                    <img id="bioPhoto" src="" alt="Foto Guru" style="width: 120px; height: 120px; object-fit: cover; border-radius: 10px; border: 3px solid #eee; background: #f0f0f0;">
+                </div>
+                <div style="flex: 1; min-width: 250px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0; width: 140px; color: #666; font-weight: 600;">Nama Lengkap</td>
+                            <td style="padding: 8px 0; color: #333;">: <span id="bioNama">-</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #666; font-weight: 600;">NIP</td>
+                            <td style="padding: 8px 0; color: #333;">: <span id="bioNip">-</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px 0; color: #666; font-weight: 600;">Mata Pelajaran</td>
+                            <td style="padding: 8px 0; color: #333;">:
+                                <select id="pilihMapel" class="custom-select">
+                                    <option value="">-- Pilih Mata Pelajaran --</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px 0; color: #666; font-weight: 600;">Semester</td>
+                            <td style="padding: 8px 0; color: #333;">:
+                                <select id="pilihSemester" class="custom-select">
+                                    <option value="Ganjil">Ganjil</option>
+                                    <option value="Genap">Genap</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px 0; color: #666; font-weight: 600;">Kelas</td>
+                            <td style="padding: 8px 0; color: #333;">:
+                                <select id="pilihKelas" class="custom-select">
+                                    <option value="">-- Pilih Kelas --</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px 0; color: #666; font-weight: 600;">KKTP/KKM</td>
+                            <td style="padding: 8px 0; color: #333; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <span style="margin-right: 5px;" class="mobile-hide">:</span>
+                                <input type="number" id="inputKKTP" class="custom-input" placeholder="0" style="width: 80px;">
+                                <span style="margin-right: 5px; font-weight: 600; color: #666;">Jml UH:</span>
+                                <input type="number" id="inputJmlUH" class="custom-input" placeholder="0" min="0" max="7" style="width: 80px;">
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-card" id="previewContainer" style="display: none;">
+            <div style="margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: #f8fafc; font-size: 1.2rem;">
+                    <i class="fas fa-chart-line" style="color: var(--navbar-bg); margin-right: 10px;"></i>
+                    Preview Perkembangan Akademis
+                </h3>
+                <button id="btnExportPreviewPdf" class="btn btn-danger" style="padding: 5px 15px; font-size: 0.85rem;">
+                    <i class="fas fa-file-pdf"></i> Export Laporan Pdf
+                </button>
+            </div>
+            <div id="previewContent">
+                <div class="info-text">
+                    <i class="fas fa-info-circle"></i> Pilih Mata Pelajaran dan Kelas untuk melihat preview perkembangan akademis
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-card" id="pengumumanNilaiContainer" style="display: none; border-left: 5px solid #f59e0b; background-color: #fffbeb;">
+            <div style="display: flex; align-items: flex-start; gap: 15px;">
+                <i class="fas fa-triangle-exclamation" style="color: #f59e0b; font-size: 1.6rem; margin-top: 3px;"></i>
+                <div>
+                    <h3 style="margin: 0 0 8px 0; color: #92400e; font-size: 1.05rem;">PERHATIAN...!!</h3>
+                    <p style="margin: 0; color: #78350f; font-size: 0.95rem; line-height: 1.5;">
+                        Untuk mendapatkan Nilai Rapor yang sesuai dan otomatis maka Jika Mata Pelajaran anda tidak melaksanakan Ulangan Tengah Semester (UTS) maka isi nilai UTS dengan salah satu Nilai Harian (NH)
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-card" id="inputNilaiContainer" style="display: none;">
+            <div class="input-nilai-header">
+                <h3>
+                    <i class="fas fa-pen-square" style="color: var(--navbar-bg); margin-right: 10px;"></i>
+                    Input Nilai Siswa
+                </h3>
+            </div>
+
+            <div class="input-nilai-toolbar">
+                <div class="search-wrapper">
+                    <input type="text" id="searchSiswaNilai" placeholder="Cari Nama Siswa..." style="padding: 10px 35px 10px 15px; border: 1px solid #ddd; border-radius: 6px; width: 100%; font-size: 0.95rem;">
+                    <i class="fas fa-search" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #999;"></i>
+                </div>
+
+                <div class="actions-wrapper">
+                    <div class="export-dropdown">
+                        <button class="btn btn-success" id="btnExportDropdown" style="background-color: #217346; border-color: #1e6b43;">
+                            <i class="fas fa-file-export"></i> Export <i class="fas fa-caret-down" style="margin-left: 5px;"></i>
+                        </button>
+                        <div class="export-menu" id="exportMenu">
+                            <a href="#" id="btnExportExcelOption"><i class="fas fa-file-excel" style="color: #217346; margin-right: 8px;"></i> Excel (.xlsx)</a>
+                            <a href="#" id="btnExportCSVOption"><i class="fas fa-file-csv" style="color: #217346; margin-right: 8px;"></i> CSV (.csv)</a>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-warning" id="btnImportNilai" style="background-color: #f59e0b; border-color: #d97706; color: white;">
+                        <i class="fas fa-file-import"></i> Import
+                    </button>
+                    <input type="file" id="fileImportNilai" accept=".xlsx, .xls" style="display: none;">
+
+                    <button class="btn btn-primary" id="btnSimpanSemua"><i class="fas fa-save"></i> Simpan Semua</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table" id="nilaiTable">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th style="min-width: 200px;">ID</th>
+                            <th style="min-width: 150px;">Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th>Semester</th>
+                            <th>Mapel</th>
+                            <th>KKTP</th>
+                            <th>JU</th>
+                            <th>UH1</th>
+                            <th>UH2</th>
+                            <th>UH3</th>
+                            <th>UH4</th>
+                            <th>UH5</th>
+                            <th>UH6</th>
+                            <th>UH7</th>
+                            <th>NH</th>
+                            <th>UTS</th>
+                            <th>US</th>
+                            <th>NR</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer class="main-footer">
+            <p>&copy; SIMPPEDIK (Sistem Informasi Manajemen Perkembangan Pembelajaran Peserta Didik).2026</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <div id="notificationModal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
+            <div style="margin-bottom: 20px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 4rem; color: #f59e0b;"></i>
+            </div>
+            <h3 style="color: #333; margin-bottom: 15px; font-size: 1.3rem;">Peringatan</h3>
+            <p id="notificationMessage" style="color: #666; margin-bottom: 25px; line-height: 1.5; font-size: 1rem;"></p>
+            <div style="display: flex; justify-content: center;">
+                <button onclick="document.getElementById('notificationModal').classList.remove('active')" class="btn btn-primary" style="padding: 10px 30px; min-width: 120px;">Mengerti</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+       
+        let supabaseClient;
+        let absensiClient;
+        let schoolData = {};
+
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            absensiClient = supabaseClient;
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo, kop_sekolah')
+                        .limit(1)
+                        .single();
+                   
+                    if (data) {
+                        schoolData = data;
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading school identity:", err);
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            if (!session) {
+                window.location.href = 'index.html';
+            }
+        });
+
+        function updateLiveTime() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('liveDateTime').textContent = `${now.toLocaleDateString('id-ID', dateOptions)} | ${now.toLocaleTimeString('id-ID', timeOptions).replace(/\./g, ':')} WIB`;
+        }
+        setInterval(updateLiveTime, 1000);
+        updateLiveTime();
+
+        async function loadGuruBiodata() {
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            if (!session || !session.nama) return;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('dataguru')
+                    .select('nama_guru, nip::text, mapel, photo')
+                    .eq('nama_guru', session.nama)
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    document.getElementById('biodataContainer').style.display = 'block';
+                    document.getElementById('bioNama').textContent = data.nama_guru || '-';
+                    document.getElementById('bioNip').textContent = data.nip || '-';
+                   
+                    const photoEl = document.getElementById('bioPhoto');
+                    if (data.photo) {
+                        photoEl.src = data.photo;
+                    } else {
+                        photoEl.src = 'https://via.placeholder.com/120?text=No+Photo';
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading biodata:', err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadGuruBiodata);
+
+        async function loadMapelDropdown() {
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            if (!session) return;
+
+            const select = document.getElementById('pilihMapel');
+           
+            try {
+                const { data, error } = await absensiClient
+                    .from('matapelajaran')
+                    .select('id, nama_mapel, kode_mapel')
+                    .eq('nama_guru', session.nama);
+
+                if (error) throw error;
+
+                select.innerHTML = '<option value="">-- Pilih Mata Pelajaran --</option>';
+               
+                if (data && data.length > 0) {
+                    data.forEach(mapel => {
+                        const option = document.createElement('option');
+                        option.value = mapel.id;
+                        option.setAttribute('data-nama', mapel.nama_mapel);
+                        option.textContent = `${mapel.nama_mapel} (${mapel.kode_mapel})`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">Tidak ada mata pelajaran yang diampu</option>';
+                }
+            } catch (err) {
+                console.error("Error loading mapel:", err);
+                select.innerHTML = '<option value="">Gagal memuat data</option>';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadMapelDropdown);
+
+        async function loadKelasDropdown() {
+            const select = document.getElementById('pilihKelas');
+           
+            try {
+                const { data, error } = await supabaseClient
+                    .from('rombel')
+                    .select('nama_kelas')
+                    .order('nama_kelas');
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    data.forEach(rombel => {
+                        const option = document.createElement('option');
+                        option.value = rombel.nama_kelas;
+                        option.textContent = rombel.nama_kelas;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (err) {
+                console.error("Error loading kelas:", err);
+                select.innerHTML = '<option value="">Gagal memuat data</option>';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadKelasDropdown);
+
+        const pilihMapel = document.getElementById('pilihMapel');
+        const pilihKelas = document.getElementById('pilihKelas');
+        const inputNilaiContainer = document.getElementById('inputNilaiContainer');
+        const pengumumanNilaiContainer = document.getElementById('pengumumanNilaiContainer');
+        const previewContainer = document.getElementById('previewContainer');
+        const nilaiTableBody = document.querySelector('#nilaiTable tbody');
+
+        function updatePreview() {
+            const rows = document.querySelectorAll('#nilaiTable tbody tr');
+            
+            if (rows.length === 0) {
+                previewContainer.style.display = 'none';
+                return;
+            }
+
+            previewContainer.style.display = 'block';
+
+            const students = [];
+            rows.forEach(row => {
+                const getNum = (selector) => {
+                    const el = row.querySelector(selector);
+                    return (el && el.value !== '') ? parseFloat(el.value) : null;
+                };
+
+                const getUh = (index) => {
+                    const els = row.querySelectorAll('.uh-input');
+                    return (els[index] && els[index].value !== '') ? parseFloat(els[index].value) : null;
+                };
+
+                const student = {
+                    nama: row.cells[2].querySelector('input').value,
+                    kktp: getNum('.kktp-input'),
+                    nh: getNum('.nh-input'),
+                    uts: getNum('.uts-input'),
+                    us: getNum('.us-input'),
+                    nr: getNum('.nr-input'),
+                    status: row.querySelector('.status-input').value
+                };
+                students.push(student);
+            });
+
+            const studentsWithNH = students.filter(s => s.nh !== null);
+            const studentsWithUTS = students.filter(s => s.uts !== null);
+            const studentsWithUS = students.filter(s => s.us !== null);
+            const studentsWithNR = students.filter(s => s.nr !== null);
+
+            const totalSiswa = students.length;
+            const tuntas = students.filter(s => s.status === 'Tuntas').length;
+            const tidakTuntas = students.filter(s => s.status === 'Tidak Tuntas').length;
+
+            const getTop5 = (data, key) => {
+                return data
+                    .filter(s => s[key] !== null)
+                    .sort((a, b) => b[key] - a[key])
+                    .slice(0, 5)
+                    .map(s => ({ nama: s.nama, nilai: s[key] }));
+            };
+
+            const getBottom5 = (data, key) => {
+                return data
+                    .filter(s => s[key] !== null)
+                    .sort((a, b) => a[key] - b[key])
+                    .slice(0, 5)
+                    .map(s => ({ nama: s.nama, nilai: s[key] }));
+            };
+
+            const siswaBelumTuntasNH = students
+                .filter(s => s.nh !== null && s.kktp !== null && s.nh < s.kktp)
+                .map(s => ({ nama: s.nama, nh: s.nh, kktp: s.kktp }))
+                .slice(0, 5);
+
+            let previewHTML = `
+                <div class="preview-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Total Siswa</div>
+                        <div class="stat-value">${totalSiswa}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Tuntas</div>
+                        <div class="stat-value tuntas">${tuntas}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Tidak Tuntas</div>
+                        <div class="stat-value tidak-tuntas">${tidakTuntas}</div>
+                    </div>
+                </div>
+
+                <div class="preview-grid">
+                    <div class="preview-card">
+                        <h4 class="section-title">ULANGAN HARIAN</h4>
+                        <div class="sub-grid">
+                            <div>
+                                <h5><i class="fas fa-arrow-up" style="color: #10b981;"></i> 5 Terbesar</h5>
+                                <div class="preview-list">
+                                    ${getTop5(studentsWithNH, 'nh').map((s, i) => `
+                                        <div class="preview-list-item">
+                                            <span class="student-name">${i+1}. ${s.nama}</span>
+                                            <span class="student-value">${s.nilai}</span>
+                                        </div>
+                                    `).join('')}
+                                    ${studentsWithNH.length === 0 ? '<div class="info-text">Belum ada data</div>' : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <h5><i class="fas fa-arrow-down" style="color: #ef4444;"></i> 5 Terkecil</h5>
+                                <div class="preview-list">
+                                    ${getBottom5(studentsWithNH, 'nh').map((s, i) => `
+                                        <div class="preview-list-item">
+                                            <span class="student-name">${i+1}. ${s.nama}</span>
+                                            <span class="student-value">${s.nilai}</span>
+                                        </div>
+                                    `).join('')}
+                                    ${studentsWithNH.length === 0 ? '<div class="info-text">Belum ada data</div>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="preview-card">
+                        <h4 class="section-title">UJIAN TENGAH SEMESTER</h4>
+                        <div class="sub-grid">
+                            <div>
+                                <h5><i class="fas fa-arrow-up" style="color: #10b981;"></i> 5 Terbesar</h5>
+                                <div class="preview-list">
+                                    ${getTop5(studentsWithUTS, 'uts').map((s, i) => `
+                                        <div class="preview-list-item">
+                                            <span class="student-name">${i+1}. ${s.nama}</span>
+                                            <span class="student-value">${s.nilai}</span>
+                                        </div>
+                                    `).join('')}
+                                    ${studentsWithUTS.length === 0 ? '<div class="info-text">Belum ada data</div>' : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <h5><i class="fas fa-arrow-down" style="color: #ef4444;"></i> 5 Terkecil</h5>
+                                <div class="preview-list">
+                                    ${getBottom5(studentsWithUTS, 'uts').map((s, i) => `
+                                        <div class="preview-list-item">
+                                            <span class="student-name">${i+1}. ${s.nama}</span>
+                                            <span class="student-value">${s.nilai}</span>
+                                        </div>
+                                    `).join('')}
+                                    ${studentsWithUTS.length === 0 ? '<div class="info-text">Belum ada data</div>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="preview-card">
+                        <h4 class="section-title">UJIAN SEMESTER</h4>
+                        <div class="sub-grid">
+                            <div>
+                                <h5><i class="fas fa-arrow-up" style="color: #10b981;"></i> 5 Terbesar</h5>
+                                <div class="preview-list">
+                                    ${getTop5(studentsWithUS, 'us').map((s, i) => `
+                                        <div class="preview-list-item">
+                                            <span class="student-name">${i+1}. ${s.nama}</span>
+                                            <span class="student-value">${s.nilai}</span>
+                                        </div>
+                                    `).join('')}
+                                    ${studentsWithUS.length === 0 ? '<div class="info-text">Belum ada data</div>' : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <h5><i class="fas fa-arrow-down" style="color: #ef4444;"></i> 5 Terkecil</h5>
+                                <div class="preview-list">
+                                    ${getBottom5(studentsWithUS, 'us').map((s, i) => `
+                                        <div class="preview-list-item">
+                                            <span class="student-name">${i+1}. ${s.nama}</span>
+                                            <span class="student-value">${s.nilai}</span>
+                                        </div>
+                                    `).join('')}
+                                    ${studentsWithUS.length === 0 ? '<div class="info-text">Belum ada data</div>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="preview-card">
+                        <h4 class="section-title">NILAI RAPORT</h4>
+                        <div class="sub-grid">
+                            <div>
+                                <h5><i class="fas fa-arrow-up" style="color: #10b981;"></i> 5 Terbesar</h5>
+                                <div class="preview-list">
+                                    ${getTop5(studentsWithNR, 'nr').map((s, i) => `
+                                        <div class="preview-list-item">
+                                            <span class="student-name">${i+1}. ${s.nama}</span>
+                                            <span class="student-value">${s.nilai}</span>
+                                        </div>
+                                    `).join('')}
+                                    ${studentsWithNR.length === 0 ? '<div class="info-text">Belum ada data</div>' : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <h5><i class="fas fa-arrow-down" style="color: #ef4444;"></i> 5 Terkecil</h5>
+                                <div class="preview-list">
+                                    ${getBottom5(studentsWithNR, 'nr').map((s, i) => `
+                                        <div class="preview-list-item">
+                                            <span class="student-name">${i+1}. ${s.nama}</span>
+                                            <span class="student-value">${s.nilai}</span>
+                                        </div>
+                                    `).join('')}
+                                    ${studentsWithNR.length === 0 ? '<div class="info-text">Belum ada data</div>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (siswaBelumTuntasNH.length > 0) {
+                previewHTML += `
+                    <div class="preview-card" style="margin-top: 20px;">
+                        <h4 style="color: #991b1b; border-bottom-color: #fca5a5;"><i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Siswa Yang Belum Menuntaskan Nilai Harian</h4>
+                        <div class="preview-list">
+                            ${siswaBelumTuntasNH.map(s => `
+                                <div class="preview-list-item">
+                                    <span class="student-name">${s.nama}</span>
+                                    <span class="student-value-warning">NH: ${s.nh} | KKTP: ${s.kktp}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('previewContent').innerHTML = previewHTML;
+        }
+
+        async function loadSiswaAndRenderTable() {
+            const mapelId = pilihMapel.value;
+            const kelas = pilihKelas.value;
+           
+            const selectedMapelOption = pilihMapel.options[pilihMapel.selectedIndex];
+            const mapelName = selectedMapelOption ? (selectedMapelOption.getAttribute('data-nama') || '') : '';
+
+            if (!mapelId || !kelas) {
+                inputNilaiContainer.style.display = 'none';
+                pengumumanNilaiContainer.style.display = 'none';
+                previewContainer.style.display = 'none';
+                return;
+            }
+
+            inputNilaiContainer.style.display = 'block';
+            pengumumanNilaiContainer.style.display = 'block';
+            nilaiTableBody.innerHTML = '<tr><td colspan="21" style="text-align:center; padding: 20px;">Memuat data siswa...</td></tr>';
+
+            try {
+                const { data: students, error } = await absensiClient
+                    .from('mappingsiswa')
+                    .select('nama_siswa, nisn, kelas')
+                    .eq('kelas', kelas)
+                    .order('nama_siswa');
+
+                if (error) throw error;
+
+                const { data: existingGrades, error: gradesError } = await absensiClient
+                    .from('nilaimapel')
+                    .select('*')
+                    .eq('kelas', kelas)
+                    .eq('mapel', mapelName);
+               
+                if (gradesError) console.error("Error fetching grades:", gradesError);
+
+                const gradesMap = {};
+                if (existingGrades) {
+                    existingGrades.forEach(g => gradesMap[g.id] = g);
+                }
+
+                nilaiTableBody.innerHTML = '';
+
+                if (!students || students.length === 0) {
+                    nilaiTableBody.innerHTML = '<tr><td colspan="21" style="text-align:center; padding: 20px;">Tidak ada siswa di kelas ini.</td></tr>';
+                    return;
+                }
+
+                students.forEach((siswa, index) => {
+                    const row = document.createElement('tr');
+                    const idNilai = `ID-${siswa.nama_siswa}/${siswa.kelas}-${mapelName}`;
+                   
+                    const gradeData = gradesMap[idNilai];
+                   
+                    const globalKktp = document.getElementById('inputKKTP').value;
+                    const semesterVal = document.getElementById('pilihSemester').value;
+                    const globalJu = document.getElementById('inputJmlUH').value;
+                   
+                    const kktp = (gradeData && gradeData.kktp) ? gradeData.kktp : globalKktp;
+                    const ju = (gradeData && gradeData.jumlah_uh) ? gradeData.jumlah_uh : globalJu;
+                    const currentSemester = (gradeData && gradeData.semester) ? gradeData.semester : semesterVal;
+
+                    const val = (key) => (gradeData && gradeData[key] !== undefined && gradeData[key] !== null) ? gradeData[key] : '';
+
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td><input type="text" class="input-text input-readonly" value="${idNilai}" readonly title="${idNilai}"></td>
+                        <td><input type="text" class="input-text input-readonly" value="${siswa.nama_siswa}" readonly></td>
+                        <td><input type="text" class="input-text input-readonly" value="${siswa.kelas}" readonly style="width: 80px;"></td>
+                        <td><input type="text" class="input-text input-readonly semester-input" value="${currentSemester}" readonly style="width: 80px;"></td>
+                        <td><input type="text" class="input-text input-readonly" value="${mapelName}" readonly></td>
+                        <td><input type="number" class="input-nilai kktp-input" placeholder="0" value="${kktp}"></td>
+                        <td><input type="number" class="input-nilai ju-input" placeholder="0" value="${ju}"></td>
+                        <td><input type="number" class="input-nilai uh-input" placeholder="0" value="${val('uh1')}"></td>
+                        <td><input type="number" class="input-nilai uh-input" placeholder="0" value="${val('uh2')}"></td>
+                        <td><input type="number" class="input-nilai uh-input" placeholder="0" value="${val('uh3')}"></td>
+                        <td><input type="number" class="input-nilai uh-input" placeholder="0" value="${val('uh4')}"></td>
+                        <td><input type="number" class="input-nilai uh-input" placeholder="0" value="${val('uh5')}"></td>
+                        <td><input type="number" class="input-nilai uh-input" placeholder="0" value="${val('uh6')}"></td>
+                        <td><input type="number" class="input-nilai uh-input" placeholder="0" value="${val('uh7')}"></td>
+                        <td><input type="number" class="input-nilai nh-input" placeholder="0" value="${val('nh')}" readonly style="background-color: #f0fdf4; font-weight: bold;"></td>
+                        <td><input type="number" class="input-nilai uts-input" placeholder="0" value="${val('uts')}"></td>
+                        <td><input type="number" class="input-nilai us-input" placeholder="0" value="${val('us')}"></td>
+                        <td><input type="number" class="input-nilai nr-input" placeholder="0" value="${val('nr')}" readonly style="background-color: #f0fdf4; font-weight: bold;"></td>
+                        <td><input type="text" class="input-text status-input" placeholder="Status" value="${val('status')}" style="width: 100px;" readonly></td>
+                        <td>
+                            <button class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8rem;"><i class="fas fa-save"></i></button>
+                        </td>
+                    `;
+                    nilaiTableBody.appendChild(row);
+
+                    const uhInputs = row.querySelectorAll('.uh-input');
+                    uhInputs.forEach(input => {
+                        input.addEventListener('input', () => calculateNH());
+                    });
+
+                    const utsInput = row.querySelector('.uts-input');
+                    const usInput = row.querySelector('.us-input');
+                   
+                    utsInput.addEventListener('input', () => calculateNR(row, false));
+                    usInput.addEventListener('input', () => calculateNR(row, false));
+
+                    const kktpInput = row.querySelector('.kktp-input');
+                    kktpInput.addEventListener('input', () => calculateStatus(row, false));
+                   
+                    calculateStatus(row, false);
+                });
+
+                calculateNH();
+                updatePreview();
+
+            } catch (err) {
+                console.error("Error loading students:", err);
+                nilaiTableBody.innerHTML = `<tr><td colspan="21" style="text-align:center; color:red;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        pilihMapel.addEventListener('change', loadSiswaAndRenderTable);
+        pilihKelas.addEventListener('change', loadSiswaAndRenderTable);
+
+        document.getElementById('pilihSemester').addEventListener('change', function() {
+            const val = this.value;
+            const inputs = document.querySelectorAll('.semester-input');
+            inputs.forEach(input => input.value = val);
+        });
+
+        function calculateNH() {
+            const rows = document.querySelectorAll('#nilaiTable tbody tr');
+            rows.forEach(row => {
+                const uhInputs = row.querySelectorAll('.uh-input');
+                let sum = 0;
+                let hasValue = false;
+
+                uhInputs.forEach(input => {
+                    const val = parseFloat(input.value);
+                    if (!isNaN(val) && input.value.trim() !== '') {
+                        sum += val;
+                        hasValue = true;
+                    }
+                });
+
+                const nhInput = row.querySelector('.nh-input');
+                const juVal = parseFloat(row.querySelector('.ju-input').value) || 0;
+                
+                if (hasValue && juVal > 0) {
+                    nhInput.value = Math.round(sum / juVal);
+                } else {
+                    nhInput.value = '';
+                }
+
+                calculateNR(row, false);
+            });
+            
+            updatePreview();
+        }
+
+        function calculateNR(row, doUpdatePreview = true) {
+            const nhVal = parseFloat(row.querySelector('.nh-input').value) || 0;
+            const utsVal = parseFloat(row.querySelector('.uts-input').value) || 0;
+            const usVal = parseFloat(row.querySelector('.us-input').value) || 0;
+            const nrInput = row.querySelector('.nr-input');
+
+            if (row.querySelector('.nh-input').value === '' && row.querySelector('.uts-input').value === '' && row.querySelector('.us-input').value === '') {
+                nrInput.value = '';
+                calculateStatus(row, false);
+                return;
+            }
+
+            const result = (nhVal + utsVal + usVal) / 3;
+            nrInput.value = Math.round(result);
+           
+            calculateStatus(row, false);
+            if (doUpdatePreview) updatePreview();
+        }
+
+        function calculateStatus(row, doUpdatePreview = true) {
+            const nrVal = parseFloat(row.querySelector('.nr-input').value);
+            const kktpVal = parseFloat(row.querySelector('.kktp-input').value);
+            const statusInput = row.querySelector('.status-input');
+
+            if (isNaN(nrVal) || isNaN(kktpVal)) {
+                statusInput.value = '';
+                statusInput.style.color = '';
+                return;
+            }
+
+            if (nrVal >= kktpVal) {
+                statusInput.value = 'Tuntas';
+                statusInput.style.color = '#10b981';
+                statusInput.style.fontWeight = 'bold';
+            } else {
+                statusInput.value = 'Tidak Tuntas';
+                statusInput.style.color = '#ef4444';
+                statusInput.style.fontWeight = 'bold';
+            }
+        }
+
+        document.getElementById('inputKKTP').addEventListener('input', function() {
+            const val = this.value;
+            const rows = document.querySelectorAll('#nilaiTable tbody tr');
+            rows.forEach(row => {
+                const kktpInput = row.querySelector('.kktp-input');
+                if (kktpInput) {
+                    kktpInput.value = val;
+                    calculateStatus(row, false);
+                }
+            });
+            updatePreview();
+        });
+
+        document.getElementById('inputJmlUH').addEventListener('input', function() {
+            let val = this.value;
+            
+            if (val > 7) {
+                val = 7;
+                this.value = 7;
+            }
+
+            const rows = document.querySelectorAll('#nilaiTable tbody tr');
+            rows.forEach(row => {
+                const juInput = row.querySelector('.ju-input');
+                if (juInput) {
+                    juInput.value = val;
+                }
+            });
+            calculateNH();
+        });
+
+        document.getElementById('btnSimpanSemua').addEventListener('click', async function() {
+            const rows = document.querySelectorAll('#nilaiTable tbody tr');
+            if (rows.length === 0) {
+                alert('Tidak ada data siswa untuk disimpan.');
+                return;
+            }
+
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+            btn.disabled = true;
+
+            const dataToUpsert = [];
+
+            rows.forEach(row => {
+                const getNum = (selector) => {
+                    const el = row.querySelector(selector);
+                    return (el && el.value !== '') ? parseFloat(el.value) : null;
+                };
+               
+                const getUh = (index) => {
+                    const els = row.querySelectorAll('.uh-input');
+                    return (els[index] && els[index].value !== '') ? parseFloat(els[index].value) : null;
+                };
+
+                const record = {
+                    id: row.cells[1].querySelector('input').value,
+                    nama_siswa: row.cells[2].querySelector('input').value,
+                    kelas: row.cells[3].querySelector('input').value,
+                    semester: row.cells[4].querySelector('input').value,
+                    mapel: row.cells[5].querySelector('input').value,
+                    kktp: getNum('.kktp-input'),
+                    jumlah_uh: getNum('.ju-input'),
+                    uh1: getUh(0),
+                    uh2: getUh(1),
+                    uh3: getUh(2),
+                    uh4: getUh(3),
+                    uh5: getUh(4),
+                    uh6: getUh(5),
+                    uh7: getUh(6),
+                    nh: getNum('.nh-input'),
+                    uts: getNum('.uts-input'),
+                    us: getNum('.us-input'),
+                    nr: getNum('.nr-input'),
+                    status: row.querySelector('.status-input').value
+                };
+               
+                dataToUpsert.push(record);
+            });
+
+            try {
+                const { data, error } = await absensiClient
+                    .from('nilaimapel')
+                    .upsert(dataToUpsert);
+
+                if (error) throw error;
+
+                alert('Berhasil menyimpan semua nilai siswa!');
+            } catch (err) {
+                console.error('Error saving grades:', err);
+                alert('Gagal menyimpan data: ' + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        const btnExportDropdown = document.getElementById('btnExportDropdown');
+        const exportMenu = document.getElementById('exportMenu');
+       
+        if(btnExportDropdown) {
+            btnExportDropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+                exportMenu.classList.toggle('show');
+            });
+        }
+
+        window.addEventListener('click', () => {
+            if (exportMenu) exportMenu.classList.remove('show');
+        });
+
+        function getTableDataForExport() {
+            const tableBody = document.querySelector('#nilaiTable tbody');
+            const rows = tableBody.querySelectorAll('tr');
+           
+            if (rows.length === 0) {
+                return null;
+            }
+
+            const data = [];
+           
+            const headers = [
+                "No", "ID", "Nama Siswa", "Kelas", "Semester", "Mapel",
+                "KKTP", "JU", "UH1", "UH2", "UH3", "UH4", "UH5", "UH6", "UH7",
+                "NH", "UTS", "US", "NR", "Status"
+            ];
+            data.push(headers);
+
+            rows.forEach(row => {
+                const rowData = [];
+                rowData.push(row.cells[0].innerText);
+               
+                for (let i = 1; i <= 19; i++) {
+                    const input = row.cells[i].querySelector('input');
+                    rowData.push(input ? input.value : row.cells[i].innerText);
+                }
+                data.push(rowData);
+            });
+            return data;
+        }
+
+        function getExportFilename(extension) {
+            const mapelSelect = document.getElementById('pilihMapel');
+            const mapelText = mapelSelect.options[mapelSelect.selectedIndex].text.replace(/[^a-zA-Z0-9]/g, "_");
+            const kelas = document.getElementById('pilihKelas').value.replace(/[^a-zA-Z0-9]/g, "_");
+            return `Nilai_${kelas}_${mapelText}.${extension}`;
+        }
+
+        document.getElementById('btnExportExcelOption').addEventListener('click', function(e) {
+            e.preventDefault();
+            const data = getTableDataForExport();
+            if (!data) { alert("Tidak ada data untuk diexport."); return; }
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Nilai Siswa");
+           
+            XLSX.writeFile(wb, getExportFilename('xlsx'));
+        });
+
+        document.getElementById('btnExportCSVOption').addEventListener('click', function(e) {
+            e.preventDefault();
+            const data = getTableDataForExport();
+            if (!data) { alert("Tidak ada data untuk diexport."); return; }
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Nilai Siswa");
+           
+            XLSX.writeFile(wb, getExportFilename('csv'), { bookType: 'csv' });
+        });
+
+        const btnImportNilai = document.getElementById('btnImportNilai');
+        const fileImportNilai = document.getElementById('fileImportNilai');
+
+        if (btnImportNilai && fileImportNilai) {
+            btnImportNilai.addEventListener('click', () => {
+                fileImportNilai.click();
+            });
+        }
+            fileImportNilai.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (jsonData.length === 0) {
+                        alert("File Excel kosong atau format tidak sesuai.");
+                        return;
+                    }
+
+                    populateTableFromImport(jsonData);
+                    fileImportNilai.value = '';
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        
+        function populateTableFromImport(data) {
+            const rows = document.querySelectorAll('#nilaiTable tbody tr');
+            let updatedCount = 0;
+            const dataMap = {};
+            
+            data.forEach(row => { if (row['ID']) dataMap[row['ID']] = row; });
+
+            rows.forEach(row => {
+                const idInput = row.cells[1].querySelector('input');
+                if (!idInput) return;
+                const id = idInput.value;
+                const excelRow = dataMap[id];
+
+                if (excelRow) {
+                    const uhInputs = row.querySelectorAll('.uh-input');
+                    for (let i = 0; i < 7; i++) {
+                        const key = `UH${i+1}`;
+                        let val = excelRow[key];
+                        if (val === undefined) val = excelRow[`NH${i+1}`]; 
+
+                        if (val !== undefined) uhInputs[i].value = val;
+                    }
+                    
+                    const juInput = row.querySelector('.ju-input');
+                    if (juInput && excelRow['JU'] !== undefined) juInput.value = excelRow['JU'];
+
+                    const utsInput = row.querySelector('.uts-input');
+                    if (utsInput && excelRow['UTS'] !== undefined) utsInput.value = excelRow['UTS'];
+                    
+                    const usInput = row.querySelector('.us-input');
+                    if (usInput && excelRow['US'] !== undefined) usInput.value = excelRow['US'];
+
+                    calculateNH();
+                    updatedCount++;
+                }
+            });
+
+            if (updatedCount > 0) {
+                alert(`Berhasil mengimport nilai untuk ${updatedCount} siswa.`);
+            } else {
+                alert("Tidak ada data siswa yang cocok dengan file Excel (Pastikan kolom ID sesuai).");
+            }
+        }
+
+        const searchSiswaNilai = document.getElementById('searchSiswaNilai');
+        if (searchSiswaNilai) {
+            searchSiswaNilai.addEventListener('input', function(e) {
+                const term = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('#nilaiTable tbody tr');
+                
+                rows.forEach(row => {
+                    const nameInput = row.cells[2].querySelector('input');
+                    if (nameInput) {
+                        const name = nameInput.value.toLowerCase();
+                        if (name.includes(term)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    }
+                });
+            });
+        }
+
+        const btnExportPreviewPdf = document.getElementById('btnExportPreviewPdf');
+        if (btnExportPreviewPdf) {
+            btnExportPreviewPdf.addEventListener('click', async function() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                
+                const mapelSelect = document.getElementById('pilihMapel');
+                const mapelName = mapelSelect.options[mapelSelect.selectedIndex].text;
+                const kelas = document.getElementById('pilihKelas').value;
+                const semester = document.getElementById('pilihSemester').value;
+                
+                const rows = document.querySelectorAll('#nilaiTable tbody tr');
+                if (rows.length === 0) {
+                    alert("Tidak ada data untuk diexport.");
+                    return;
+                }
+
+                const students = [];
+                rows.forEach(row => {
+                    const getNum = (selector) => {
+                        const el = row.querySelector(selector);
+                        return (el && el.value !== '') ? parseFloat(el.value) : null;
+                    };
+                    const getUh = (index) => {
+                        const els = row.querySelectorAll('.uh-input');
+                        return (els[index] && els[index].value !== '') ? els[index].value : '-';
+                    };
+                    
+                    const student = {
+                        nama: row.cells[2].querySelector('input').value,
+                        kktp: getNum('.kktp-input'),
+                        nh: getNum('.nh-input'),
+                        uts: getNum('.uts-input'),
+                        us: getNum('.us-input'),
+                        nr: getNum('.nr-input'),
+                        status: row.querySelector('.status-input').value,
+                        uh1: getUh(0),
+                        uh2: getUh(1),
+                        uh3: getUh(2),
+                        uh4: getUh(3),
+                        uh5: getUh(4),
+                        uh6: getUh(5),
+                        uh7: getUh(6)
+                    };
+                    students.push(student);
+                });
+
+                const studentsWithNH = students.filter(s => s.nh !== null);
+                const studentsWithUTS = students.filter(s => s.uts !== null);
+                const studentsWithUS = students.filter(s => s.us !== null);
+                const studentsWithNR = students.filter(s => s.nr !== null);
+
+                const totalSiswa = students.length;
+                const tuntas = students.filter(s => s.status === 'Tuntas').length;
+                const tidakTuntas = students.filter(s => s.status === 'Tidak Tuntas').length;
+
+                const getTop5 = (data, key) => data.filter(s => s[key] !== null).sort((a, b) => b[key] - a[key]).slice(0, 5);
+                const getBottom5 = (data, key) => data.filter(s => s[key] !== null).sort((a, b) => a[key] - b[key]).slice(0, 5);
+                const siswaBelumTuntasNH = students.filter(s => s.nh !== null && s.kktp !== null && s.nh < s.kktp);
+
+                let yPos = 20;
+                
+                if (schoolData.kop_sekolah) {
+                    try {
+                        const response = await fetch(schoolData.kop_sekolah);
+                        const blob = await response.blob();
+                        const base64data = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.readAsDataURL(blob);
+                        });
+
+                        const imgProps = doc.getImageProperties(base64data);
+                        const pdfWidth = pageWidth - 20;
+                        const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                        
+                        doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                        yPos = 10 + imgHeight + 10;
+                    } catch (err) {
+                        console.error("Gagal memuat KOP Sekolah:", err);
+                    }
+                }
+
+                doc.setFontSize(16);
+                doc.text("Laporan Perkembangan Akademis", pageWidth / 2, yPos, { align: 'center' });
+                yPos += 10;
+                
+                doc.setFontSize(11);
+                doc.text(`Mata Pelajaran: ${mapelName}`, 14, yPos);
+                doc.text(`Kelas: ${kelas} | Semester: ${semester}`, 14, yPos + 6);
+                yPos += 15;
+
+                doc.setDrawColor(200);
+                doc.setFillColor(245, 247, 250);
+                doc.rect(14, yPos, 182, 20, 'F');
+                doc.setFontSize(10);
+                doc.text(`Total Siswa: ${totalSiswa}`, 30, yPos + 13);
+                doc.setTextColor(16, 185, 129);
+                doc.text(`Tuntas: ${tuntas}`, 90, yPos + 13);
+                doc.setTextColor(239, 68, 68);
+                doc.text(`Tidak Tuntas: ${tidakTuntas}`, 150, yPos + 13);
+                doc.setTextColor(0);
+                yPos += 30;
+
+                const addSectionTable = (title, topData, bottomData, valueKey) => {
+                    if (yPos > 250) { doc.addPage(); yPos = 20; }
+                    
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(title, 14, yPos);
+                    yPos += 5;
+                    
+                    const bodyData = [];
+                    const maxRows = Math.max(topData.length, bottomData.length);
+                    
+                    for(let i=0; i<maxRows; i++) {
+                        const top = topData[i] || { nama: '-', [valueKey]: '-' };
+                        const bottom = bottomData[i] || { nama: '-', [valueKey]: '-' };
+                        bodyData.push([i+1, top.nama, top[valueKey], bottom.nama, bottom[valueKey]]);
+                    }
+                    
+                    if (bodyData.length === 0) bodyData.push(['-', 'Belum ada data', '-', 'Belum ada data', '-']);
+
+                    doc.autoTable({
+                        startY: yPos,
+                        head: [['No', '5 Terbesar (Nama)', 'Nilai', '5 Terkecil (Nama)', 'Nilai']],
+                        body: bodyData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [100, 116, 139], fontSize: 9 },
+                        styles: { fontSize: 9, cellPadding: 2 },
+                        columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 20, halign: 'center' }, 4: { cellWidth: 20, halign: 'center' } },
+                        margin: { left: 14, right: 14 }
+                    });
+                    
+                    yPos = doc.lastAutoTable.finalY + 15;
+                };
+
+                addSectionTable("ULANGAN HARIAN", getTop5(studentsWithNH, 'nh'), getBottom5(studentsWithNH, 'nh'), 'nh');
+                addSectionTable("UJIAN TENGAH SEMESTER", getTop5(studentsWithUTS, 'uts'), getBottom5(studentsWithUTS, 'uts'), 'uts');
+                addSectionTable("UJIAN SEMESTER", getTop5(studentsWithUS, 'us'), getBottom5(studentsWithUS, 'us'), 'us');
+                addSectionTable("NILAI RAPORT", getTop5(studentsWithNR, 'nr'), getBottom5(studentsWithNR, 'nr'), 'nr');
+
+                if (siswaBelumTuntasNH.length > 0) {
+                    if (yPos > 250) { doc.addPage(); yPos = 20; }
+                    
+                    yPos += 5;
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(185, 28, 28);
+                    doc.text("Siswa Yang Belum Menuntaskan Nilai Harian", 14, yPos);
+                    doc.setTextColor(0);
+                    yPos += 5;
+
+                    const belumTuntasData = siswaBelumTuntasNH.map((s, i) => [i + 1, s.nama, s.nh, s.kktp]);
+
+                    doc.autoTable({
+                        startY: yPos,
+                        head: [['No', 'Nama Siswa', 'Nilai Harian (NH)', 'KKTP']],
+                        body: belumTuntasData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [220, 38, 38], fontSize: 9 },
+                        styles: { fontSize: 9, cellPadding: 2 },
+                        columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 2: { cellWidth: 35, halign: 'center' }, 3: { cellWidth: 20, halign: 'center' } },
+                        margin: { left: 14, right: 14 }
+                    });
+                }
+
+                doc.addPage();
+                doc.setFontSize(14);
+                doc.text("Rekapitulasi Nilai Lengkap", 14, 20);
+
+                const fullTableData = students.map((s, i) => [
+                    i + 1, s.nama, s.kktp, 
+                    s.uh1, s.uh2, s.uh3, s.uh4, s.uh5, s.uh6, s.uh7,
+                    s.nh, s.uts, s.us, s.nr, s.status
+                ]);
+
+                doc.autoTable({
+                    startY: 25,
+                    head: [['No', 'Nama Siswa', 'KKTP', 'UH1', 'UH2', 'UH3', 'UH4', 'UH5', 'UH6', 'UH7', 'NH', 'UTS', 'US', 'NR', 'Status']],
+                    body: fullTableData,
+                    theme: 'grid',
+                    styles: { fontSize: 7, cellPadding: 1, halign: 'center' },
+                    columnStyles: { 1: { halign: 'left', cellWidth: 35 } },
+                    margin: { left: 10, right: 10 }
+                });
+
+                let finalY = doc.lastAutoTable.finalY + 20;
+                if (finalY > 250) { doc.addPage(); finalY = 20; }
+
+                const session = JSON.parse(sessionStorage.getItem('guru_session'));
+                const guruNama = session ? session.nama : '.........................';
+                const guruNip = session ? session.nip : '.........................';
+                const today = new Date();
+                const dateStr = today.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                doc.setFontSize(10);
+                const xPos = doc.internal.pageSize.width - 60;
+                doc.text(`Simpang Teritip, ${dateStr}`, xPos, finalY, { align: 'center' });
+                doc.text("Guru Mata Pelajaran,", xPos, finalY + 5, { align: 'center' });
+                doc.text(guruNama, xPos, finalY + 25, { align: 'center' });
+                doc.text(`NIP. ${guruNip}`, xPos, finalY + 30, { align: 'center' });
+
+                doc.save(`Laporan_Perkembangan_${kelas}_${mapelName}.pdf`);
+            });
+        }
+    </script>
+</body>
+
+</html>

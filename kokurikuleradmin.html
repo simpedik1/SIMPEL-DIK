@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPEL-DIK | Nilai Kokurikuler Siswa</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF & AutoTable untuk Export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --bg-light: #f4f6f9;
+            --navbar-bg: #dc2626; /* Warna aksen untuk section riwayat */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Mencegah scroll ganda pada body */
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('bg2.jpg') no-repeat center center;
+            background-size: cover;
+            filter: blur(5px);
+            transform: scale(1.05);
+            z-index: -1;
+        }
+
+        /* --- Navbar (sama dengan dasboradmin.html) --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        /* --- Tombol Dashboard --- */
+        .btn-back-dashboard {
+            margin-left: 15px;
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .btn-back-dashboard:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0;
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: visible;
+        }
+
+        .section-desc { color: #666; font-size: 0.9rem; margin-top: 6px; }
+
+        .section-subtitle {
+            font-size: 1rem; font-weight: 700; color: #333; margin: 0 0 15px;
+            padding-bottom: 8px; border-bottom: 2px solid #f0f0f0; display: flex; align-items: center; gap: 8px;
+        }
+        .section-subtitle i { color: var(--navbar-bg); }
+
+        /* --- Pencarian Riwayat --- */
+        .search-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .search-input { flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9rem; font-family: inherit; }
+
+        /* --- Tombol Kecil --- */
+        .btn-primary-sm {
+            color: white; border: none; padding: 9px 16px; border-radius: 6px; cursor: pointer;
+            font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: filter 0.2s;
+        }
+        .btn-primary-sm:hover { filter: brightness(0.92); }
+
+        /* --- Tabel Data --- */
+        .table-responsive { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .data-table th, .data-table td { padding: 10px 12px; border-bottom: 1px solid #eee; text-align: left; }
+        .data-table th { background-color: #f9fafb; color: #555; font-weight: 600; }
+        .data-table tbody tr:hover { background-color: #f9fafb; }
+
+        .badge-nilai { padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; display: inline-block; white-space: nowrap; }
+        .badge-nilai-mb { background: #fef3c7; color: #b45309; }
+        .badge-nilai-b { background: #dbeafe; color: #1d4ed8; }
+        .badge-nilai-bsh { background: #dcfce7; color: #15803d; }
+
+        .btn-icon {
+            border: none; width: 30px; height: 30px; border-radius: 5px; cursor: pointer; color: white;
+            font-size: 0.8rem; margin-right: 4px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .btn-icon-lihat { background-color: #8b5cf6; }
+        .btn-icon-hapus { background-color: #ef4444; }
+
+        /* --- Form umum (dipakai modal edit) --- */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; font-size: 0.9rem; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9rem; font-family: inherit;
+        }
+        .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-reset {
+            padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer;
+            font-weight: 600; color: #4b5563;
+        }
+        .btn-simpan {
+            padding: 10px 24px; background: var(--navbar-bg); border: none; border-radius: 5px; cursor: pointer;
+            font-weight: 600; color: white; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-simpan:hover { filter: brightness(0.93); }
+        .btn-simpan:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* --- Modal --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 90%; max-width: 400px; padding: 30px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; text-align: center; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; font-size: 1.15rem; color: #333; }
+        .modal-header span.close-x { cursor: pointer; font-size: 1.5rem; color: #888; }
+        .modal-siswa-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 15px; font-size: 0.88rem; color: #555; text-align: left; }
+        .modal-siswa-meta b { color: #333; }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .search-box { width: 100%; margin-top: 10px; }
+            .search-bar { flex-direction: column; align-items: stretch; }
+            .btn-back-dashboard span.btn-label { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <div class="navbar-date" style="margin-left: auto; display: flex; align-items: center; gap: 10px; color: #555; font-weight: 600; font-size: 0.9rem;">
+            <i class="far fa-calendar-alt" style="color: var(--primary-color);"></i>
+            <span id="navbarDate"></span>
+        </div>
+        <a href="dasboradmin.html" class="btn-back-dashboard">
+            <i class="fas fa-th-large"></i>
+            <span class="btn-label">Dashboard</span>
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Nilai Kokurikuler Siswa</h2>
+            <p class="section-desc">Rekap seluruh nilai kokurikuler projek yang telah dinilai oleh fasilitator projek.</p>
+        </div>
+
+        <!-- Riwayat Penilaian -->
+        <div class="dashboard-card">
+            <h3 class="section-subtitle"><i class="fas fa-history"></i> Riwayat Penilaian Siswa</h3>
+            <div class="search-bar">
+                <input type="text" id="searchRiwayat" class="search-input" placeholder="Cari nama siswa, NISN, atau kelas...">
+                <button type="button" id="btnExportRiwayatPdf" class="btn-primary-sm" style="background-color: #16a34a;">
+                    <i class="fas fa-file-pdf"></i> Export Pdf
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nama Siswa</th>
+                            <th>NISN</th>
+                            <th>Kelas</th>
+                            <th>Judul Projek</th>
+                            <th>Dimensi</th>
+                            <th>Predikat</th>
+                            <th>Deskripsi Capaian</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelRiwayatBody">
+                        <tr id="riwayatEmptyRow">
+                            <td colspan="8" style="text-align: center; color: #999; padding: 20px;">Belum ada data penilaian.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Edit Nilai Kokurikuler -->
+    <div id="modalEditNilai" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Nilai Kokurikuler</h3>
+                <span id="closeModalEditNilai" class="close-x">&times;</span>
+            </div>
+            <div class="modal-siswa-meta" style="flex-direction: column; gap: 4px;">
+                <span>Nama: <b id="editNamaSiswa">-</b></span>
+                <span>NISN: <b id="editNisn">-</b></span>
+                <span>Kelas: <b id="editKelas">-</b></span>
+                <span>Judul Projek: <b id="editJudulProjek">-</b></span>
+                <span>Dimensi: <b id="editDimensi">-</b></span>
+            </div>
+            <input type="hidden" id="editIdNilai">
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="editPredikat">Predikat</label>
+                <select id="editPredikat">
+                    <option value="">-- Pilih --</option>
+                    <option value="Mulai Berkembang">Mulai Berkembang</option>
+                    <option value="Berkembang">Berkembang</option>
+                    <option value="Berkembang Sesuai Harapan">Berkembang Sesuai Harapan</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editDeskripsi">Deskripsi Capaian</label>
+                <textarea id="editDeskripsi" rows="4"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="button" id="btnCancelEditNilai" class="btn-reset">Cancel</button>
+                <button type="button" id="btnSimpanEditNilai" class="btn-simpan">
+                    <i class="fas fa-save"></i> Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus Riwayat -->
+    <div id="modalHapusRiwayat" class="modal">
+        <div class="modal-content" style="text-align: center; max-width: 400px;">
+            <div style="margin-bottom: 20px;">
+                <i class="fas fa-exclamation-circle" style="font-size: 4rem; color: #ef4444;"></i>
+            </div>
+            <h3 style="color: #333; margin-bottom: 10px;">Hapus Penilaian?</h3>
+            <p id="teksHapusRiwayat" style="color: #666; margin-bottom: 25px;">Apakah Anda yakin ingin menghapus data penilaian ini?</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" id="batalHapusRiwayat" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: #4b5563;">Batal</button>
+                <button type="button" id="konfirmasiHapusRiwayat" style="padding: 10px 20px; background: #ef4444; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Integration ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let schoolData = {}; // Menyimpan data sekolah untuk keperluan navbar & kop PDF
+
+        async function loadSchoolIdentity() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo, kop_sekolah, tahun_pelajaran')
+                    .limit(1)
+                    .single();
+
+                if (data) {
+                    schoolData = data;
+                    if (data.nama_sekolah) {
+                        document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    }
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading school identity:", err);
+            }
+        }
+
+        // --- Tampilkan Tanggal di Navbar ---
+        function updateNavbarDate() {
+            const now = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            document.getElementById('navbarDate').textContent = now.toLocaleDateString('id-ID', options);
+        }
+
+        // ==========================================================
+        // --- Riwayat Penilaian Siswa ---
+        // ==========================================================
+        let riwayatData = [];
+        let filteredRiwayat = [];
+        let hapusIdNilaiAktif = null;
+
+        // Mendeteksi error karena tabel belum dibuat di database
+        function isTableMissingError(err) {
+            const kode = (err && err.code) || '';
+            const pesan = ((err && err.message) || '').toLowerCase();
+            return kode === '42P01' || kode === 'PGRST205' ||
+                pesan.includes('does not exist') || pesan.includes('could not find the table');
+        }
+
+        function nilaiBadgeClass(nilai) {
+            if (nilai === 'Mulai Berkembang') return 'badge-nilai-mb';
+            if (nilai === 'Berkembang') return 'badge-nilai-b';
+            if (nilai === 'Berkembang Sesuai Harapan') return 'badge-nilai-bsh';
+            return '';
+        }
+
+        async function loadRiwayat() {
+            const tbody = document.getElementById('tabelRiwayatBody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('nilaikokurikulersiswa')
+                    .select('id_nilai, id_projek, kelompok, judul_projek, nama_siswa, nisn, kelas, dimensi, predikat, deskripsi')
+                    .order('nama_siswa', { ascending: true })
+                    .order('id_nilai', { ascending: true });
+                if (error) throw error;
+
+                riwayatData = data || [];
+                renderRiwayatTable();
+            } catch (err) {
+                console.error('Error memuat riwayat penilaian:', err);
+                if (isTableMissingError(err)) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 20px;">Tabel "nilaikokurikulersiswa" belum dibuat di database. Jalankan skrip SQL pembuatan tabel terlebih dahulu di Supabase SQL Editor.</td></tr>';
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 20px;">Gagal memuat data riwayat.</td></tr>';
+                }
+            }
+        }
+
+        function renderRiwayatTable(filterText) {
+            const tbody = document.getElementById('tabelRiwayatBody');
+            tbody.innerHTML = '';
+
+            const keyword = (filterText !== undefined ? filterText : (document.getElementById('searchRiwayat').value || '')).trim().toLowerCase();
+            filteredRiwayat = riwayatData.filter(item =>
+                !keyword ||
+                (item.nama_siswa || '').toLowerCase().includes(keyword) ||
+                String(item.nisn || '').toLowerCase().includes(keyword) ||
+                (item.kelas || '').toLowerCase().includes(keyword)
+            );
+
+            if (filteredRiwayat.length === 0) {
+                tbody.innerHTML = '<tr id="riwayatEmptyRow"><td colspan="8" style="text-align: center; color: #999; padding: 20px;">Belum ada data penilaian.</td></tr>';
+                return;
+            }
+
+            filteredRiwayat.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.nama_siswa || '-'}</td>
+                    <td>${item.nisn || '-'}</td>
+                    <td>${item.kelas || '-'}</td>
+                    <td>${item.judul_projek || '-'}</td>
+                    <td>${item.dimensi || '-'}</td>
+                    <td><span class="badge-nilai ${nilaiBadgeClass(item.predikat)}">${item.predikat || '-'}</span></td>
+                    <td>${item.deskripsi || '-'}</td>
+                    <td>
+                        <button type="button" class="btn-icon btn-icon-lihat" onclick="bukaEditNilai('${item.id_nilai}')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn-icon btn-icon-hapus" onclick="bukaHapusRiwayat('${item.id_nilai}')" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('searchRiwayat').addEventListener('input', () => renderRiwayatTable());
+
+        // --- Modal Edit Nilai ---
+        const modalEditNilai = document.getElementById('modalEditNilai');
+
+        window.bukaEditNilai = function (idNilai) {
+            const item = riwayatData.find(x => String(x.id_nilai) === String(idNilai));
+            if (!item) return;
+
+            document.getElementById('editIdNilai').value = item.id_nilai;
+            document.getElementById('editNamaSiswa').textContent = item.nama_siswa || '-';
+            document.getElementById('editNisn').textContent = item.nisn || '-';
+            document.getElementById('editKelas').textContent = item.kelas || '-';
+            document.getElementById('editJudulProjek').textContent = item.judul_projek || '-';
+            document.getElementById('editDimensi').textContent = item.dimensi || '-';
+            document.getElementById('editPredikat').value = item.predikat || '';
+            document.getElementById('editDeskripsi').value = item.deskripsi || '';
+
+            modalEditNilai.classList.add('active');
+        };
+
+        function tutupModalEditNilai() {
+            modalEditNilai.classList.remove('active');
+        }
+        document.getElementById('closeModalEditNilai').addEventListener('click', tutupModalEditNilai);
+        document.getElementById('btnCancelEditNilai').addEventListener('click', tutupModalEditNilai);
+        modalEditNilai.addEventListener('click', (e) => { if (e.target === modalEditNilai) tutupModalEditNilai(); });
+
+        document.getElementById('btnSimpanEditNilai').addEventListener('click', async () => {
+            const idNilai = document.getElementById('editIdNilai').value;
+            const predikat = document.getElementById('editPredikat').value;
+            const deskripsi = document.getElementById('editDeskripsi').value.trim();
+
+            if (!predikat || !deskripsi) {
+                alert('Predikat dan Deskripsi Capaian wajib diisi.');
+                return;
+            }
+
+            const btn = document.getElementById('btnSimpanEditNilai');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            try {
+                const { error } = await supabaseClient
+                    .from('nilaikokurikulersiswa')
+                    .update({ predikat, deskripsi })
+                    .eq('id_nilai', idNilai);
+                if (error) throw error;
+
+                tutupModalEditNilai();
+                await loadRiwayat();
+            } catch (err) {
+                console.error('Error memperbarui nilai kokurikuler:', err);
+                alert('Gagal menyimpan perubahan: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        });
+
+        // --- Modal Hapus Riwayat (per item) ---
+        const modalHapusRiwayat = document.getElementById('modalHapusRiwayat');
+
+        window.bukaHapusRiwayat = function (idNilai) {
+            const item = riwayatData.find(x => String(x.id_nilai) === String(idNilai));
+            if (!item) return;
+            hapusIdNilaiAktif = idNilai;
+            document.getElementById('teksHapusRiwayat').textContent = `Penilaian dimensi "${item.dimensi}" milik "${item.nama_siswa}" akan dihapus.`;
+            modalHapusRiwayat.classList.add('active');
+        };
+
+        function tutupModalHapusRiwayat() {
+            modalHapusRiwayat.classList.remove('active');
+            hapusIdNilaiAktif = null;
+        }
+        document.getElementById('batalHapusRiwayat').addEventListener('click', tutupModalHapusRiwayat);
+        modalHapusRiwayat.addEventListener('click', (e) => { if (e.target === modalHapusRiwayat) tutupModalHapusRiwayat(); });
+
+        document.getElementById('konfirmasiHapusRiwayat').addEventListener('click', async () => {
+            if (!hapusIdNilaiAktif) return;
+
+            const btn = document.getElementById('konfirmasiHapusRiwayat');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Menghapus...';
+
+            try {
+                const { error } = await supabaseClient.from('nilaikokurikulersiswa').delete().eq('id_nilai', hapusIdNilaiAktif);
+                if (error) throw error;
+                await loadRiwayat();
+            } catch (err) {
+                console.error('Error menghapus penilaian:', err);
+                alert('Gagal menghapus data: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                tutupModalHapusRiwayat();
+            }
+        });
+
+        // --- Export PDF Riwayat (Kertas Legal, Landscape, dengan Kop Sekolah) ---
+        // Hanya mengekspor data yang sedang tampil di tabel (mengikuti hasil pencarian)
+        document.getElementById('btnExportRiwayatPdf').addEventListener('click', async () => {
+            if (typeof window.jspdf === 'undefined') { alert('Library PDF belum siap, coba lagi sebentar.'); return; }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 12;
+
+            // Tambahkan KOP Sekolah jika ada
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20;
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                    doc.addImage(base64data, 'PNG', 10, yPos, pdfWidth, imgHeight);
+                    yPos += imgHeight + 8;
+                } catch (err) {
+                    console.error('Gagal memuat KOP Sekolah:', err);
+                }
+            }
+
+            // Judul Dokumen
+            doc.setFontSize(14);
+            doc.setTextColor(0);
+            doc.text('Rekap Nilai Kokurikuler Siswa', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 6;
+
+            const namaSekolah = schoolData.nama_sekolah || document.querySelector('.navbar-brand span').textContent || '';
+            if (namaSekolah) {
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text(namaSekolah, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 5;
+            }
+            if (schoolData.tahun_pelajaran) {
+                doc.text('Tahun Pelajaran ' + schoolData.tahun_pelajaran, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 5;
+            }
+            doc.setTextColor(0);
+            yPos += 3;
+
+            // Hanya data yang sedang ditampilkan di tabel (hasil pencarian aktif) yang diekspor
+            const dataSumber = filteredRiwayat;
+            const rows = dataSumber.map(item => [
+                item.nama_siswa || '-',
+                item.nisn || '-',
+                item.kelas || '-',
+                item.judul_projek || '-',
+                item.dimensi || '-',
+                item.predikat || '-',
+                item.deskripsi || '-'
+            ]);
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Nama Siswa', 'NISN', 'Kelas', 'Judul Projek', 'Dimensi', 'Predikat', 'Deskripsi Capaian']],
+                body: rows.length ? rows : [['-', '-', '-', '-', '-', '-', 'Belum ada data']],
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak', valign: 'top' },
+                headStyles: { fillColor: [220, 38, 38], fontSize: 8.5 },
+                margin: { left: 10, right: 10 },
+                tableWidth: 'auto',
+                columnStyles: {
+                    0: { cellWidth: 35 },
+                    1: { cellWidth: 22 },
+                    2: { cellWidth: 18 },
+                    3: { cellWidth: 42 },
+                    4: { cellWidth: 42 },
+                    5: { cellWidth: 30 },
+                    6: { cellWidth: 'auto' }
+                }
+            });
+
+            doc.save('rekap_nilai_kokurikuler_siswa.pdf');
+        });
+
+        // --- Inisialisasi Halaman ---
+        document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        document.addEventListener('DOMContentLoaded', updateNavbarDate);
+        document.addEventListener('DOMContentLoaded', loadRiwayat);
+    </script>
+</body>
+</html>

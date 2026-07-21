@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPPEDIK-SMKN 1 Mentok</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF untuk Export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --bg-light: #f4f6f9;
+            --header-height: 60px;
+            --navbar-bg: #dc2626; /* Warna Merah untuk Navbar */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--navbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        .btn-back-dashboard {
+            margin-left: auto;
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .btn-back-dashboard:hover {
+            background-color: white;
+            color: var(--navbar-bg);
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 2rem 5px;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100%;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .main-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        /* --- Tabs --- */
+        .tabs-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            border-radius: 6px 6px 0 0;
+            padding: 12px 18px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: #16a34a;
+            background-color: #f0fdf4;
+        }
+
+        .tab-btn.active {
+            color: white;
+            background-color: #16a34a;
+            border-bottom-color: #16a34a;
+        }
+
+        .tab-btn.active:hover {
+            color: white;
+            background-color: #16a34a;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .tab-placeholder {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .tab-placeholder i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #ddd;
+        }
+
+        /* --- Tombol Kecil --- */
+        .btn-primary-sm {
+            color: white;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: filter 0.2s;
+        }
+        .btn-primary-sm:hover {
+            filter: brightness(0.92);
+        }
+
+        /* --- Tabel Data --- */
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .data-table th, .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        .data-table th {
+            background-color: #f9fafb;
+            color: #555;
+            font-weight: 600;
+        }
+        .data-table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+        .badge-status {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .badge-aktif {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+        .badge-tidak-aktif {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        .btn-icon {
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+            font-size: 0.8rem;
+            margin-right: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .btn-icon-edit {
+            background-color: #3b82f6;
+        }
+        .btn-icon-hapus {
+            background-color: #ef4444;
+        }
+
+        /* --- Pencarian Riwayat --- */
+        .search-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .search-input { flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9rem; font-family: inherit; }
+
+        /* --- Badge Predikat Nilai --- */
+        .badge-nilai { padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; display: inline-block; white-space: nowrap; }
+        .badge-nilai-mb { background: #fef3c7; color: #b45309; }
+        .badge-nilai-b { background: #dbeafe; color: #1d4ed8; }
+        .badge-nilai-bsh { background: #dcfce7; color: #15803d; }
+
+        /* --- Judul Subseksi --- */
+        .section-subtitle {
+            font-size: 1rem; font-weight: 700; color: #333; margin: 0 0 15px;
+            padding-bottom: 8px; border-bottom: 2px solid #f0f0f0; display: flex; align-items: center; gap: 8px;
+        }
+        .section-subtitle i { color: var(--navbar-bg); }
+
+        /* --- Header & Aksi Modal Form (dipakai modal Edit/Hapus Nilai) --- */
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; font-size: 1.15rem; color: #333; }
+        .modal-header span.close-x { cursor: pointer; font-size: 1.5rem; color: #888; }
+        .modal-siswa-meta { display: flex; flex-direction: column; gap: 4px; margin-bottom: 15px; font-size: 0.88rem; color: #555; }
+        .modal-siswa-meta b { color: #333; }
+
+        .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-reset {
+            padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer;
+            font-weight: 600; color: #4b5563;
+        }
+        .btn-simpan {
+            padding: 10px 24px; background: var(--navbar-bg); border: none; border-radius: 5px; cursor: pointer;
+            font-weight: 600; color: white; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-simpan:hover { filter: brightness(0.93); }
+        .btn-simpan:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* --- Modal Form (lebar) --- */
+        .modal-content-form {
+            max-width: 480px;
+            text-align: left;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        /* --- Modal Update Profil --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 90%; max-width: 400px; padding: 30px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; text-align: center; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            .navbar-brand span {
+                font-size: 1rem;
+            }
+            .btn-back-dashboard span.btn-label {
+                display: none;
+            }
+            .tab-btn {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+
+            /* Badge jam berjalan: penuh & rata tengah agar simetris */
+            .clock-badge-wrap {
+                justify-content: center;
+            }
+            .clock-badge {
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+                flex-wrap: wrap;
+                font-size: 0.8rem;
+                padding: 10px 12px;
+            }
+
+            /* Kartu dashboard: padding lebih rapat & simetris */
+            .dashboard-card {
+                padding: 15px;
+            }
+
+            /* Biodata guru: rata tengah saat wrap ke bawah */
+            .biodata-flex {
+                justify-content: center;
+                text-align: center;
+            }
+            .biodata-photo {
+                margin: 0 auto;
+            }
+            .biodata-info {
+                min-width: 100%;
+                text-align: left;
+            }
+
+            /* Tabel data: lebih ringkas agar tidak terpotong */
+            .data-table th, .data-table td {
+                padding: 8px 6px;
+                font-size: 0.8rem;
+            }
+            .btn-icon {
+                width: 28px;
+                height: 28px;
+                margin-right: 3px;
+                font-size: 0.75rem;
+            }
+            .btn-primary-sm {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+
+            /* Modal form: padding lebih rapat agar tidak sempit di layar kecil */
+            .modal-content {
+                width: 92%;
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .tabs-nav {
+                justify-content: center;
+            }
+            .tab-btn {
+                flex: 1 1 auto;
+                justify-content: center;
+                padding: 10px 8px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="adminguru.html" class="btn-back-dashboard">
+            <i class="fas fa-th-large"></i>
+            <span class="btn-label">Dashboard</span>
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="clock-badge-wrap" style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+            <div class="clock-badge" style="background: white; padding: 10px 20px; border-radius: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: #555; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;">
+                <i class="far fa-clock" style="color: var(--navbar-bg);"></i>
+                <span id="liveDateTime"></span>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <h2 style="color: #333;">
+                <i class="fas fa-hard-hat" style="color: var(--navbar-bg); margin-right: 10px;"></i>
+                Kokurikuler
+            </h2>
+            <p style="color: #666; margin-top: 10px;">Halaman pengelolaan Projek Kokurikuler untuk Koordinator Kokurikuler.</p>
+        </div>
+
+        <!-- Container Biodata Guru -->
+        <div class="dashboard-card" id="biodataContainer" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: #333; font-size: 1.2rem;">
+                    <i class="fas fa-id-card" style="color: var(--navbar-bg); margin-right: 10px;"></i>
+                    Biodata Guru
+                </h3>
+                <button id="btnUpdateProfil" style="background-color: #3b82f6; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; transition: background 0.2s;"><i class="fas fa-edit"></i> Update Profil</button>
+            </div>
+            <div class="biodata-flex" style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+                <div class="biodata-photo" style="flex: 0 0 auto; width: 120px; text-align: center;">
+                    <img id="bioPhoto" src="" alt="Foto Guru" style="width: 120px; height: 120px; object-fit: cover; border-radius: 10px; border: 3px solid #eee; background: #f0f0f0;">
+                </div>
+                <div class="biodata-info" style="flex: 1; min-width: 250px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0; width: 140px; color: #666; font-weight: 600;">Nama Lengkap</td>
+                            <td style="padding: 8px 0; color: #333;">: <span id="bioNama">-</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #666; font-weight: 600;">NIP</td>
+                            <td style="padding: 8px 0; color: #333;">: <span id="bioNip">-</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #666; font-weight: 600;">Mata Pelajaran</td>
+                            <td style="padding: 8px 0; color: #333;">: <span id="bioMapel">-</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #666; font-weight: 600;">No. Telepon</td>
+                            <td style="padding: 8px 0; color: #333;">: <span id="bioTlp">-</span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container Tab Kokurikuler -->
+        <div class="dashboard-card">
+            <div class="tabs-nav">
+                <button type="button" class="tab-btn active" data-tab="namaProjek">
+                    <i class="fas fa-project-diagram"></i> Nama Projek
+                </button>
+                <button type="button" class="tab-btn" data-tab="dimensiProjek">
+                    <i class="fas fa-shapes"></i> Dimensi Projek
+                </button>
+                <button type="button" class="tab-btn" data-tab="fasilitatorProjek">
+                    <i class="fas fa-chalkboard-teacher"></i> Fasilitator Projek
+                </button>
+                <button type="button" class="tab-btn" data-tab="nilaiProjek">
+                    <i class="fas fa-star"></i> Nilai Projek
+                </button>
+            </div>
+
+            <div class="tab-panel active" id="tab-namaProjek">
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button type="button" id="btnTambahProjek" class="btn-primary-sm" style="background-color: var(--navbar-bg);">
+                        <i class="fas fa-plus"></i> Projek
+                    </button>
+                    <button type="button" id="btnExportProjekPdf" class="btn-primary-sm" style="background-color: #16a34a;">
+                        <i class="fas fa-file-pdf"></i> Export Pdf
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Id</th>
+                                <th>Nama Projek</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelProjekBody">
+                            <tr id="projekEmptyRow">
+                                <td colspan="4" style="text-align: center; color: #999; padding: 20px;">Belum ada data projek.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab-dimensiProjek">
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button type="button" id="btnTambahDimensi" class="btn-primary-sm" style="background-color: var(--navbar-bg);">
+                        <i class="fas fa-plus"></i> Dimensi
+                    </button>
+                    <button type="button" id="btnExportDimensiPdf" class="btn-primary-sm" style="background-color: #16a34a;">
+                        <i class="fas fa-file-pdf"></i> Export Pdf
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nama Dimensi</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelDimensiBody">
+                            <tr id="dimensiEmptyRow">
+                                <td colspan="2" style="text-align: center; color: #999; padding: 20px;">Belum ada data dimensi.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab-fasilitatorProjek">
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button type="button" id="btnTambahFasilitator" class="btn-primary-sm" style="background-color: var(--navbar-bg);">
+                        <i class="fas fa-plus"></i> Fasilitator
+                    </button>
+                    <button type="button" id="btnExportFasilitatorPdf" class="btn-primary-sm" style="background-color: #16a34a;">
+                        <i class="fas fa-file-pdf"></i> Export Pdf
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Id</th>
+                                <th>Nama Guru</th>
+                                <th>NIP</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelFasilitatorBody">
+                            <tr id="fasilitatorEmptyRow">
+                                <td colspan="4" style="text-align: center; color: #999; padding: 20px;">Belum ada data fasilitator.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab-nilaiProjek">
+                <h3 class="section-subtitle"><i class="fas fa-history"></i> Riwayat Penilaian Siswa</h3>
+                <div class="search-bar">
+                    <input type="text" id="searchRiwayat" class="search-input" placeholder="Cari nama siswa, NISN, atau kelas...">
+                    <button type="button" id="btnExportRiwayatPdf" class="btn-primary-sm" style="background-color: #16a34a;">
+                        <i class="fas fa-file-pdf"></i> Export Pdf
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nama Siswa</th>
+                                <th>NISN</th>
+                                <th>Kelas</th>
+                                <th>Judul Projek</th>
+                                <th>Dimensi</th>
+                                <th>Predikat</th>
+                                <th>Deskripsi Capaian</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelRiwayatBody">
+                            <tr id="riwayatEmptyRow">
+                                <td colspan="8" style="text-align: center; color: #999; padding: 20px;">Belum ada data penilaian.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Update Profil -->
+    <div id="updateProfilModal" class="modal">
+        <div class="modal-content" style="text-align: left; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 1.3rem; color: #333;">Update Profil</h3>
+                <span id="closeUpdateModal" style="cursor: pointer; font-size: 1.5rem; color: #888;">&times;</span>
+            </div>
+            <form id="updateProfilForm">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Nama Lengkap</label>
+                    <input type="text" id="editNama" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">NIP</label>
+                    <input type="text" id="editNip" readonly style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f3f4f6; cursor: not-allowed;">
+                    <small style="color: #888;">NIP tidak dapat diubah.</small>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Mata Pelajaran</label>
+                    <input type="text" id="editMapel" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">No. Telepon</label>
+                    <input type="text" id="editTlp" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Foto Profil</label>
+                    <input type="file" id="editPhoto" accept="image/*" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <small style="color: #888;">Upload foto baru untuk mengganti.</small>
+                    <div id="editPhotoPreviewContainer" style="margin-top: 10px; display: none; text-align: center;">
+                        <img id="editPhotoPreview" src="" alt="Preview Foto" style="max-width: 150px; max-height: 150px; border-radius: 8px; border: 1px solid #ddd; padding: 5px;">
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <button type="button" id="cancelUpdateBtn" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600; color: #4b5563;">Batal</button>
+                    <button type="submit" id="saveUpdateBtn" style="padding: 10px 20px; background: #3b82f6; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Input Nama Projek -->
+    <div id="modalProjek" class="modal">
+        <div class="modal-content modal-content-form">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 id="modalProjekTitle" style="margin: 0; font-size: 1.2rem; color: #333;">Tambah Projek</h3>
+                <span id="closeModalProjek" style="cursor: pointer; font-size: 1.5rem; color: #888;">&times;</span>
+            </div>
+            <form id="formProjek">
+                <div class="form-group">
+                    <label for="projekId">ID</label>
+                    <input type="text" id="projekId" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label for="projekNama">Nama Projek</label>
+                    <input type="text" id="projekNama" placeholder="Masukkan nama projek" required>
+                </div>
+                <div class="form-group">
+                    <label for="projekStatus">Status</label>
+                    <select id="projekStatus" required>
+                        <option value="Aktif">Aktif</option>
+                        <option value="Tidak Aktif">Tidak Aktif</option>
+                    </select>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" id="cancelModalProjek" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600; color: #4b5563;">Cancel</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--navbar-bg); border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus Projek -->
+    <div id="modalHapusProjek" class="modal">
+        <div class="modal-content" style="text-align: center; max-width: 400px;">
+            <div style="margin-bottom: 20px;">
+                <i class="fas fa-exclamation-circle" style="font-size: 4rem; color: #ef4444;"></i>
+            </div>
+            <h3 style="color: #333; margin-bottom: 10px;">Hapus Projek?</h3>
+            <p style="color: #666; margin-bottom: 25px;">Apakah Anda yakin ingin menghapus data projek ini?</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" id="batalHapusProjek" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: #4b5563;">Batal</button>
+                <button type="button" id="konfirmasiHapusProjek" style="padding: 10px 20px; background: #ef4444; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Input Dimensi Projek -->
+    <div id="modalDimensi" class="modal">
+        <div class="modal-content modal-content-form">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 id="modalDimensiTitle" style="margin: 0; font-size: 1.2rem; color: #333;">Tambah Dimensi</h3>
+                <span id="closeModalDimensi" style="cursor: pointer; font-size: 1.5rem; color: #888;">&times;</span>
+            </div>
+            <form id="formDimensi">
+                <div class="form-group">
+                    <label for="dimensiId">ID</label>
+                    <input type="text" id="dimensiId" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label for="dimensiNama">Nama Dimensi</label>
+                    <input type="text" id="dimensiNama" placeholder="Masukkan nama dimensi" required>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" id="cancelModalDimensi" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600; color: #4b5563;">Cancel</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--navbar-bg); border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus Dimensi -->
+    <div id="modalHapusDimensi" class="modal">
+        <div class="modal-content" style="text-align: center; max-width: 400px;">
+            <div style="margin-bottom: 20px;">
+                <i class="fas fa-exclamation-circle" style="font-size: 4rem; color: #ef4444;"></i>
+            </div>
+            <h3 style="color: #333; margin-bottom: 10px;">Hapus Dimensi?</h3>
+            <p style="color: #666; margin-bottom: 25px;">Apakah Anda yakin ingin menghapus data dimensi ini?</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" id="batalHapusDimensi" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: #4b5563;">Batal</button>
+                <button type="button" id="konfirmasiHapusDimensi" style="padding: 10px 20px; background: #ef4444; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Input Fasilitator Projek -->
+    <div id="modalFasilitator" class="modal">
+        <div class="modal-content modal-content-form">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 id="modalFasilitatorTitle" style="margin: 0; font-size: 1.2rem; color: #333;">Tambah Fasilitator</h3>
+                <span id="closeModalFasilitator" style="cursor: pointer; font-size: 1.5rem; color: #888;">&times;</span>
+            </div>
+            <form id="formFasilitator">
+                <div class="form-group">
+                    <label for="fasilitatorId">ID</label>
+                    <input type="text" id="fasilitatorId" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label for="fasilitatorNamaGuru">Nama Guru</label>
+                    <select id="fasilitatorNamaGuru" required>
+                        <option value="">-- Pilih Nama Guru --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="fasilitatorNip">NIP</label>
+                    <input type="text" id="fasilitatorNip" placeholder="NIP otomatis terisi" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" id="cancelModalFasilitator" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600; color: #4b5563;">Cancel</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--navbar-bg); border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus Fasilitator -->
+    <div id="modalHapusFasilitator" class="modal">
+        <div class="modal-content" style="text-align: center; max-width: 400px;">
+            <div style="margin-bottom: 20px;">
+                <i class="fas fa-exclamation-circle" style="font-size: 4rem; color: #ef4444;"></i>
+            </div>
+            <h3 style="color: #333; margin-bottom: 10px;">Hapus Fasilitator?</h3>
+            <p style="color: #666; margin-bottom: 25px;">Apakah Anda yakin ingin menghapus data fasilitator ini?</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" id="batalHapusFasilitator" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: #4b5563;">Batal</button>
+                <button type="button" id="konfirmasiHapusFasilitator" style="padding: 10px 20px; background: #ef4444; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit Nilai Kokurikuler -->
+    <div id="modalEditNilai" class="modal">
+        <div class="modal-content" style="text-align: left; max-width: 480px;">
+            <div class="modal-header">
+                <h3>Edit Nilai Kokurikuler</h3>
+                <span id="closeModalEditNilai" class="close-x">&times;</span>
+            </div>
+            <div class="modal-siswa-meta">
+                <span>Nama: <b id="editNamaSiswa">-</b></span>
+                <span>NISN: <b id="editNisn">-</b></span>
+                <span>Judul Projek: <b id="editJudulProjek">-</b></span>
+                <span>Dimensi: <b id="editDimensi">-</b></span>
+            </div>
+            <input type="hidden" id="editIdNilai">
+            <div class="form-group">
+                <label for="editPredikat">Predikat</label>
+                <select id="editPredikat">
+                    <option value="">-- Pilih --</option>
+                    <option value="Mulai Berkembang">Mulai Berkembang</option>
+                    <option value="Berkembang">Berkembang</option>
+                    <option value="Berkembang Sesuai Harapan">Berkembang Sesuai Harapan</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editDeskripsi">Deskripsi Capaian</label>
+                <textarea id="editDeskripsi" rows="4"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="button" id="btnCancelEditNilai" class="btn-reset">Cancel</button>
+                <button type="button" id="btnSimpanEditNilai" class="btn-simpan">
+                    <i class="fas fa-save"></i> Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus Riwayat -->
+    <div id="modalHapusRiwayat" class="modal">
+        <div class="modal-content" style="text-align: center; max-width: 400px;">
+            <div style="margin-bottom: 20px;">
+                <i class="fas fa-exclamation-circle" style="font-size: 4rem; color: #ef4444;"></i>
+            </div>
+            <h3 style="color: #333; margin-bottom: 10px;">Hapus Penilaian?</h3>
+            <p id="teksHapusRiwayat" style="color: #666; margin-bottom: 25px;">Apakah Anda yakin ingin menghapus data penilaian ini?</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" id="batalHapusRiwayat" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: #4b5563;">Batal</button>
+                <button type="button" id="konfirmasiHapusRiwayat" style="padding: 10px 20px; background: #ef4444; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Integration ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+
+        let supabaseClient;
+        let schoolData = {}; // Menyimpan data sekolah untuk keperluan export PDF (kop sekolah)
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo, kop_sekolah, tahun_pelajaran')
+                        .limit(1)
+                        .single();
+
+                    if (data) {
+                        schoolData = data;
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading school identity:", err);
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        }
+
+        // --- Cek Sesi Login ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            if (!session) {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // --- Fitur Jam & Tanggal Berjalan ---
+        function updateLiveTime() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('liveDateTime').textContent = `${now.toLocaleDateString('id-ID', dateOptions)} | ${now.toLocaleTimeString('id-ID', timeOptions).replace(/\./g, ':')} WIB`;
+        }
+        setInterval(updateLiveTime, 1000);
+        updateLiveTime();
+
+        let currentGuruData = null;
+
+        // --- Load Biodata Guru ---
+        async function loadGuruBiodata() {
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            if (!session || !session.nama) return;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('dataguru')
+                    .select('id_guru, nama_guru, nip::text, mapel, tlp, photo')
+                    .eq('nama_guru', session.nama)
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    currentGuruData = data;
+                    document.getElementById('biodataContainer').style.display = 'block';
+                    document.getElementById('bioNama').textContent = data.nama_guru || '-';
+
+                    const nip = data.nip || '-';
+                    let maskedNip = nip;
+                    if (nip !== '-' && nip.length > 10) {
+                        maskedNip = nip.substring(0, 10) + '*'.repeat(nip.length - 10);
+                    }
+                    document.getElementById('bioNip').textContent = maskedNip;
+
+                    document.getElementById('bioMapel').textContent = data.mapel || '-';
+                    document.getElementById('bioTlp').textContent = data.tlp || '-';
+
+                    const photoEl = document.getElementById('bioPhoto');
+                    if (data.photo) {
+                        photoEl.src = data.photo;
+                    } else {
+                        photoEl.src = 'https://via.placeholder.com/120?text=No+Photo';
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading biodata:', err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadGuruBiodata);
+
+        // --- Logic Update Profil ---
+        const updateModal = document.getElementById('updateProfilModal');
+        const btnUpdate = document.getElementById('btnUpdateProfil');
+        const closeUpdate = document.getElementById('closeUpdateModal');
+        const cancelUpdate = document.getElementById('cancelUpdateBtn');
+        const updateForm = document.getElementById('updateProfilForm');
+
+        if (btnUpdate) {
+            btnUpdate.addEventListener('click', () => {
+                if (currentGuruData) {
+                    document.getElementById('editNama').value = currentGuruData.nama_guru || '';
+                    document.getElementById('editNip').value = currentGuruData.nip || '';
+                    document.getElementById('editMapel').value = currentGuruData.mapel || '';
+                    document.getElementById('editTlp').value = currentGuruData.tlp || '';
+                    document.getElementById('editPhoto').value = '';
+                    document.getElementById('editPhotoPreview').src = '';
+                    document.getElementById('editPhotoPreviewContainer').style.display = 'none';
+                    updateModal.classList.add('active');
+                }
+            });
+        }
+
+        function closeUpdateModalFunc() {
+            updateModal.classList.remove('active');
+        }
+
+        if (closeUpdate) closeUpdate.addEventListener('click', closeUpdateModalFunc);
+        if (cancelUpdate) cancelUpdate.addEventListener('click', closeUpdateModalFunc);
+
+        // Preview Foto
+        const editPhotoInput = document.getElementById('editPhoto');
+        const editPhotoPreviewContainer = document.getElementById('editPhotoPreviewContainer');
+        const editPhotoPreview = document.getElementById('editPhotoPreview');
+
+        if (editPhotoInput) {
+            editPhotoInput.addEventListener('change', function () {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        editPhotoPreview.src = e.target.result;
+                        editPhotoPreviewContainer.style.display = 'block';
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        }
+
+        if (updateForm) {
+            updateForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const saveBtn = document.getElementById('saveUpdateBtn');
+                const originalText = saveBtn.textContent;
+                saveBtn.textContent = 'Menyimpan...';
+                saveBtn.disabled = true;
+
+                if (!currentGuruData || !currentGuruData.id_guru) {
+                    alert("Terjadi kesalahan: ID Guru tidak ditemukan. Silakan refresh halaman.");
+                    location.reload();
+                    return;
+                }
+
+                try {
+                    const nama = document.getElementById('editNama').value;
+                    const mapel = document.getElementById('editMapel').value;
+                    const tlp = document.getElementById('editTlp').value;
+                    const photoInput = document.getElementById('editPhoto');
+
+                    let photoUrl = currentGuruData.photo;
+
+                    if (photoInput.files.length > 0) {
+                        const file = photoInput.files[0];
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `guru_${currentGuruData.id_guru}_${Date.now()}.${fileExt}`;
+
+                        const { error: uploadError } = await supabaseClient.storage
+                            .from('aset')
+                            .upload(fileName, file);
+
+                        if (uploadError) throw uploadError;
+
+                        const { data: urlData } = supabaseClient.storage
+                            .from('aset')
+                            .getPublicUrl(fileName);
+
+                        photoUrl = urlData.publicUrl;
+                    }
+
+                    const { error } = await supabaseClient
+                        .from('dataguru')
+                        .update({
+                            nama_guru: nama,
+                            mapel: mapel,
+                            tlp: tlp,
+                            photo: photoUrl
+                        })
+                        .eq('id_guru', currentGuruData.id_guru);
+
+                    if (error) throw error;
+
+                    const session = JSON.parse(sessionStorage.getItem('guru_session'));
+                    if (session) {
+                        session.nama = nama;
+                        session.photo = photoUrl;
+                        sessionStorage.setItem('guru_session', JSON.stringify(session));
+                    }
+
+                    alert('Profil berhasil diperbarui!');
+                    closeUpdateModalFunc();
+                    loadGuruBiodata();
+                } catch (err) {
+                    console.error('Error updating profil:', err);
+                    alert('Gagal memperbarui profil: ' + err.message);
+                } finally {
+                    saveBtn.textContent = originalText;
+                    saveBtn.disabled = false;
+                }
+            });
+        }
+
+        // --- Logic Tab Kokurikuler ---
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabButtons.forEach(b => b.classList.remove('active'));
+                tabPanels.forEach(p => p.classList.remove('active'));
+
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ==========================================================
+        // --- Nama Projek (terhubung ke tabel projekkokurikuler) ---
+        // ==========================================================
+        let projekData = [];
+        let editingProjekId = null;
+        let hapusProjekId = null;
+
+        function generateProjekId() {
+            // Kombinasi timestamp + random agar hampir mustahil sama
+            const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+            return 'PRJ-' + Date.now().toString(36).toUpperCase() + rand;
+        }
+
+        async function loadProjekData() {
+            const tbody = document.getElementById('tabelProjekBody');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('projekkokurikuler')
+                    .select('id, nama_projek, status')
+                    .order('nama_projek', { ascending: true });
+
+                if (error) throw error;
+
+                projekData = data || [];
+                renderTabelProjek();
+            } catch (err) {
+                console.error('Error loading data projek:', err);
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #ef4444; padding: 20px;">Gagal memuat data projek.</td></tr>';
+            }
+        }
+
+        function renderTabelProjek() {
+            const tbody = document.getElementById('tabelProjekBody');
+            tbody.innerHTML = '';
+
+            if (projekData.length === 0) {
+                tbody.innerHTML = '<tr id="projekEmptyRow"><td colspan="4" style="text-align: center; color: #999; padding: 20px;">Belum ada data projek.</td></tr>';
+                return;
+            }
+
+            projekData.forEach(item => {
+                const badgeClass = item.status === 'Aktif' ? 'badge-aktif' : 'badge-tidak-aktif';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.nama_projek}</td>
+                    <td><span class="badge-status ${badgeClass}">${item.status}</span></td>
+                    <td>
+                        <button type="button" class="btn-icon btn-icon-edit" onclick="bukaEditProjek('${item.id}')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn-icon btn-icon-hapus" onclick="bukaHapusProjek('${item.id}')" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        const modalProjek = document.getElementById('modalProjek');
+        const formProjek = document.getElementById('formProjek');
+        const modalProjekTitle = document.getElementById('modalProjekTitle');
+        const btnTambahProjek = document.getElementById('btnTambahProjek');
+        const closeModalProjek = document.getElementById('closeModalProjek');
+        const cancelModalProjek = document.getElementById('cancelModalProjek');
+
+        function bukaModalTambahProjek() {
+            editingProjekId = null;
+            modalProjekTitle.textContent = 'Tambah Projek';
+            document.getElementById('projekId').value = generateProjekId();
+            document.getElementById('projekNama').value = '';
+            document.getElementById('projekStatus').value = 'Aktif';
+            modalProjek.classList.add('active');
+        }
+
+        function tutupModalProjek() {
+            modalProjek.classList.remove('active');
+        }
+
+        window.bukaEditProjek = function (id) {
+            const item = projekData.find(p => p.id === id);
+            if (!item) return;
+            editingProjekId = id;
+            modalProjekTitle.textContent = 'Edit Projek';
+            document.getElementById('projekId').value = item.id;
+            document.getElementById('projekNama').value = item.nama_projek;
+            document.getElementById('projekStatus').value = item.status;
+            modalProjek.classList.add('active');
+        };
+
+        window.bukaHapusProjek = function (id) {
+            hapusProjekId = id;
+            document.getElementById('modalHapusProjek').classList.add('active');
+        };
+
+        if (btnTambahProjek) btnTambahProjek.addEventListener('click', bukaModalTambahProjek);
+        if (closeModalProjek) closeModalProjek.addEventListener('click', tutupModalProjek);
+        if (cancelModalProjek) cancelModalProjek.addEventListener('click', tutupModalProjek);
+        modalProjek.addEventListener('click', (e) => {
+            if (e.target === modalProjek) tutupModalProjek();
+        });
+
+        if (formProjek) {
+            formProjek.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('projekId').value;
+                const nama = document.getElementById('projekNama').value.trim();
+                const status = document.getElementById('projekStatus').value;
+
+                if (!nama) return;
+
+                const submitBtn = formProjek.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Menyimpan...';
+
+                try {
+                    if (editingProjekId) {
+                        const { error } = await supabaseClient
+                            .from('projekkokurikuler')
+                            .update({ nama_projek: nama, status: status })
+                            .eq('id', editingProjekId);
+
+                        if (error) throw error;
+                    } else {
+                        const { error } = await supabaseClient
+                            .from('projekkokurikuler')
+                            .insert([{ id: id, nama_projek: nama, status: status }]);
+
+                        if (error) throw error;
+                    }
+
+                    await loadProjekData();
+                    tutupModalProjek();
+                } catch (err) {
+                    console.error('Error menyimpan projek:', err);
+                    alert('Gagal menyimpan data: ' + err.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            });
+        }
+
+        // --- Hapus Projek ---
+        const modalHapusProjek = document.getElementById('modalHapusProjek');
+        const batalHapusProjek = document.getElementById('batalHapusProjek');
+        const konfirmasiHapusProjek = document.getElementById('konfirmasiHapusProjek');
+
+        function tutupModalHapusProjek() {
+            modalHapusProjek.classList.remove('active');
+            hapusProjekId = null;
+        }
+
+        if (batalHapusProjek) batalHapusProjek.addEventListener('click', tutupModalHapusProjek);
+        modalHapusProjek.addEventListener('click', (e) => {
+            if (e.target === modalHapusProjek) tutupModalHapusProjek();
+        });
+
+        if (konfirmasiHapusProjek) {
+            konfirmasiHapusProjek.addEventListener('click', async () => {
+                if (!hapusProjekId) return;
+
+                const originalText = konfirmasiHapusProjek.textContent;
+                konfirmasiHapusProjek.disabled = true;
+                konfirmasiHapusProjek.textContent = 'Menghapus...';
+
+                try {
+                    const { error } = await supabaseClient
+                        .from('projekkokurikuler')
+                        .delete()
+                        .eq('id', hapusProjekId);
+
+                    if (error) throw error;
+
+                    await loadProjekData();
+                } catch (err) {
+                    console.error('Error menghapus projek:', err);
+                    alert('Gagal menghapus data: ' + err.message);
+                } finally {
+                    konfirmasiHapusProjek.disabled = false;
+                    konfirmasiHapusProjek.textContent = originalText;
+                    tutupModalHapusProjek();
+                }
+            });
+        }
+
+        // --- Export PDF Nama Projek ---
+        const btnExportProjekPdf = document.getElementById('btnExportProjekPdf');
+        if (btnExportProjekPdf) {
+            btnExportProjekPdf.addEventListener('click', () => {
+                if (typeof window.jspdf === 'undefined') {
+                    alert('Library PDF belum siap, coba lagi sebentar.');
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                doc.setFontSize(14);
+                doc.text('Daftar Nama Projek Kokurikuler', 105, 15, { align: 'center' });
+
+                const rows = projekData.map(item => [item.id, item.nama_projek, item.status]);
+
+                doc.autoTable({
+                    startY: 25,
+                    head: [['Id', 'Nama Projek', 'Status']],
+                    body: rows.length ? rows : [['-', 'Belum ada data', '-']],
+                    styles: { fontSize: 9 },
+                    headStyles: { fillColor: [220, 38, 38] }
+                });
+
+                doc.save('daftar_nama_projek.pdf');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadProjekData);
+
+        // ==========================================================
+        // --- Dimensi Projek (terhubung ke tabel dimensikokurikuler) ---
+        // ==========================================================
+        let dimensiData = [];
+        let editingDimensiId = null;
+        let hapusDimensiId = null;
+
+        async function loadDimensiData() {
+            const tbody = document.getElementById('tabelDimensiBody');
+            tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: #999; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('dimensikokurikuler')
+                    .select('id, nama_dimensi')
+                    .order('nama_dimensi', { ascending: true });
+
+                if (error) throw error;
+
+                dimensiData = data || [];
+                renderTabelDimensi();
+            } catch (err) {
+                console.error('Error loading data dimensi:', err);
+                tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: #ef4444; padding: 20px;">Gagal memuat data dimensi.</td></tr>';
+            }
+        }
+
+        function renderTabelDimensi() {
+            const tbody = document.getElementById('tabelDimensiBody');
+            tbody.innerHTML = '';
+
+            if (dimensiData.length === 0) {
+                tbody.innerHTML = '<tr id="dimensiEmptyRow"><td colspan="2" style="text-align: center; color: #999; padding: 20px;">Belum ada data dimensi.</td></tr>';
+                return;
+            }
+
+            dimensiData.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.nama_dimensi}</td>
+                    <td>
+                        <button type="button" class="btn-icon btn-icon-edit" onclick="bukaEditDimensi(${item.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn-icon btn-icon-hapus" onclick="bukaHapusDimensi(${item.id})" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        const modalDimensi = document.getElementById('modalDimensi');
+        const formDimensi = document.getElementById('formDimensi');
+        const modalDimensiTitle = document.getElementById('modalDimensiTitle');
+        const btnTambahDimensi = document.getElementById('btnTambahDimensi');
+        const closeModalDimensi = document.getElementById('closeModalDimensi');
+        const cancelModalDimensi = document.getElementById('cancelModalDimensi');
+
+        function bukaModalTambahDimensi() {
+            editingDimensiId = null;
+            modalDimensiTitle.textContent = 'Tambah Dimensi';
+            const idInput = document.getElementById('dimensiId');
+            idInput.value = '';
+            idInput.placeholder = 'Otomatis';
+            document.getElementById('dimensiNama').value = '';
+            modalDimensi.classList.add('active');
+        }
+
+        function tutupModalDimensi() {
+            modalDimensi.classList.remove('active');
+        }
+
+        window.bukaEditDimensi = function (id) {
+            const item = dimensiData.find(d => d.id === id);
+            if (!item) return;
+            editingDimensiId = id;
+            modalDimensiTitle.textContent = 'Edit Dimensi';
+            document.getElementById('dimensiId').value = item.id;
+            document.getElementById('dimensiNama').value = item.nama_dimensi;
+            modalDimensi.classList.add('active');
+        };
+
+        window.bukaHapusDimensi = function (id) {
+            hapusDimensiId = id;
+            document.getElementById('modalHapusDimensi').classList.add('active');
+        };
+
+        if (btnTambahDimensi) btnTambahDimensi.addEventListener('click', bukaModalTambahDimensi);
+        if (closeModalDimensi) closeModalDimensi.addEventListener('click', tutupModalDimensi);
+        if (cancelModalDimensi) cancelModalDimensi.addEventListener('click', tutupModalDimensi);
+        modalDimensi.addEventListener('click', (e) => {
+            if (e.target === modalDimensi) tutupModalDimensi();
+        });
+
+        if (formDimensi) {
+            formDimensi.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nama = document.getElementById('dimensiNama').value.trim();
+
+                if (!nama) return;
+
+                const submitBtn = formDimensi.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Menyimpan...';
+
+                try {
+                    if (editingDimensiId) {
+                        const { error } = await supabaseClient
+                            .from('dimensikokurikuler')
+                            .update({ nama_dimensi: nama })
+                            .eq('id', editingDimensiId);
+
+                        if (error) throw error;
+                    } else {
+                        const { error } = await supabaseClient
+                            .from('dimensikokurikuler')
+                            .insert([{ nama_dimensi: nama }]);
+
+                        if (error) throw error;
+                    }
+
+                    await loadDimensiData();
+                    tutupModalDimensi();
+                } catch (err) {
+                    console.error('Error menyimpan dimensi:', err);
+                    alert('Gagal menyimpan data: ' + err.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            });
+        }
+
+        // --- Hapus Dimensi ---
+        const modalHapusDimensi = document.getElementById('modalHapusDimensi');
+        const batalHapusDimensi = document.getElementById('batalHapusDimensi');
+        const konfirmasiHapusDimensi = document.getElementById('konfirmasiHapusDimensi');
+
+        function tutupModalHapusDimensi() {
+            modalHapusDimensi.classList.remove('active');
+            hapusDimensiId = null;
+        }
+
+        if (batalHapusDimensi) batalHapusDimensi.addEventListener('click', tutupModalHapusDimensi);
+        modalHapusDimensi.addEventListener('click', (e) => {
+            if (e.target === modalHapusDimensi) tutupModalHapusDimensi();
+        });
+
+        if (konfirmasiHapusDimensi) {
+            konfirmasiHapusDimensi.addEventListener('click', async () => {
+                if (!hapusDimensiId) return;
+
+                const originalText = konfirmasiHapusDimensi.textContent;
+                konfirmasiHapusDimensi.disabled = true;
+                konfirmasiHapusDimensi.textContent = 'Menghapus...';
+
+                try {
+                    const { error } = await supabaseClient
+                        .from('dimensikokurikuler')
+                        .delete()
+                        .eq('id', hapusDimensiId);
+
+                    if (error) throw error;
+
+                    await loadDimensiData();
+                } catch (err) {
+                    console.error('Error menghapus dimensi:', err);
+                    alert('Gagal menghapus data: ' + err.message);
+                } finally {
+                    konfirmasiHapusDimensi.disabled = false;
+                    konfirmasiHapusDimensi.textContent = originalText;
+                    tutupModalHapusDimensi();
+                }
+            });
+        }
+
+        // --- Export PDF Dimensi Projek ---
+        const btnExportDimensiPdf = document.getElementById('btnExportDimensiPdf');
+        if (btnExportDimensiPdf) {
+            btnExportDimensiPdf.addEventListener('click', () => {
+                if (typeof window.jspdf === 'undefined') {
+                    alert('Library PDF belum siap, coba lagi sebentar.');
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                doc.setFontSize(14);
+                doc.text('Daftar Dimensi Projek Kokurikuler', 105, 15, { align: 'center' });
+
+                const rows = dimensiData.map(item => [item.nama_dimensi]);
+
+                doc.autoTable({
+                    startY: 25,
+                    head: [['Nama Dimensi']],
+                    body: rows.length ? rows : [['Belum ada data']],
+                    styles: { fontSize: 9 },
+                    headStyles: { fillColor: [220, 38, 38] }
+                });
+
+                doc.save('daftar_dimensi_projek.pdf');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDimensiData);
+
+        // ==========================================================
+        // --- Fasilitator Projek (terhubung ke tabel fasilitatorkokurikuler) ---
+        // ==========================================================
+        let fasilitatorData = [];
+        let daftarGuruFasilitator = [];
+        let editingFasilitatorId = null;
+        let hapusFasilitatorId = null;
+
+        // Muat daftar guru untuk dropdown Nama Guru
+        async function loadDaftarGuruFasilitator() {
+            const select = document.getElementById('fasilitatorNamaGuru');
+            try {
+                const { data, error } = await supabaseClient
+                    .from('dataguru')
+                    .select('id_guru, nama_guru, nip::text')
+                    .order('nama_guru', { ascending: true });
+
+                if (error) throw error;
+
+                daftarGuruFasilitator = data || [];
+                select.innerHTML = '<option value="">-- Pilih Nama Guru --</option>';
+                daftarGuruFasilitator.forEach(guru => {
+                    const opt = document.createElement('option');
+                    opt.value = guru.id_guru;
+                    opt.textContent = guru.nama_guru;
+                    opt.dataset.nip = guru.nip || '';
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Error memuat daftar guru:', err);
+            }
+        }
+
+        async function loadFasilitatorData() {
+            const tbody = document.getElementById('tabelFasilitatorBody');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('fasilitatorkokurikuler')
+                    .select('id, nama_guru, nip')
+                    .order('nama_guru', { ascending: true });
+
+                if (error) throw error;
+
+                fasilitatorData = data || [];
+                renderTabelFasilitator();
+            } catch (err) {
+                console.error('Error loading data fasilitator:', err);
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #ef4444; padding: 20px;">Gagal memuat data fasilitator.</td></tr>';
+            }
+        }
+
+        function renderTabelFasilitator() {
+            const tbody = document.getElementById('tabelFasilitatorBody');
+            tbody.innerHTML = '';
+
+            if (fasilitatorData.length === 0) {
+                tbody.innerHTML = '<tr id="fasilitatorEmptyRow"><td colspan="4" style="text-align: center; color: #999; padding: 20px;">Belum ada data fasilitator.</td></tr>';
+                return;
+            }
+
+            fasilitatorData.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.nama_guru}</td>
+                    <td>${item.nip || '-'}</td>
+                    <td>
+                        <button type="button" class="btn-icon btn-icon-edit" onclick="bukaEditFasilitator('${item.id}')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn-icon btn-icon-hapus" onclick="bukaHapusFasilitator('${item.id}')" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        const modalFasilitator = document.getElementById('modalFasilitator');
+        const formFasilitator = document.getElementById('formFasilitator');
+        const modalFasilitatorTitle = document.getElementById('modalFasilitatorTitle');
+        const btnTambahFasilitator = document.getElementById('btnTambahFasilitator');
+        const closeModalFasilitator = document.getElementById('closeModalFasilitator');
+        const cancelModalFasilitator = document.getElementById('cancelModalFasilitator');
+        const selectFasilitatorGuru = document.getElementById('fasilitatorNamaGuru');
+
+        async function bukaModalTambahFasilitator() {
+            editingFasilitatorId = null;
+            modalFasilitatorTitle.textContent = 'Tambah Fasilitator';
+            const idInput = document.getElementById('fasilitatorId');
+            idInput.value = '';
+            idInput.placeholder = 'Otomatis';
+            document.getElementById('fasilitatorNip').value = '';
+            await loadDaftarGuruFasilitator();
+            selectFasilitatorGuru.value = '';
+            modalFasilitator.classList.add('active');
+        }
+
+        function tutupModalFasilitator() {
+            modalFasilitator.classList.remove('active');
+        }
+
+        // Saat nama guru dipilih, otomatis isi NIP
+        if (selectFasilitatorGuru) {
+            selectFasilitatorGuru.addEventListener('change', () => {
+                const opsiTerpilih = selectFasilitatorGuru.options[selectFasilitatorGuru.selectedIndex];
+                document.getElementById('fasilitatorNip').value = opsiTerpilih ? (opsiTerpilih.dataset.nip || '') : '';
+            });
+        }
+
+        window.bukaEditFasilitator = async function (id) {
+            const item = fasilitatorData.find(f => String(f.id) === String(id));
+            if (!item) return;
+            editingFasilitatorId = item.id;
+            modalFasilitatorTitle.textContent = 'Edit Fasilitator';
+            document.getElementById('fasilitatorId').value = item.id;
+            await loadDaftarGuruFasilitator();
+
+            // Cocokkan guru berdasarkan nama, lalu isi NIP
+            const guruCocok = daftarGuruFasilitator.find(g => g.nama_guru === item.nama_guru);
+            selectFasilitatorGuru.value = guruCocok ? guruCocok.id_guru : '';
+            document.getElementById('fasilitatorNip').value = item.nip || '';
+
+            modalFasilitator.classList.add('active');
+        };
+
+        window.bukaHapusFasilitator = function (id) {
+            hapusFasilitatorId = id;
+            document.getElementById('modalHapusFasilitator').classList.add('active');
+        };
+
+        if (btnTambahFasilitator) btnTambahFasilitator.addEventListener('click', bukaModalTambahFasilitator);
+        if (closeModalFasilitator) closeModalFasilitator.addEventListener('click', tutupModalFasilitator);
+        if (cancelModalFasilitator) cancelModalFasilitator.addEventListener('click', tutupModalFasilitator);
+        modalFasilitator.addEventListener('click', (e) => {
+            if (e.target === modalFasilitator) tutupModalFasilitator();
+        });
+
+        if (formFasilitator) {
+            formFasilitator.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const opsiTerpilih = selectFasilitatorGuru.options[selectFasilitatorGuru.selectedIndex];
+                const namaGuru = opsiTerpilih ? opsiTerpilih.textContent : '';
+                const nip = document.getElementById('fasilitatorNip').value.trim();
+
+                if (!selectFasilitatorGuru.value) {
+                    alert('Silakan pilih Nama Guru terlebih dahulu.');
+                    return;
+                }
+
+                const submitBtn = formFasilitator.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Menyimpan...';
+
+                try {
+                    if (editingFasilitatorId) {
+                        const { error } = await supabaseClient
+                            .from('fasilitatorkokurikuler')
+                            .update({ nama_guru: namaGuru, nip: nip })
+                            .eq('id', editingFasilitatorId);
+
+                        if (error) throw error;
+                    } else {
+                        const { error } = await supabaseClient
+                            .from('fasilitatorkokurikuler')
+                            .insert([{ nama_guru: namaGuru, nip: nip }]);
+
+                        if (error) throw error;
+                    }
+
+                    await loadFasilitatorData();
+                    tutupModalFasilitator();
+                } catch (err) {
+                    console.error('Error menyimpan fasilitator:', err);
+                    alert('Gagal menyimpan data: ' + err.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            });
+        }
+
+        // --- Hapus Fasilitator ---
+        const modalHapusFasilitator = document.getElementById('modalHapusFasilitator');
+        const batalHapusFasilitator = document.getElementById('batalHapusFasilitator');
+        const konfirmasiHapusFasilitator = document.getElementById('konfirmasiHapusFasilitator');
+
+        function tutupModalHapusFasilitator() {
+            modalHapusFasilitator.classList.remove('active');
+            hapusFasilitatorId = null;
+        }
+
+        if (batalHapusFasilitator) batalHapusFasilitator.addEventListener('click', tutupModalHapusFasilitator);
+        modalHapusFasilitator.addEventListener('click', (e) => {
+            if (e.target === modalHapusFasilitator) tutupModalHapusFasilitator();
+        });
+
+        if (konfirmasiHapusFasilitator) {
+            konfirmasiHapusFasilitator.addEventListener('click', async () => {
+                if (!hapusFasilitatorId) return;
+
+                const originalText = konfirmasiHapusFasilitator.textContent;
+                konfirmasiHapusFasilitator.disabled = true;
+                konfirmasiHapusFasilitator.textContent = 'Menghapus...';
+
+                try {
+                    const { error } = await supabaseClient
+                        .from('fasilitatorkokurikuler')
+                        .delete()
+                        .eq('id', hapusFasilitatorId);
+
+                    if (error) throw error;
+
+                    await loadFasilitatorData();
+                } catch (err) {
+                    console.error('Error menghapus fasilitator:', err);
+                    alert('Gagal menghapus data: ' + err.message);
+                } finally {
+                    konfirmasiHapusFasilitator.disabled = false;
+                    konfirmasiHapusFasilitator.textContent = originalText;
+                    tutupModalHapusFasilitator();
+                }
+            });
+        }
+
+        // --- Export PDF Fasilitator Projek ---
+        const btnExportFasilitatorPdf = document.getElementById('btnExportFasilitatorPdf');
+        if (btnExportFasilitatorPdf) {
+            btnExportFasilitatorPdf.addEventListener('click', () => {
+                if (typeof window.jspdf === 'undefined') {
+                    alert('Library PDF belum siap, coba lagi sebentar.');
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                doc.setFontSize(14);
+                doc.text('Daftar Fasilitator Projek Kokurikuler', 105, 15, { align: 'center' });
+
+                const rows = fasilitatorData.map(item => [item.id, item.nama_guru, item.nip || '-']);
+
+                doc.autoTable({
+                    startY: 25,
+                    head: [['Id', 'Nama Guru', 'NIP']],
+                    body: rows.length ? rows : [['-', 'Belum ada data', '-']],
+                    styles: { fontSize: 9 },
+                    headStyles: { fillColor: [220, 38, 38] }
+                });
+
+                doc.save('daftar_fasilitator_projek.pdf');
+            });
+        }
+
+        // ==========================================================
+        // --- Riwayat Penilaian Siswa (tab Nilai Projek) ---
+        // ==========================================================
+        let riwayatData = [];
+        let filteredRiwayat = [];
+        let hapusIdNilaiAktif = null;
+
+        // Mendeteksi error karena tabel belum dibuat di database
+        function isTableMissingError(err) {
+            const kode = (err && err.code) || '';
+            const pesan = ((err && err.message) || '').toLowerCase();
+            return kode === '42P01' || kode === 'PGRST205' ||
+                pesan.includes('does not exist') || pesan.includes('could not find the table');
+        }
+
+        function nilaiBadgeClass(nilai) {
+            if (nilai === 'Mulai Berkembang') return 'badge-nilai-mb';
+            if (nilai === 'Berkembang') return 'badge-nilai-b';
+            if (nilai === 'Berkembang Sesuai Harapan') return 'badge-nilai-bsh';
+            return '';
+        }
+
+        async function loadRiwayat() {
+            const tbody = document.getElementById('tabelRiwayatBody');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('nilaikokurikulersiswa')
+                    .select('id_nilai, id_projek, kelompok, judul_projek, nama_siswa, nisn, kelas, dimensi, predikat, deskripsi')
+                    .order('nama_siswa', { ascending: true })
+                    .order('id_nilai', { ascending: true });
+                if (error) throw error;
+
+                riwayatData = data || [];
+                renderRiwayatTable();
+            } catch (err) {
+                console.error('Error memuat riwayat penilaian:', err);
+                if (isTableMissingError(err)) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 20px;">Tabel "nilaikokurikulersiswa" belum dibuat di database. Jalankan skrip SQL pembuatan tabel terlebih dahulu di Supabase SQL Editor.</td></tr>';
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 20px;">Gagal memuat data riwayat.</td></tr>';
+                }
+            }
+        }
+
+        function renderRiwayatTable(filterText) {
+            const tbody = document.getElementById('tabelRiwayatBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const searchEl = document.getElementById('searchRiwayat');
+            const keyword = (filterText !== undefined ? filterText : (searchEl ? searchEl.value : '') || '').trim().toLowerCase();
+            filteredRiwayat = riwayatData.filter(item =>
+                !keyword ||
+                (item.nama_siswa || '').toLowerCase().includes(keyword) ||
+                String(item.nisn || '').toLowerCase().includes(keyword) ||
+                (item.kelas || '').toLowerCase().includes(keyword)
+            );
+
+            if (filteredRiwayat.length === 0) {
+                tbody.innerHTML = '<tr id="riwayatEmptyRow"><td colspan="8" style="text-align: center; color: #999; padding: 20px;">Belum ada data penilaian.</td></tr>';
+                return;
+            }
+
+            filteredRiwayat.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.nama_siswa || '-'}</td>
+                    <td>${item.nisn || '-'}</td>
+                    <td>${item.kelas || '-'}</td>
+                    <td>${item.judul_projek || '-'}</td>
+                    <td>${item.dimensi || '-'}</td>
+                    <td><span class="badge-nilai ${nilaiBadgeClass(item.predikat)}">${item.predikat || '-'}</span></td>
+                    <td>${item.deskripsi || '-'}</td>
+                    <td>
+                        <button type="button" class="btn-icon btn-icon-edit" onclick="bukaEditNilai('${item.id_nilai}')" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn-icon btn-icon-hapus" onclick="bukaHapusRiwayat('${item.id_nilai}')" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        const searchRiwayatInput = document.getElementById('searchRiwayat');
+        if (searchRiwayatInput) searchRiwayatInput.addEventListener('input', () => renderRiwayatTable());
+
+        // --- Modal Edit Nilai ---
+        const modalEditNilai = document.getElementById('modalEditNilai');
+
+        window.bukaEditNilai = function (idNilai) {
+            const item = riwayatData.find(x => String(x.id_nilai) === String(idNilai));
+            if (!item) return;
+
+            document.getElementById('editIdNilai').value = item.id_nilai;
+            document.getElementById('editNamaSiswa').textContent = item.nama_siswa || '-';
+            document.getElementById('editNisn').textContent = item.nisn || '-';
+            document.getElementById('editJudulProjek').textContent = item.judul_projek || '-';
+            document.getElementById('editDimensi').textContent = item.dimensi || '-';
+            document.getElementById('editPredikat').value = item.predikat || '';
+            document.getElementById('editDeskripsi').value = item.deskripsi || '';
+
+            modalEditNilai.classList.add('active');
+        };
+
+        function tutupModalEditNilai() {
+            modalEditNilai.classList.remove('active');
+        }
+        document.getElementById('closeModalEditNilai').addEventListener('click', tutupModalEditNilai);
+        document.getElementById('btnCancelEditNilai').addEventListener('click', tutupModalEditNilai);
+        modalEditNilai.addEventListener('click', (e) => { if (e.target === modalEditNilai) tutupModalEditNilai(); });
+
+        document.getElementById('btnSimpanEditNilai').addEventListener('click', async () => {
+            const idNilai = document.getElementById('editIdNilai').value;
+            const predikat = document.getElementById('editPredikat').value;
+            const deskripsi = document.getElementById('editDeskripsi').value.trim();
+
+            if (!predikat || !deskripsi) {
+                alert('Predikat dan Deskripsi Capaian wajib diisi.');
+                return;
+            }
+
+            const btn = document.getElementById('btnSimpanEditNilai');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            try {
+                const { error } = await supabaseClient
+                    .from('nilaikokurikulersiswa')
+                    .update({ predikat, deskripsi })
+                    .eq('id_nilai', idNilai);
+                if (error) throw error;
+
+                tutupModalEditNilai();
+                await loadRiwayat();
+            } catch (err) {
+                console.error('Error memperbarui nilai kokurikuler:', err);
+                alert('Gagal menyimpan perubahan: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        });
+
+        // --- Modal Hapus Riwayat (per item) ---
+        const modalHapusRiwayat = document.getElementById('modalHapusRiwayat');
+
+        window.bukaHapusRiwayat = function (idNilai) {
+            const item = riwayatData.find(x => String(x.id_nilai) === String(idNilai));
+            if (!item) return;
+            hapusIdNilaiAktif = idNilai;
+            document.getElementById('teksHapusRiwayat').textContent = `Penilaian dimensi "${item.dimensi}" milik "${item.nama_siswa}" akan dihapus.`;
+            modalHapusRiwayat.classList.add('active');
+        };
+
+        function tutupModalHapusRiwayat() {
+            modalHapusRiwayat.classList.remove('active');
+            hapusIdNilaiAktif = null;
+        }
+        document.getElementById('batalHapusRiwayat').addEventListener('click', tutupModalHapusRiwayat);
+        modalHapusRiwayat.addEventListener('click', (e) => { if (e.target === modalHapusRiwayat) tutupModalHapusRiwayat(); });
+
+        document.getElementById('konfirmasiHapusRiwayat').addEventListener('click', async () => {
+            if (!hapusIdNilaiAktif) return;
+
+            const btn = document.getElementById('konfirmasiHapusRiwayat');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Menghapus...';
+
+            try {
+                const { error } = await supabaseClient.from('nilaikokurikulersiswa').delete().eq('id_nilai', hapusIdNilaiAktif);
+                if (error) throw error;
+                await loadRiwayat();
+            } catch (err) {
+                console.error('Error menghapus penilaian:', err);
+                alert('Gagal menghapus data: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                tutupModalHapusRiwayat();
+            }
+        });
+
+        // --- Export PDF Riwayat (Kertas Legal, Landscape, dengan Kop Sekolah) ---
+        document.getElementById('btnExportRiwayatPdf').addEventListener('click', async () => {
+            if (typeof window.jspdf === 'undefined') { alert('Library PDF belum siap, coba lagi sebentar.'); return; }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 12;
+
+            // Tambahkan KOP Sekolah jika ada
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20;
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                    doc.addImage(base64data, 'PNG', 10, yPos, pdfWidth, imgHeight);
+                    yPos += imgHeight + 8;
+                } catch (err) {
+                    console.error('Gagal memuat KOP Sekolah:', err);
+                }
+            }
+
+            // Judul Dokumen
+            doc.setFontSize(14);
+            doc.setTextColor(0);
+            doc.text('Rekap Penilaian Kokurikuler Projek', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 6;
+
+            const namaSekolah = schoolData.nama_sekolah || document.querySelector('.navbar-brand span').textContent || '';
+            if (namaSekolah) {
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text(namaSekolah, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 5;
+            }
+            if (schoolData.tahun_pelajaran) {
+                doc.text('Tahun Pelajaran ' + schoolData.tahun_pelajaran, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 5;
+            }
+            doc.setTextColor(0);
+            yPos += 3;
+
+            const dataSumber = filteredRiwayat;
+            const rows = dataSumber.map(item => [
+                item.nama_siswa || '-',
+                item.nisn || '-',
+                item.kelas || '-',
+                item.judul_projek || '-',
+                item.dimensi || '-',
+                item.predikat || '-',
+                item.deskripsi || '-'
+            ]);
+
+            doc.autoTable({
+                startY: yPos,
+                head: [['Nama Siswa', 'NISN', 'Kelas', 'Judul Projek', 'Dimensi', 'Predikat', 'Deskripsi Capaian']],
+                body: rows.length ? rows : [['-', '-', '-', '-', '-', '-', 'Belum ada data']],
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak', valign: 'top' },
+                headStyles: { fillColor: [220, 38, 38], fontSize: 8.5 },
+                margin: { left: 10, right: 10 },
+                tableWidth: 'auto',
+                columnStyles: {
+                    0: { cellWidth: 35 },
+                    1: { cellWidth: 22 },
+                    2: { cellWidth: 18 },
+                    3: { cellWidth: 42 },
+                    4: { cellWidth: 42 },
+                    5: { cellWidth: 30 },
+                    6: { cellWidth: 'auto' }
+                }
+            });
+
+            doc.save('rekap_penilaian_kokurikuler_projek.pdf');
+        });
+
+        document.addEventListener('DOMContentLoaded', loadRiwayat);
+
+        document.addEventListener('DOMContentLoaded', loadFasilitatorData);
+    </script>
+</body>
+</html>

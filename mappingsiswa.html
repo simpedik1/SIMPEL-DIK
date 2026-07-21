@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPEL-DIK</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF & AutoTable for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Mencegah scroll ganda pada body */
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar {
+            justify-content: space-between;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        /* --- Navbar Dashboard Button --- */
+        .navbar-dashboard-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .navbar-dashboard-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0; /* Default: Full width */
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand span {
+                font-size: 1rem; /* Sedikit lebih kecil di HP */
+            }
+
+            .main-content {
+                padding: 2rem 5px;
+            }
+
+            .dashboard-card {
+                padding: 15px;
+            }
+
+            .tab-actions {
+                justify-content: center;
+            }
+
+            .tab-actions .btn {
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+
+            .modal-content {
+                width: calc(100% - 10px);
+                margin: 0 5px;
+                padding: 15px;
+            }
+
+            .modal-footer {
+                flex-wrap: wrap;
+            }
+
+            .modal-footer .btn {
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+        }
+
+        /* --- Tabs Styles --- */
+        .tabs-container {
+            width: 100%;
+        }
+
+        .tabs-header {
+            display: flex;
+            overflow-x: auto;
+            border-bottom: 1px solid #374151;
+            margin-bottom: 20px;
+            gap: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) #1f2937;
+            padding-bottom: 10px;
+        }
+
+        .tabs-header::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .tabs-header::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid transparent;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #9ca3af;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .tab-btn:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Modal & Form Styles (Dark Mode) --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: #1f2937; color: #fff; width: 90%; max-width: 600px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; max-height: 90vh; overflow-y: auto; border: 1px solid #374151; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; font-size: 1.2rem; color: #f3f4f6; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: #9ca3af; transition: color 0.2s; }
+        .close-modal:hover { color: #ef4444; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #cbd5e1; font-size: 0.9rem; font-weight: 500; }
+        .form-group input { width: 100%; padding: 10px; background: #374151; border: 1px solid #4b5563; border-radius: 6px; font-size: 0.95rem; color: #fff; transition: border-color 0.3s; }
+        .form-group input:focus { outline: none; border-color: var(--primary-color); }
+        .form-group input[readonly] { background-color: #111827; cursor: not-allowed; }
+
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; color: white; display: inline-flex; align-items: center; gap: 5px; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background: linear-gradient(to right, var(--primary-color), var(--secondary-color)); }
+        .btn-secondary { background-color: #4b5563; }
+        .btn-danger { background-color: #ef4444; }
+        .btn-warning { background-color: #f59e0b; }
+        .btn-warning:hover { opacity: 0.9; }
+
+        /* Searchable Dropdown */
+        .searchable-dropdown { position: relative; }
+        .dropdown-options { position: absolute; top: 100%; left: 0; right: 0; background: #374151; border: 1px solid #4b5563; border-radius: 0 0 6px 6px; max-height: 200px; overflow-y: auto; z-index: 10; display: none; }
+        .dropdown-options.show { display: block; }
+        .dropdown-option { padding: 10px; cursor: pointer; border-bottom: 1px solid #4b5563; font-size: 0.95rem; color: #e5e7eb; }
+        .dropdown-option:hover { background-color: #4b5563; }
+        .no-results { padding: 10px; color: #9ca3af; text-align: center; }
+
+        /* Action Bar in Tabs */
+        .tab-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #374151;
+            flex-wrap: wrap;
+        }
+        
+        /* Table Placeholder */
+        .table-placeholder {
+            width: 100%;
+            border-collapse: collapse;
+            color: #e5e7eb;
+        }
+        .table-placeholder th, .table-placeholder td {
+            padding: 12px;
+            border-bottom: 1px solid #374151;
+            text-align: left;
+        }
+        .table-placeholder th {
+            background-color: #111827;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="dasboradmin.html" class="navbar-dashboard-btn">
+            <i class="fas fa-th-large"></i> Dashboard
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Mapping Siswa</h2>
+            <p style="color: #666; margin-top: 10px;">Halaman ini digunakan untuk pemetaan data siswa.</p>
+        </div>
+        
+        <!-- Container Tabs Kelas -->
+        <div class="dashboard-card" style="background: #1f2937; border: 1px solid #374151; color: #fff;">
+            <div class="tabs-container">
+                <div class="tabs-header" id="tabsHeader">
+                    <div style="padding: 10px; color: #cbd5e1;">Memuat data kelas...</div>
+                </div>
+                <div class="tabs-content" id="tabsContent">
+                    <!-- Konten tab akan dimuat di sini -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2024 SMK Negeri 1 Simpang Teritip. All rights reserved.</p>
+            <p>Dikembangkan oleh Tim IT Sekolah.</p>
+        </footer>
+
+        <!-- Modal Tambah Mapping -->
+        <div id="mappingModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Tambah Mapping Siswa</h3>
+                    <span class="close-modal" title="Tutup" aria-label="Close">&times;</span>
+                </div>
+                <form id="mappingForm">
+                    <div class="form-group">
+                        <label>Kode Mapping</label>
+                        <input type="text" id="kodeMapping" name="kodeMapping" placeholder="Masukkan Kode Mapping" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kelas</label>
+                        <input type="text" id="kelasMapping" name="kelasMapping" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Siswa</label>
+                        <div class="searchable-dropdown">
+                            <input type="text" id="namaSiswaSearch" placeholder="Cari Siswa..." autocomplete="off" required>
+                            <input type="hidden" id="namaSiswa" name="namaSiswa">
+                            <div id="siswaDropdown" class="dropdown-options"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>NISN</label>
+                        <input type="text" id="nisn" name="nisn" readonly placeholder="Otomatis terisi">
+                    </div>
+                    <div class="form-group">
+                        <label>Alamat</label>
+                        <input type="text" id="alamat" name="alamat">
+                    </div>
+                    <div class="form-group">
+                        <label>Tempat Lahir</label>
+                        <input type="text" id="tempatLahir" name="tempatLahir">
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal Lahir</label>
+                        <input type="date" id="tanggalLahir" name="tanggalLahir">
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Ayah</label>
+                        <input type="text" id="namaAyah" name="namaAyah">
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Ibu</label>
+                        <input type="text" id="namaIbu" name="namaIbu">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                        
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Tahun Lulus (Pindahkan Ke Alumni) -->
+    <div id="alumniTahunModal" class="modal">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3>Pindahkan Ke Alumni</h3>
+                <span class="close-modal" id="closeAlumniTahunModal" title="Tutup" aria-label="Close">&times;</span>
+            </div>
+            <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 15px;">
+                Masukkan Tahun Lulus untuk seluruh siswa kelas <strong id="alumniTahunKelasLabel"></strong> yang akan dipindahkan ke data Alumni.
+            </p>
+            <div class="form-group">
+                <label>Tahun Lulus</label>
+                <input type="text" id="tahunLulusInput" placeholder="Contoh: 2024/2025">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelAlumniTahunBtn">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAlumniTahunBtn">Konfirmasi</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Integration for Absensi (Mapping Siswa) ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        
+        // --- Supabase Integration for SIMPPedik (Data Master: Siswa, Guru, Sekolah) ---
+        const simpedikUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const simpedikKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+
+        let supabaseClient;
+        let simpedikClient;
+        let schoolData = {}; // Menyimpan data sekolah untuk keperluan export
+
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            simpedikClient = supabase.createClient(simpedikUrl, simpedikKey);
+
+            async function loadSchoolIdentity() {
+                try {
+                    // Ambil identitas sekolah dari SIMPPedik
+                    const { data, error } = await simpedikClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo, kop_sekolah, tahun_pelajaran')
+                        .limit(1)
+                        .maybeSingle();
+                    
+                    if (data) {
+                        schoolData = data; // Simpan data ke variabel global
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.log("Info: Gagal memuat identitas sekolah (mungkin tabel belum ada).");
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        }
+
+        // (logic lanjutan)
+
+        // --- Load Tabs Kelas ---
+        async function loadKelasTabs() {
+            const tabsHeader = document.getElementById('tabsHeader');
+            const tabsContent = document.getElementById('tabsContent');
+            
+            if (!tabsHeader || !tabsContent || !supabaseClient) return;
+
+            let mappingData = [];
+            let waliData = [];
+
+            // 1. Ambil data kelas dari tabel mappingsiswa (Safe Fetch)
+            const resMapping = await supabaseClient
+                .from('mappingsiswa')
+                .select('kelas');
+            if (resMapping.data) mappingData = resMapping.data;
+
+            // 2. Ambil data kelas dari tabel walikelas (dari SIMPPedik)
+            const resWali = await simpedikClient
+                .from('walikelas')
+                .select('kelas');
+            if (resWali.data) waliData = resWali.data;
+
+            try {
+                tabsHeader.innerHTML = '';
+                tabsContent.innerHTML = '';
+
+                // Gabungkan dan ambil list kelas unik
+                let allClasses = [];
+                if (mappingData.length > 0) allClasses = allClasses.concat(mappingData.map(item => item.kelas));
+                if (waliData.length > 0) allClasses = allClasses.concat(waliData.map(item => item.kelas));
+
+                const uniqueKelas = [...new Set(allClasses)].filter(k => k && k.trim() !== '').sort();
+
+                if (uniqueKelas.length === 0) {
+                    tabsHeader.innerHTML = `
+                        <div style="padding:10px; display:flex; align-items:center; gap:10px; flex-wrap: wrap;">
+                            <span>Belum ada data kelas.</span>
+                            <button class="btn btn-primary" onclick="openMappingModal('')" style="padding:5px 10px; font-size:0.8rem;">
+                                <i class="fas fa-plus"></i> Tambah Data Pertama
+                            </button>
+                        </div>`;
+                    tabsContent.innerHTML = `<div style="padding: 20px; text-align: center; color: #cbd5e1; border: 1px dashed #4b5563; border-radius: 8px; margin-top: 10px;">Silakan tambah data mapping siswa pertama Anda dengan mengklik tombol di atas.</div>`;
+                    return;
+                }
+
+                uniqueKelas.forEach((kelasName, index) => {
+                    // Create Tab Button
+                    const btn = document.createElement('button');
+                    btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+                    btn.textContent = kelasName;
+                    btn.onclick = () => switchTab(index);
+                    tabsHeader.appendChild(btn);
+
+                    // Create Tab Content Pane (Placeholder)
+                    const pane = document.createElement('div');
+                    pane.className = `tab-pane ${index === 0 ? 'active' : ''}`;
+                    pane.id = `pane-${index}`;
+                    
+                    // Add Action Buttons
+                    const actionDiv = document.createElement('div');
+                    actionDiv.className = 'tab-actions';
+                    actionDiv.innerHTML = `
+                        <button class="btn btn-primary" onclick="openMappingModal('${kelasName}')"><i class="fas fa-plus"></i> Tambah Mapping</button>
+                        <button class="btn btn-danger" onclick="exportMappingPdf('${kelasName}')"><i class="fas fa-file-pdf"></i> Export Pdf</button>
+                        <button class="btn btn-warning" onclick="pindahkanKeAlumni('${kelasName}')"><i class="fas fa-user-graduate"></i> Pindahkan Ke Alumni</button>
+                    `;
+                    pane.appendChild(actionDiv);
+
+                    // Add Table Placeholder
+                    const tableDiv = document.createElement('div');
+                    const tbodyId = `tbody-${kelasName.replace(/\s+/g, '-')}`;
+                    tableDiv.style.overflowX = 'auto';
+                    tableDiv.innerHTML = `
+                        <table class="table-placeholder">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Kode Mapping</th>
+                                    <th>Kelas</th>
+                                    <th>NISN</th>
+                                    <th>Nama Siswa</th>
+                                    <th>Alamat</th>
+                                    <th>Tempat Lahir</th>
+                                    <th>Tanggal Lahir</th>
+                                    <th>Nama Ayah</th>
+                                    <th>Nama Ibu</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="${tbodyId}"><tr><td colspan="11" style="text-align:center; padding:20px; color:#6b7280;">Memuat data...</td></tr></tbody>
+                        </table>
+                    `;
+                    pane.appendChild(tableDiv);
+
+                    tabsContent.appendChild(pane);
+
+                    // Load data for this class
+                    loadMappingDataForClass(kelasName);
+                });
+
+            } catch (err) {
+                console.error('Error loading tabs:', err);
+                tabsHeader.innerHTML = `<div style="color:red; padding:10px;">Gagal memuat data: ${err.message}</div>`;
+            }
+        }
+
+        // --- Load Mapping Data per Class ---
+        async function loadMappingDataForClass(kelas) {
+            const tbodyId = `tbody-${kelas.replace(/\s+/g, '-')}`;
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('mappingsiswa')
+                    .select('*')
+                    .eq('kelas', kelas)
+                    .order('nama_siswa', { ascending: true });
+
+                if (error) throw error;
+
+                tbody.innerHTML = '';
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:20px; color:#6b7280;">Belum ada data mapping untuk kelas ini.</td></tr>';
+                    return;
+                }
+
+                data.forEach((item, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${item.kode_maping}</td>
+                        <td>${item.kelas}</td>
+                        <td>${item.nisn || '-'}</td>
+                        <td>${item.nama_siswa}</td>
+                        <td>${item.alamat || '-'}</td>
+                        <td>${item.tempat_lahir || '-'}</td>
+                        <td>${item.tanggal_lahir || '-'}</td>
+                        <td>${item.nama_ayah || '-'}</td>
+                        <td>${item.nama_ibu || '-'}</td>
+                        <td>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;" onclick="deleteMapping('${item.kode_maping}', '${item.kelas}')" title="Hapus Mapping"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error(`Error loading data for ${kelas}:`, err);
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:red;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        function switchTab(index) {
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+            document.querySelectorAll('.tab-pane').forEach((pane, i) => pane.classList.toggle('active', i === index));
+        }
+
+        document.addEventListener('DOMContentLoaded', loadKelasTabs);
+
+        // --- Modal & Dropdown Logic ---
+        const modal = document.getElementById('mappingModal');
+        const closeSpan = document.querySelector('.close-modal');
+        const cancelBtn = document.querySelector('.cancel-btn');
+        const mappingForm = document.getElementById('mappingForm');
+        
+        // Elements for Dropdown
+        const namaSiswaSearch = document.getElementById('namaSiswaSearch');
+        const namaSiswaHidden = document.getElementById('namaSiswa');
+        const siswaDropdown = document.getElementById('siswaDropdown');
+        
+        let siswaCache = [];
+
+        window.openMappingModal = async function(kelasName) {
+            mappingForm.reset();
+            const kelasInput = document.getElementById('kelasMapping');
+            kelasInput.value = kelasName;
+            
+            if (!kelasName) {
+                kelasInput.readOnly = false;
+                kelasInput.placeholder = "Masukkan Nama Kelas (Contoh: X TKJ 1)";
+            } else {
+                kelasInput.readOnly = true;
+            }
+            
+            // Load siswa data for dropdown
+            if (siswaCache.length === 0) {
+                try {
+                    // Ambil data siswa dari SIMPPedik
+                    const { data, error } = await simpedikClient
+                        .from('datasiswa')
+                        .select('*')
+                        .order('nama_siswa');
+                    if (!error) siswaCache = data;
+                } catch (err) {
+                    console.error('Error loading siswa:', err);
+                }
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            siswaDropdown.classList.remove('show');
+        }
+
+        closeSpan.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Dropdown Search Logic
+        namaSiswaSearch.addEventListener('input', function() {
+            const filter = this.value.toLowerCase();
+            const filtered = siswaCache.filter(s => s.nama_siswa.toLowerCase().includes(filter));
+            renderDropdown(filtered);
+        });
+
+        namaSiswaSearch.addEventListener('focus', function() {
+            const filter = this.value.toLowerCase();
+            const filtered = filter ? siswaCache.filter(s => s.nama_siswa.toLowerCase().includes(filter)) : siswaCache;
+            renderDropdown(filtered);
+        });
+
+        function renderDropdown(data) {
+            siswaDropdown.innerHTML = '';
+            if (data.length === 0) {
+                siswaDropdown.innerHTML = '<div class="no-results">Tidak ditemukan</div>';
+            } else {
+                data.forEach(siswa => {
+                    const div = document.createElement('div');
+                    div.className = 'dropdown-option';
+                    div.textContent = siswa.nama_siswa;
+                    div.onclick = () => selectSiswa(siswa);
+                    siswaDropdown.appendChild(div);
+                });
+            }
+            siswaDropdown.classList.add('show');
+        }
+
+        function selectSiswa(siswa) {
+            namaSiswaSearch.value = siswa.nama_siswa;
+            namaSiswaHidden.value = siswa.nama_siswa;
+            
+            // Auto-fill fields
+            const nisnVal = siswa.nisn || '';
+            document.getElementById('nisn').value = nisnVal;
+            document.getElementById('alamat').value = siswa.alamat || '';
+            document.getElementById('tempatLahir').value = siswa.tempat_lahir || '';
+            document.getElementById('tanggalLahir').value = siswa.tanggal_lahir || '';
+            document.getElementById('namaAyah').value = siswa.nama_ayah || '';
+            document.getElementById('namaIbu').value = siswa.nama_ibu || '';
+            
+            // Auto-generate Kode Mapping
+            const kelasVal = document.getElementById('kelasMapping').value;
+            if (kelasVal && nisnVal) {
+                document.getElementById('kodeMapping').value = `ID.${kelasVal}-${nisnVal}`;
+            }
+            
+            siswaDropdown.classList.remove('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!namaSiswaSearch.contains(e.target) && !siswaDropdown.contains(e.target)) {
+                siswaDropdown.classList.remove('show');
+            }
+        });
+
+        // Handle Form Submit
+        mappingForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = mappingForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Menyimpan...';
+            submitBtn.disabled = true;
+
+            const formData = {
+                kode_maping: document.getElementById('kodeMapping').value,
+                kelas: document.getElementById('kelasMapping').value,
+                nama_siswa: namaSiswaHidden.value,
+                nisn: document.getElementById('nisn').value,
+                alamat: document.getElementById('alamat').value,
+                tempat_lahir: document.getElementById('tempatLahir').value,
+                tanggal_lahir: document.getElementById('tanggalLahir').value || null,
+                nama_ayah: document.getElementById('namaAyah').value,
+                nama_ibu: document.getElementById('namaIbu').value
+            };
+
+            try {
+                const { error } = await supabaseClient
+                    .from('mappingsiswa')
+                    .insert([formData]);
+
+                if (error) throw error;
+
+                alert('Data Mapping Berhasil Disimpan!');
+                closeModal();
+                // Reload semua tab untuk memastikan jika ada kelas baru, tab-nya muncul
+                loadKelasTabs();
+
+            } catch (err) {
+                console.error('Error saving mapping:', err);
+                alert('Gagal menyimpan data: ' + err.message);
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        window.deleteMapping = async function(kode, kelas) {
+            if(confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+                const { error } = await supabaseClient.from('mappingsiswa').delete().eq('kode_maping', kode);
+                if(error) {
+                    alert('Gagal menghapus: ' + error.message);
+                } else {
+                    loadMappingDataForClass(kelas);
+                }
+            }
+        }
+
+        // --- Export PDF Function ---
+        window.exportMappingPdf = async function(kelasName) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape orientation
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 20;
+
+            // Tambahkan KOP Sekolah jika ada
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20; // Margin kiri kanan 10
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                    yPos = 10 + imgHeight + 10; // Update posisi Y di bawah gambar
+                } catch (err) {
+                    console.error("Gagal memuat KOP Sekolah:", err);
+                }
+            }
+
+            try {
+                // Fetch data for this class specifically
+                const { data, error } = await supabaseClient
+                    .from('mappingsiswa')
+                    .select('*')
+                    .eq('kelas', kelasName)
+                    .order('nama_siswa', { ascending: true });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    alert('Tidak ada data untuk diexport.');
+                    return;
+                }
+
+                // Header
+                doc.setFontSize(18);
+                doc.text(`Data Mapping Siswa - Kelas ${kelasName}`, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 8;
+                
+                const schoolName = schoolData.nama_sekolah || document.querySelector('.navbar-brand span')?.textContent || 'SMK Negeri 1 Simpang Teritip';
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 6;
+
+                // Tahun Pelajaran (ambil dari tabel identitassekolah)
+                if (schoolData.tahun_pelajaran) {
+                    doc.setFontSize(11);
+                    doc.setTextColor(100);
+                    doc.text(`Tahun Pelajaran ${schoolData.tahun_pelajaran}`, pageWidth / 2, yPos, { align: 'center' });
+                    yPos += 6;
+                }
+                yPos += 4;
+
+                // Prepare Table Data
+                const tableData = data.map((item, index) => [
+                    index + 1,
+                    item.kode_maping,
+                    item.nisn || '-',
+                    item.nama_siswa,
+                    item.alamat || '-',
+                    item.tempat_lahir || '-',
+                    item.tanggal_lahir || '-',
+                    item.nama_ayah || '-',
+                    item.nama_ibu || '-'
+                ]);
+
+                // Generate Table
+                doc.autoTable({
+                    head: [['No', 'Kode', 'NISN', 'Nama Siswa', 'Alamat', 'Tempat Lahir', 'Tgl Lahir', 'Ayah', 'Ibu']],
+                    body: tableData,
+                    startY: yPos,
+                    theme: 'grid',
+                    styles: { fontSize: 9 },
+                    headStyles: { fillColor: [102, 126, 234] }
+                });
+
+                doc.save(`Mapping_Siswa_${kelasName}.pdf`);
+
+            } catch (err) {
+                console.error('Export error:', err);
+                alert('Gagal export PDF: ' + err.message);
+            }
+        }
+
+        // --- Modal Tahun Lulus (Pindahkan Ke Alumni) ---
+        const alumniTahunModal = document.getElementById('alumniTahunModal');
+        const alumniTahunKelasLabel = document.getElementById('alumniTahunKelasLabel');
+        const tahunLulusInput = document.getElementById('tahunLulusInput');
+        const confirmAlumniTahunBtn = document.getElementById('confirmAlumniTahunBtn');
+        const cancelAlumniTahunBtn = document.getElementById('cancelAlumniTahunBtn');
+        const closeAlumniTahunModal = document.getElementById('closeAlumniTahunModal');
+        let kelasYangAkanDipindah = null;
+
+        window.pindahkanKeAlumni = function(kelasName) {
+            kelasYangAkanDipindah = kelasName;
+            alumniTahunKelasLabel.textContent = kelasName;
+            tahunLulusInput.value = '';
+            alumniTahunModal.classList.add('active');
+        }
+
+        function closeAlumniTahunModalFn() {
+            alumniTahunModal.classList.remove('active');
+            kelasYangAkanDipindah = null;
+        }
+
+        cancelAlumniTahunBtn.addEventListener('click', closeAlumniTahunModalFn);
+        closeAlumniTahunModal.addEventListener('click', closeAlumniTahunModalFn);
+        alumniTahunModal.addEventListener('click', (e) => {
+            if (e.target === alumniTahunModal) closeAlumniTahunModalFn();
+        });
+
+        confirmAlumniTahunBtn.addEventListener('click', async function() {
+            const tahunLulus = tahunLulusInput.value.trim();
+            const kelasName = kelasYangAkanDipindah;
+
+            if (!tahunLulus) {
+                alert('Tahun Lulus wajib diisi terlebih dahulu!');
+                tahunLulusInput.focus();
+                return;
+            }
+
+            if (!kelasName) {
+                alert('Kelas tidak valid.');
+                return;
+            }
+
+            const originalText = confirmAlumniTahunBtn.textContent;
+            confirmAlumniTahunBtn.textContent = 'Memproses...';
+            confirmAlumniTahunBtn.disabled = true;
+
+            try {
+                // Ambil semua data siswa pada kelas terkait
+                const { data, error } = await supabaseClient
+                    .from('mappingsiswa')
+                    .select('*')
+                    .eq('kelas', kelasName);
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    alert('Tidak ada data untuk dipindahkan.');
+                    closeAlumniTahunModalFn();
+                    return;
+                }
+
+                // Siapkan data untuk tabel alumni, termasuk tahun_lulus
+                const alumniData = data.map(item => ({
+                    kode_maping: item.kode_maping,
+                    nama_siswa: item.nama_siswa,
+                    nisn: item.nisn,
+                    alamat: item.alamat,
+                    tempat_lahir: item.tempat_lahir,
+                    tanggal_lahir: item.tanggal_lahir,
+                    nama_ayah: item.nama_ayah,
+                    nama_ibu: item.nama_ibu,
+                    tahun_lulus: tahunLulus
+                }));
+
+                // Insert ke tabel alumni
+                const { error: insertError } = await supabaseClient
+                    .from('alumni')
+                    .insert(alumniData);
+
+                if (insertError) throw insertError;
+
+                // Hapus dari tabel mappingsiswa berdasarkan kode_maping
+                const kodeMapingList = data.map(item => item.kode_maping);
+                const { error: deleteError } = await supabaseClient
+                    .from('mappingsiswa')
+                    .delete()
+                    .in('kode_maping', kodeMapingList);
+
+                if (deleteError) throw deleteError;
+
+                alert(`Berhasil memindahkan ${data.length} siswa kelas ${kelasName} ke Alumni (Tahun Lulus: ${tahunLulus})!`);
+                closeAlumniTahunModalFn();
+                loadKelasTabs();
+
+            } catch (err) {
+                console.error('Error pindah ke alumni:', err);
+                alert('Gagal memindahkan ke alumni: ' + err.message);
+            } finally {
+                confirmAlumniTahunBtn.textContent = originalText;
+                confirmAlumniTahunBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

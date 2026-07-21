@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koordinator PKL - SMKN 1 Simpang Teritip</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --bg-light: #f4f6f9;
+            --navbar-bg: #dc2626;
+            --pkl-color: #f46b45;
+            --pkl-gradient: linear-gradient(135deg, #f46b45, #eea849);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* ===== NAVBAR (identik dengan adminguru.html) ===== */
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--navbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1002;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        .navbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-dashboard {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            background: rgba(255,255,255,0.18);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.35);
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .btn-dashboard:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            max-width: 1200px;
+            margin: var(--header-height) auto 0;
+            padding: 2rem;
+            flex: 1;
+            width: 100%;
+        }
+
+        /* ===== PAGE TITLE ===== */
+        .page-title-bar {
+            background: var(--pkl-gradient);
+            border-radius: 12px;
+            padding: 20px 28px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 4px 15px rgba(244,107,69,0.3);
+        }
+
+        .page-title-bar .title-icon {
+            width: 52px;
+            height: 52px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .page-title-bar h1 {
+            color: white;
+            font-size: 1.35rem;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .page-title-bar p {
+            color: rgba(255,255,255,0.85);
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        /* ===== CARD ===== */
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .card-header .header-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--pkl-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        /* ===== MENU GRID ===== */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
+            padding: 6px 0;
+        }
+
+        .menu-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            text-decoration: none;
+            gap: 8px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .icon-box {
+            width: 64px;
+            height: 64px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.6rem;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.25s ease;
+        }
+
+        .menu-card:hover .icon-box {
+            transform: translateY(-5px) scale(1.07);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+            filter: brightness(1.1);
+        }
+
+        .ic-blue     { background: linear-gradient(135deg, #2980b9, #6dd5fa); }
+        .ic-emerald  { background: linear-gradient(135deg, #0ba360, #3cba92); }
+        .ic-amber    { background: linear-gradient(135deg, #f7971e, #ffd200); }
+        .ic-orange   { background: linear-gradient(135deg, #f46b45, #eea849); }
+        .ic-purple   { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
+        .ic-violet   { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+        .ic-indigo   { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .ic-rose     { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+        .ic-cyan     { background: linear-gradient(135deg, #00b4db, #0083b0); }
+        .ic-teal     { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .ic-slate    { background: linear-gradient(135deg, #485563, #29323c); }
+        .ic-dark-orange { background: linear-gradient(135deg, #e55d20, #f7971e); }
+
+        .menu-card span {
+            font-size: 0.72rem;
+            color: #444;
+            text-align: center;
+            line-height: 1.3;
+            width: 84px;
+            word-wrap: break-word;
+            font-weight: 600;
+            height: 2.6em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-card:hover span { color: #333; }
+
+        /* ===== TABS ===== */
+        .tabs-wrapper {
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .tabs-nav {
+            display: flex;
+            overflow-x: auto;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            scrollbar-width: none;
+        }
+
+        .tabs-nav::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            flex-shrink: 0;
+            padding: 13px 18px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #666;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover { color: var(--pkl-color); background: rgba(244,107,69,0.05); }
+
+        .tab-btn.active {
+            color: var(--pkl-color);
+            border-bottom-color: var(--pkl-color);
+            background: white;
+        }
+
+        .tab-btn i { font-size: 0.85rem; }
+
+        .tabs-content {
+            padding: 20px;
+        }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .tab-pane-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-pane-title i { color: var(--pkl-color); }
+
+        /* ===== TABLE ===== */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead tr {
+            background: var(--pkl-gradient);
+            color: white;
+        }
+
+        thead th {
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+        }
+
+        tbody tr:hover { background: #fff8f5; }
+        tbody tr:last-child { border-bottom: none; }
+
+        tbody td {
+            padding: 11px 14px;
+            color: #444;
+            vertical-align: middle;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .badge-active  { background: #d1fae5; color: #065f46; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-done    { background: #dbeafe; color: #1e40af; }
+        .badge-case    { background: #fee2e2; color: #991b1b; }
+
+        .no-row-number thead th:first-child,
+        .no-row-number tbody td:first-child {
+            width: 40px;
+            text-align: center;
+        }
+
+        /* ===== FOOTER ===== */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 10px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .navbar-brand span { font-size: 1rem; }
+            .btn-dashboard { padding: 8px 10px; }
+            .btn-dashboard span.btn-label { display: none; }
+            .main-content { padding: 1rem; }
+            .menu-grid {
+                grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+                gap: 12px;
+            }
+            .icon-box { width: 52px; height: 52px; font-size: 1.3rem; border-radius: 10px; }
+            .menu-card span { font-size: 0.65rem; width: 68px; }
+            .page-title-bar h1 { font-size: 1.05rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== NAVBAR (sama dengan adminguru.html) ===== -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <div class="navbar-right">
+            <a href="adminguru.html" class="btn-dashboard">
+                <i class="fas fa-th-large"></i>
+                <span class="btn-label">Dashboard</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+
+        <!-- Judul Halaman -->
+        <div class="page-title-bar">
+            <div class="title-icon">
+                <i class="fas fa-hard-hat"></i>
+            </div>
+            <div>
+                <h1>Koordinator Praktik Kerja Industri (PKL)</h1>
+                <p>Kelola seluruh data PKL siswa SMKN 1 Simpang Teritip</p>
+            </div>
+        </div>
+
+        <!-- Kontainer Tombol Menu -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <div class="header-icon"><i class="fas fa-th-large"></i></div>
+                <h3>Menu Utama PKL</h3>
+            </div>
+            <div class="menu-grid">
+
+                <a href="datadudikoordinator.html" class="menu-card">
+                    <div class="icon-box ic-blue">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <span>Data Dudi</span>
+                </a>
+
+                <a href="pembimbingindustriguru.html" class="menu-card">
+                    <div class="icon-box ic-emerald">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <span>Pembimbing Industri</span>
+                </a>
+
+                <a href="pembimbingsekolahkoordinator.html" class="menu-card">
+                    <div class="icon-box ic-amber">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <span>Pembimbing Sekolah</span>
+                </a>
+
+                <a href="mappingsiswapklkoordinator.html" class="menu-card">
+                    <div class="icon-box ic-purple">
+                        <i class="fas fa-map-marked-alt"></i>
+                    </div>
+                    <span>Mapping Siswa PKL</span>
+                </a>
+
+                <a href="#" class="menu-card" onclick="switchTab('absensi'); return false;">
+                    <div class="icon-box ic-teal">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <span>Laporan Absensi Siswa PKL</span>
+                </a>
+
+                <a href="#" class="menu-card" onclick="switchTab('nilai'); return false;">
+                    <div class="icon-box ic-indigo">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <span>Nilai Siswa PKL</span>
+                </a>
+
+                <a href="#" class="menu-card" onclick="switchTab('kasus'); return false;">
+                    <div class="icon-box ic-rose">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <span>Kasus Siswa PKL</span>
+                </a>
+
+                <a href="tppklkoordinator.html" class="menu-card">
+                    <div class="icon-box ic-cyan">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <span>SKKNI PKL</span>
+                </a>
+
+                <a href="adminguru.html" class="menu-card">
+                    <div class="icon-box ic-slate">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <span>Dashboard</span>
+                </a>
+
+            </div>
+        </div>
+
+        <!-- Kontainer Tab Data -->
+        <div class="tabs-wrapper">
+            <!-- Tab Navigation -->
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="dudi">
+                    <i class="fas fa-building"></i> Data Dudi
+                </button>
+                <button class="tab-btn" data-tab="pembimbing-industri">
+                    <i class="fas fa-user-tie"></i> Pembimbing Industri
+                </button>
+                <button class="tab-btn" data-tab="pembimbing-sekolah">
+                    <i class="fas fa-chalkboard-teacher"></i> Pembimbing Sekolah
+                </button>
+                <button class="tab-btn" data-tab="mapping-siswa">
+                    <i class="fas fa-map-marked-alt"></i> Mapping Siswa PKL
+                </button>
+                <button class="tab-btn" data-tab="absensi">
+                    <i class="fas fa-clipboard-check"></i> Laporan Absensi
+                </button>
+                <button class="tab-btn" data-tab="nilai">
+                    <i class="fas fa-star"></i> Nilai Siswa PKL
+                </button>
+                <button class="tab-btn" data-tab="kasus">
+                    <i class="fas fa-exclamation-triangle"></i> Kasus Siswa PKL
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tabs-content">
+
+                <!-- TAB 1: Data Dudi -->
+                <div class="tab-pane active" id="tab-dudi">
+                    <div class="tab-pane-title">
+                        <i class="fas fa-building"></i> Data DUDI (Dunia Usaha & Dunia Industri)
+                    </div>
+                    <div class="table-container">
+                        <table class="no-row-number">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>ID</th>
+                                    <th>Nama Perusahaan</th>
+                                    <th>Alamat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dudiTableBody">
+                                <tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Pembimbing Industri -->
+                <div class="tab-pane" id="tab-pembimbing-industri">
+                    <div class="tab-pane-title">
+                        <i class="fas fa-user-tie"></i> Data Pembimbing Industri
+                    </div>
+                    <div class="table-container">
+                        <table class="no-row-number">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>ID</th>
+                                    <th>Nama Pembimbing</th>
+                                    <th>NIP</th>
+                                    <th>Tempat Lahir</th>
+                                    <th>Tanggal Lahir</th>
+                                    <th>No. Tlp</th>
+                                    <th>Alamat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pembimbingTableBody">
+                                <tr><td colspan="8" style="text-align:center;">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Pembimbing Sekolah -->
+                <div class="tab-pane" id="tab-pembimbing-sekolah">
+                    <div class="tab-pane-title">
+                        <i class="fas fa-chalkboard-teacher"></i> Data Pembimbing Sekolah
+                    </div>
+                    <div class="table-container">
+                        <table class="no-row-number">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>ID</th>
+                                    <th>Nama Guru</th>
+                                    <th>NIP</th>
+                                    <th>No. Tlp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pembimbingSekolahTableBody">
+                                <tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 4: Mapping Siswa PKL -->
+                <div class="tab-pane" id="tab-mapping-siswa">
+                    <div class="tab-pane-title">
+                        <i class="fas fa-map-marked-alt"></i> Mapping Siswa PKL
+                    </div>
+                    <div class="table-container">
+                        <table class="no-row-number">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Kode</th>
+                                    <th>Nama Siswa</th>
+                                    <th>NISN</th>
+                                    <th>Kelas</th>
+                                    <th>Tempat PKL</th>
+                                    <th>Pembimbing Industri</th>
+                                    <th>Pembimbing Sekolah</th>
+                                    <th>Tgl Mulai</th>
+                                    <th>Tgl Selesai</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mappingTableBodyKoordinator">
+                                <tr><td colspan="10" style="text-align:center;">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 5: Laporan Absensi -->
+                <div class="tab-pane" id="tab-absensi">
+                    <div class="tab-pane-title">
+                        <i class="fas fa-clipboard-check"></i> Laporan Absensi Siswa PKL
+                    </div>
+                    <div class="table-container">
+                        <table class="no-row-number">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Siswa</th>
+                                    <th>NIS</th>
+                                    <th>Kelas</th>
+                                    <th>Nama DUDI</th>
+                                    <th>Bulan</th>
+                                    <th>Hadir</th>
+                                    <th>Sakit</th>
+                                    <th>Izin</th>
+                                    <th>Tanpa Ket.</th>
+                                    <th>Total Hari</th>
+                                    <th>Persentase</th>
+                                </tr>
+                            </thead>
+                            <tbody id="absensiTableBodyKoordinator">
+                                <tr><td colspan="12" style="text-align:center;">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 6: Nilai Siswa PKL -->
+                <div class="tab-pane" id="tab-nilai">
+                    <div class="tab-pane-title">
+                        <i class="fas fa-star"></i> Nilai Siswa PKL
+                    </div>
+                    <div class="table-container">
+                        <table class="no-row-number">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Siswa</th>
+                                    <th>NIS</th>
+                                    <th>Kelas</th>
+                                    <th>Nama DUDI</th>
+                                    <th>Nilai Disiplin</th>
+                                    <th>Nilai Teknis</th>
+                                    <th>Nilai Sikap</th>
+                                    <th>Nilai Laporan</th>
+                                    <th>Nilai Akhir</th>
+                                    <th>Predikat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nilaiTableBodyKoordinator">
+                                <tr><td colspan="11" style="text-align:center;">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 7: Kasus Siswa PKL -->
+                <div class="tab-pane" id="tab-kasus">
+                    <div class="tab-pane-title">
+                        <i class="fas fa-exclamation-triangle"></i> Kasus Siswa PKL
+                    </div>
+                    <div class="table-container">
+                        <table class="no-row-number">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Siswa</th>
+                                    <th>NIS</th>
+                                    <th>Kelas</th>
+                                    <th>Nama DUDI</th>
+                                    <th>Tanggal Kejadian</th>
+                                    <th>Jenis Kasus</th>
+                                    <th>Deskripsi Kasus</th>
+                                    <th>Penanganan</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kasusTableBodyKoordinator">
+                                <tr><td colspan="10" style="text-align:center;">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div><!-- end tabs-content -->
+        </div><!-- end tabs-wrapper -->
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <script>
+        // ===== SUPABASE INTEGRATION (sama dengan adminguru.html) =====
+        const supabaseUrl = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+
+        let supabaseClient;
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo')
+                        .single();
+
+                    if (error) throw error;
+
+                    if (data) {
+                        const brand = document.querySelector('.navbar-brand');
+                        const logoImg = brand.querySelector('img');
+                        const nameSpan = brand.querySelector('span');
+
+                        if (data.logo) {
+                            logoImg.src = data.logo;
+                            logoImg.style.display = 'block';
+                        }
+                        if (data.nama_sekolah) {
+                            nameSpan.textContent = data.nama_sekolah;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error loading school identity:', err);
+                    document.querySelector('.navbar-brand span').textContent = 'SMKN 1 Simpang Teritip';
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        } else {
+            document.querySelector('.navbar-brand span').textContent = 'SMKN 1 Simpang Teritip';
+        }
+
+        // ===== TAB LOGIC =====
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+
+        function switchTab(tabId) {
+            tabBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabId);
+            });
+            tabPanes.forEach(pane => {
+                pane.classList.toggle('active', pane.id === 'tab-' + tabId);
+            });
+            // Scroll ke area tab
+            document.querySelector('.tabs-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // ===== LOAD DATA DUDI (live, sumber sama dengan datadudi.html) =====
+        const dudiSupabaseUrl = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const dudiSupabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+        const DUDI_TABLE_NAME = 'datadudi';
+
+        let dudiClient = null;
+        if (typeof supabase !== 'undefined') {
+            dudiClient = supabase.createClient(dudiSupabaseUrl, dudiSupabaseKey);
+        }
+
+        async function loadDudiListKoordinator() {
+            const tbody = document.getElementById('dudiTableBody');
+            if (!tbody) return;
+
+            if (!dudiClient) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#e74c3c;">Supabase belum termuat.</td></tr>';
+                return;
+            }
+
+            try {
+                const { data, error } = await dudiClient
+                    .from(DUDI_TABLE_NAME)
+                    .select('*');
+
+                if (error) throw error;
+
+                const dudiList = (data || []).slice().sort((a, b) => {
+                    const numA = parseInt(a.id, 10);
+                    const numB = parseInt(b.id, 10);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+
+                tbody.innerHTML = '';
+
+                if (dudiList.length > 0) {
+                    dudiList.forEach((item, index) => {
+                        const row = `<tr>
+                            <td>${index + 1}</td>
+                            <td><span class="badge badge-active">#${item.id}</span></td>
+                            <td>${item.nama_perusahaan || '-'}</td>
+                            <td>${item.alamat || '-'}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Belum ada data DUDI.</td></tr>';
+                }
+            } catch (err) {
+                console.error('Error loading data DUDI:', err);
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#e74c3c;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDudiListKoordinator);
+
+        // ===== LOAD DATA PEMBIMBING INDUSTRI (live, sumber sama dengan pembimbingindustriguru.html) =====
+        const PEMBIMBING_TABLE_NAME = 'pembimbingindustri';
+
+        function formatTanggalTampilanKoordinator(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        async function loadPembimbingListKoordinator() {
+            const tbody = document.getElementById('pembimbingTableBody');
+            if (!tbody) return;
+
+            if (!dudiClient) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#e74c3c;">Supabase belum termuat.</td></tr>';
+                return;
+            }
+
+            try {
+                const { data, error } = await dudiClient
+                    .from(PEMBIMBING_TABLE_NAME)
+                    .select('*');
+
+                if (error) throw error;
+
+                const pembimbingList = (data || []).slice().sort((a, b) => {
+                    const numA = parseInt(a.id, 10);
+                    const numB = parseInt(b.id, 10);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+
+                tbody.innerHTML = '';
+
+                if (pembimbingList.length > 0) {
+                    pembimbingList.forEach((item, index) => {
+                        const row = `<tr>
+                            <td>${index + 1}</td>
+                            <td><span class="badge badge-active">#${item.id}</span></td>
+                            <td>${item.nama || '-'}</td>
+                            <td>${item.nip || '-'}</td>
+                            <td>${item.tempat_lahir || '-'}</td>
+                            <td>${formatTanggalTampilanKoordinator(item.tanggal_lahir)}</td>
+                            <td>${(item.tlp && /^\d/.test(item.tlp)) ? item.tlp : '-'}</td>
+                            <td>${item.alamat || '-'}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Belum ada data Pembimbing Industri.</td></tr>';
+                }
+            } catch (err) {
+                console.error('Error loading data Pembimbing Industri:', err);
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#e74c3c;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPembimbingListKoordinator);
+
+        // ===== LOAD DATA PEMBIMBING SEKOLAH (live, sumber sama dengan pembimbingsekolahkoordinator.html) =====
+        const PEMBIMBING_SEKOLAH_TABLE_NAME = 'pembimbingsekolah';
+
+        async function loadPembimbingSekolahListKoordinator() {
+            const tbody = document.getElementById('pembimbingSekolahTableBody');
+            if (!tbody) return;
+
+            if (!dudiClient) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#e74c3c;">Supabase belum termuat.</td></tr>';
+                return;
+            }
+
+            try {
+                const { data, error } = await dudiClient
+                    .from(PEMBIMBING_SEKOLAH_TABLE_NAME)
+                    .select('*');
+
+                if (error) throw error;
+
+                const pembimbingSekolahList = (data || []).slice().sort((a, b) => {
+                    const numA = parseInt(a.id, 10);
+                    const numB = parseInt(b.id, 10);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+
+                tbody.innerHTML = '';
+
+                if (pembimbingSekolahList.length > 0) {
+                    pembimbingSekolahList.forEach((item, index) => {
+                        const row = `<tr>
+                            <td>${index + 1}</td>
+                            <td><span class="badge badge-active">#${item.id}</span></td>
+                            <td>${item.nama || '-'}</td>
+                            <td>${item.nip || '-'}</td>
+                            <td>${item.tlp || '-'}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Belum ada data Pembimbing Sekolah.</td></tr>';
+                }
+            } catch (err) {
+                console.error('Error loading data Pembimbing Sekolah:', err);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#e74c3c;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPembimbingSekolahListKoordinator);
+
+        // ===== LOAD DATA MAPPING SISWA PKL (live, sumber sama dengan mappingsiswapklkoordinator.html) =====
+        const MAPPING_TABLE_NAME = 'mappingsiswapkl';
+
+        function formatTglKoordinator(iso) {
+            if (!iso) return '-';
+            const d = new Date(iso);
+            return isNaN(d.getTime()) ? iso : d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        async function loadMappingListKoordinator() {
+            const tbody = document.getElementById('mappingTableBodyKoordinator');
+            if (!tbody) return;
+
+            if (!dudiClient) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#e74c3c;">Supabase belum termuat.</td></tr>';
+                return;
+            }
+
+            try {
+                const { data, error } = await dudiClient
+                    .from(MAPPING_TABLE_NAME)
+                    .select('*');
+
+                if (error) throw error;
+
+                const mappingList = (data || []).slice().sort((a, b) => {
+                    const numA = parseInt(a.kode_mapping, 10);
+                    const numB = parseInt(b.kode_mapping, 10);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return String(a.kode_mapping).localeCompare(String(b.kode_mapping));
+                });
+
+                tbody.innerHTML = '';
+
+                if (mappingList.length > 0) {
+                    mappingList.forEach((item, index) => {
+                        const row = `<tr>
+                            <td>${index + 1}</td>
+                            <td><span class="badge badge-active">#${item.kode_mapping}</span></td>
+                            <td>${item.nama_siswa || '-'}</td>
+                            <td>${item.nisn || '-'}</td>
+                            <td>${item.kelas || '-'}</td>
+                            <td>${item.tempat_pkl || '-'}</td>
+                            <td>${item.pembimbing_industri || '-'}</td>
+                            <td>${item.pembimbing_sekolah || '-'}</td>
+                            <td>${formatTglKoordinator(item.tanggal_mulai)}</td>
+                            <td>${formatTglKoordinator(item.tanggal_selesai)}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Belum ada data Mapping Siswa PKL.</td></tr>';
+                }
+            } catch (err) {
+                console.error('Error loading data Mapping Siswa PKL:', err);
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#e74c3c;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadMappingListKoordinator);
+
+        // ===== LOAD DATA LAPORAN ABSENSI SISWA PKL (live) =====
+        // NOTE: sesuaikan ABSENSI_TABLE_NAME jika nama tabel di Supabase berbeda
+        const ABSENSI_TABLE_NAME = 'absensipkl';
+
+        function badgeAbsensiKoordinator(persen) {
+            const p = parseFloat(persen);
+            if (isNaN(p)) return 'badge-active';
+            if (p >= 90) return 'badge-active';
+            if (p >= 80) return 'badge-done';
+            return 'badge-pending';
+        }
+
+        async function loadAbsensiListKoordinator() {
+            const tbody = document.getElementById('absensiTableBodyKoordinator');
+            if (!tbody) return;
+
+            if (!dudiClient) {
+                tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; color:#e74c3c;">Supabase belum termuat.</td></tr>';
+                return;
+            }
+
+            try {
+                const { data, error } = await dudiClient
+                    .from(ABSENSI_TABLE_NAME)
+                    .select('*');
+
+                if (error) throw error;
+
+                const absensiList = (data || []).slice().sort((a, b) => {
+                    const numA = parseInt(a.id, 10);
+                    const numB = parseInt(b.id, 10);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+
+                tbody.innerHTML = '';
+
+                if (absensiList.length > 0) {
+                    absensiList.forEach((item, index) => {
+                        const hadir = parseInt(item.hadir, 10) || 0;
+                        const sakit = parseInt(item.sakit, 10) || 0;
+                        const izin = parseInt(item.izin, 10) || 0;
+                        const alpa = parseInt(item.tanpa_keterangan ?? item.alpa, 10) || 0;
+                        const totalHari = item.total_hari ?? (hadir + sakit + izin + alpa);
+                        const persentase = item.persentase ?? (totalHari > 0 ? ((hadir / totalHari) * 100).toFixed(1) : '0.0');
+                        const badgeClass = badgeAbsensiKoordinator(persentase);
+
+                        const row = `<tr>
+                            <td>${index + 1}</td>
+                            <td>${item.nama_siswa || '-'}</td>
+                            <td>${item.nis || '-'}</td>
+                            <td>${item.kelas || '-'}</td>
+                            <td>${item.nama_dudi || '-'}</td>
+                            <td>${item.bulan || '-'}</td>
+                            <td>${hadir}</td>
+                            <td>${sakit}</td>
+                            <td>${izin}</td>
+                            <td>${alpa}</td>
+                            <td>${totalHari}</td>
+                            <td><span class="badge ${badgeClass}">${persentase}%</span></td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;">Belum ada data Absensi Siswa PKL.</td></tr>';
+                }
+            } catch (err) {
+                console.error('Error loading data Absensi Siswa PKL:', err);
+                tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:#e74c3c;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAbsensiListKoordinator);
+
+        // ===== LOAD DATA NILAI SISWA PKL (live) =====
+        // NOTE: sesuaikan NILAI_TABLE_NAME jika nama tabel di Supabase berbeda
+        const NILAI_TABLE_NAME = 'nilaipkl';
+
+        function predikatNilaiKoordinator(nilaiAkhir) {
+            const n = parseFloat(nilaiAkhir);
+            if (isNaN(n)) return { label: '-', badge: 'badge-active' };
+            if (n >= 93) return { label: 'A+', badge: 'badge-active' };
+            if (n >= 85) return { label: 'A', badge: 'badge-active' };
+            if (n >= 80) return { label: 'B+', badge: 'badge-done' };
+            if (n >= 75) return { label: 'B', badge: 'badge-done' };
+            return { label: 'C', badge: 'badge-pending' };
+        }
+
+        async function loadNilaiListKoordinator() {
+            const tbody = document.getElementById('nilaiTableBodyKoordinator');
+            if (!tbody) return;
+
+            if (!dudiClient) {
+                tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:#e74c3c;">Supabase belum termuat.</td></tr>';
+                return;
+            }
+
+            try {
+                const { data, error } = await dudiClient
+                    .from(NILAI_TABLE_NAME)
+                    .select('*');
+
+                if (error) throw error;
+
+                const nilaiList = (data || []).slice().sort((a, b) => {
+                    const numA = parseInt(a.id, 10);
+                    const numB = parseInt(b.id, 10);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+
+                tbody.innerHTML = '';
+
+                if (nilaiList.length > 0) {
+                    nilaiList.forEach((item, index) => {
+                        const disiplin = parseFloat(item.nilai_disiplin) || 0;
+                        const teknis = parseFloat(item.nilai_teknis) || 0;
+                        const sikap = parseFloat(item.nilai_sikap) || 0;
+                        const laporan = parseFloat(item.nilai_laporan) || 0;
+                        const nilaiAkhir = item.nilai_akhir ?? ((disiplin + teknis + sikap + laporan) / 4).toFixed(2);
+                        const pred = item.predikat
+                            ? { label: item.predikat, badge: predikatNilaiKoordinator(nilaiAkhir).badge }
+                            : predikatNilaiKoordinator(nilaiAkhir);
+
+                        const row = `<tr>
+                            <td>${index + 1}</td>
+                            <td>${item.nama_siswa || '-'}</td>
+                            <td>${item.nis || '-'}</td>
+                            <td>${item.kelas || '-'}</td>
+                            <td>${item.nama_dudi || '-'}</td>
+                            <td>${disiplin}</td>
+                            <td>${teknis}</td>
+                            <td>${sikap}</td>
+                            <td>${laporan}</td>
+                            <td><strong>${nilaiAkhir}</strong></td>
+                            <td><span class="badge ${pred.badge}">${pred.label}</span></td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;">Belum ada data Nilai Siswa PKL.</td></tr>';
+                }
+            } catch (err) {
+                console.error('Error loading data Nilai Siswa PKL:', err);
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:#e74c3c;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadNilaiListKoordinator);
+
+        // ===== LOAD DATA KASUS SISWA PKL (live) =====
+        // NOTE: sesuaikan KASUS_TABLE_NAME jika nama tabel di Supabase berbeda
+        const KASUS_TABLE_NAME = 'kasuspkl';
+
+        function formatTglKasusKoordinator(iso) {
+            if (!iso) return '-';
+            const d = new Date(iso);
+            return isNaN(d.getTime()) ? iso : d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function badgeStatusKasusKoordinator(status) {
+            const s = (status || '').toLowerCase();
+            if (s.includes('belum')) return 'badge-case';
+            if (s.includes('pantau')) return 'badge-pending';
+            return 'badge-done';
+        }
+
+        async function loadKasusListKoordinator() {
+            const tbody = document.getElementById('kasusTableBodyKoordinator');
+            if (!tbody) return;
+
+            if (!dudiClient) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:#e74c3c;">Supabase belum termuat.</td></tr>';
+                return;
+            }
+
+            try {
+                const { data, error } = await dudiClient
+                    .from(KASUS_TABLE_NAME)
+                    .select('*');
+
+                if (error) throw error;
+
+                const kasusList = (data || []).slice().sort((a, b) => {
+                    const numA = parseInt(a.id, 10);
+                    const numB = parseInt(b.id, 10);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+
+                tbody.innerHTML = '';
+
+                if (kasusList.length > 0) {
+                    kasusList.forEach((item, index) => {
+                        const badgeClass = badgeStatusKasusKoordinator(item.status);
+                        const row = `<tr>
+                            <td>${index + 1}</td>
+                            <td>${item.nama_siswa || '-'}</td>
+                            <td>${item.nis || '-'}</td>
+                            <td>${item.kelas || '-'}</td>
+                            <td>${item.nama_dudi || '-'}</td>
+                            <td>${formatTglKasusKoordinator(item.tanggal_kejadian)}</td>
+                            <td>${item.jenis_kasus || '-'}</td>
+                            <td>${item.deskripsi_kasus || '-'}</td>
+                            <td>${item.penanganan || '-'}</td>
+                            <td><span class="badge ${badgeClass}">${item.status || '-'}</span></td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Belum ada data Kasus Siswa PKL.</td></tr>';
+                }
+            } catch (err) {
+                console.error('Error loading data Kasus Siswa PKL:', err);
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#e74c3c;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadKasusListKoordinator);
+    </script>
+</body>
+</html>

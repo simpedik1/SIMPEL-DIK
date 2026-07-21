@@ -1,0 +1,1985 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+
+        <!-- 🔥 PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <link rel="icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        /* --- CSS: Styling Halaman --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('bg1.png');
+            background-size: cover;
+            background-position: center;
+            min-height: 100vh;
+            padding: 2rem 0 80px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .login-container {
+            background-color: #ffffff;
+            padding: 0;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 900px;
+            transition: transform 0.3s ease;
+            display: flex;
+            overflow: hidden;
+            display: none;
+        }
+
+        .login-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .login-header h2 {
+            color: #333;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #444;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* --- Tabs Role --- */
+        .role-tabs {
+            display: flex;
+            background-color: #f0f2f5;
+            padding: 5px;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+        }
+
+        .role-tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: #666;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .role-tab.active {
+            background-color: #FF5722;
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Tombol Toggle Password */
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 38px; /* Menyesuaikan posisi vertikal */
+            cursor: pointer;
+            color: #666;
+            font-size: 0.8rem;
+            background: none;
+            border: none;
+            font-weight: 600;
+        }
+
+        .toggle-password:hover {
+            color: #764ba2;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.9rem;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .btn-login:hover {
+            opacity: 0.9;
+        }
+
+        .btn-login:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .footer-text {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .footer-text a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+
+        /* Pesan Error/Sukses */
+        .message {
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+        .error { background-color: #ffebee; color: #c62828; display: block; }
+        .success { background-color: #e8f5e9; color: #2e7d32; display: block; }
+
+        /* --- Layout Kiri (Identitas Sekolah) --- */
+        .login-left {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+
+        .school-logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 1.5rem;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+        }
+
+        .login-left h1 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .login-left p {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        /* --- Layout Kanan (Form) --- */
+        .login-right {
+            flex: 1;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Responsif untuk Mobile */
+        @media (max-width: 768px) {
+            .login-container {
+                flex-direction: column;
+                max-width: 400px;
+                margin: 20px;
+            }
+            .login-left {
+                padding: 2rem;
+            }
+            .login-left h1 { font-size: 1.4rem; }
+            .school-logo { width: 80px; }
+            .login-right { padding: 2rem; }
+        }
+
+        /* Modal Login khusus mobile: cegah konten terpotong & perkecil elemen */
+        @media (max-width: 768px) {
+            #loginModal {
+                align-items: center;
+                padding: 12px;
+                overflow-y: auto;
+            }
+            #loginModal .modal-content {
+                max-height: calc(100vh - 24px);
+                margin: auto;
+                border-radius: 12px;
+                align-items: flex-start;
+            }
+            #loginModal .login-container {
+                margin: 0;
+                max-width: 100%;
+            }
+            #loginModal .login-left {
+                padding: 1.2rem 1.5rem;
+            }
+            #loginModal .school-logo {
+                width: 60px;
+                margin-bottom: 0.8rem;
+            }
+            #loginModal .login-left h1 {
+                font-size: 1.1rem;
+                margin-bottom: 0.4rem;
+            }
+            #loginModal .login-left p {
+                font-size: 0.85rem;
+                line-height: 1.4;
+            }
+            #loginModal .login-right {
+                padding: 1.2rem 1.5rem 1.5rem;
+            }
+            #loginModal .login-header {
+                margin-bottom: 1rem;
+            }
+            #loginModal .login-header h2 {
+                font-size: 1.3rem;
+                margin-bottom: 0.25rem;
+            }
+            #loginModal .login-header p {
+                font-size: 0.8rem;
+            }
+            #loginModal .form-group {
+                margin-bottom: 0.9rem;
+            }
+            #loginModal .form-group label {
+                font-size: 0.8rem;
+                margin-bottom: 0.3rem;
+            }
+            #loginModal .form-group input,
+            #loginModal .form-group select {
+                padding: 0.6rem 0.7rem;
+                font-size: 0.9rem;
+            }
+            #loginModal .role-tab {
+                padding: 7px;
+                font-size: 0.8rem;
+            }
+            #loginModal .btn-login,
+            #loginModal .btn-cancel {
+                padding: 0.7rem;
+                font-size: 0.9rem;
+            }
+            #loginModal .footer-text {
+                margin-top: 0.9rem;
+            }
+            #loginModal .footer-text p {
+                font-size: 0.7rem !important;
+            }
+        }
+
+        @media (max-width: 380px) {
+            #loginModal .login-left,
+            #loginModal .login-right {
+                padding: 1rem 1.1rem;
+            }
+            #loginModal .school-logo {
+                width: 50px;
+            }
+        }
+
+        /* --- Modal Styles (Registration) --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 95%; max-width: 850px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; max-height: 90vh; overflow-y: auto; }
+
+        /* --- Login Modal Specific --- */
+        #loginModal .modal-content {
+            padding: 0;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform-origin: bottom center;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+        }
+        #loginModal .modal-content.modal-opening {
+            transform: translateY(100px) scale(0.8);
+            opacity: 0;
+        }
+        #loginModal .modal-content.modal-opened {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+        #loginModal .modal-content.modal-closing {
+            transform: translateY(100px) scale(0.8);
+            opacity: 0;
+        }
+        #loginModal .login-container {
+            display: flex;
+            width: 100%;
+        }
+
+        /* --- Sticky Footer --- */
+        .sticky-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .btn-login-footer {
+            background: white;
+            color: #667eea;
+            padding: 12px 40px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .btn-login-footer:hover {
+            background: #22c55e;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn-cancel {
+            width: 100%;
+            padding: 0.9rem;
+            background: #e2e8f0;
+            color: #475569;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+        .btn-cancel:hover {
+            background: #cbd5e1;
+        }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; color: #333; font-size: 1.4rem; }
+        .close-modal { 
+            font-size: 2rem; 
+            cursor: pointer; 
+            color: #666; 
+            transition: all 0.3s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #f5f5f5;
+            line-height: 1;
+        }
+        .close-modal:hover { 
+            color: #fff; 
+            background-color: #ef4444;
+            transform: rotate(90deg);
+        }
+
+        .reg-section-title { font-size: 1rem; color: #667eea; margin: 15px 0 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; font-weight: 600; }
+        .reg-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .reg-form-group { margin-bottom: 10px; }
+        .reg-form-group label { display: block; margin-bottom: 5px; color: #555; font-size: 0.85rem; font-weight: 600; }
+        .reg-form-group input, .reg-form-group select, .reg-form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; transition: border-color 0.3s; }
+        .reg-form-group input:focus, .reg-form-group select:focus, .reg-form-group textarea:focus { outline: none; border-color: #667eea; }
+        .reg-form-group textarea { resize: vertical; min-height: 60px; }
+        .full-width { grid-column: 1 / -1; }
+        .required::after { content: " *"; color: #ef4444; }
+
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 15px; }
+        .btn-secondary { background-color: #e2e8f0; color: #475569; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+        .btn-primary { background: linear-gradient(to right, #667eea, #764ba2); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
+        .btn-primary:hover { opacity: 0.9; }
+
+        @media (max-width: 768px) {
+            .reg-form-grid { grid-template-columns: 1fr; }
+        }
+
+        /* --- Modal Detail Berita --- */
+        .news-detail-modal {
+            display: none;
+            position: fixed;
+            z-index: 10002;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .news-detail-modal.active { display: flex; }
+        .news-detail-box {
+            background: #fff;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            animation: ndmSlideUp 0.3s ease;
+        }
+        @keyframes ndmSlideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        /* Header modal: judul + tombol tutup */
+        .news-detail-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            flex-shrink: 0;
+        }
+        .news-detail-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .news-detail-tag {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .news-detail-date {
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+        .news-detail-close {
+            width: 34px;
+            height: 34px;
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+        .news-detail-close:hover { background: #ef4444; color: #fff; }
+        /* Body scrollable */
+        .news-detail-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+        .news-detail-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1.45;
+            margin-bottom: 16px;
+            text-align: justify;
+        }
+        .news-detail-divider {
+            height: 2px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            border-radius: 2px;
+            margin-bottom: 16px;
+            opacity: 0.2;
+            clear: both;
+        }
+        /* Gambar float kiri, teks mengalir di kanan */
+        .news-detail-img-wrap {
+            float: left;
+            width: 45%;
+            margin: 0 16px 12px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+        }
+        .news-detail-img-wrap img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .news-detail-img-placeholder {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+        .news-detail-content {
+            font-size: 0.92rem;
+            color: #374151;
+            line-height: 1.85;
+            white-space: pre-wrap;
+            word-break: break-word;
+            text-align: justify;
+        }
+        /* Clearfix setelah konten */
+        .news-detail-clearfix { clear: both; }
+        /* Mobile */
+        @media (max-width: 480px) {
+            .news-detail-modal { padding: 0; align-items: flex-end; }
+            .news-detail-box { border-radius: 20px 20px 0 0; max-height: 92vh; }
+            .news-detail-title { font-size: 1rem; }
+            .news-detail-body { padding: 16px 14px; }
+            .news-detail-img-wrap {
+                float: none;
+                width: 100%;
+                margin: 0 0 14px 0;
+            }
+        }
+
+        /* Custom Searchable Dropdown */
+        .dropdown-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 0 0 5px 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .dropdown-options.show {
+            display: block;
+        }
+        .dropdown-option {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f1f1;
+            font-size: 0.95rem;
+            color: #333;
+        }
+        .dropdown-option:hover {
+            background-color: #f3f4f6;
+            color: #667eea;
+        }
+        .no-results {
+            padding: 10px;
+            color: #888;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        /* --- Responsive Mobile for Logo --- */
+        @media (max-width: 768px) {
+            body > img {
+                width: 60px !important;
+                height: 60px !important;
+                margin: 0 auto 0.5rem auto !important;
+            }
+            body > p {
+                font-size: 0.7rem !important;
+                margin-bottom: 1rem !important;
+            }
+        }
+
+        /* --- News Container --- */
+        .news-container {
+            width: calc(100% - 20px);
+            max-width: none;
+            margin: 2rem auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .news-title {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .headline-news {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease;
+        }
+
+        .headline-news:hover {
+            transform: translateY(-5px);
+        }
+
+        .headline-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .headline-content {
+            padding: 20px;
+        }
+
+        .headline-tag {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .headline-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .headline-excerpt {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .small-news-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .small-news-item {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .small-news-item:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .small-news-tag {
+            background: #e0e7ff;
+            color: #667eea;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+
+        .small-news-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        .small-news-date {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        @media (min-width: 769px) {
+            .news-container {
+                padding: 25px 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .news-container {
+                grid-template-columns: 1fr;
+                margin: 1rem auto;
+            }
+            .headline-image {
+                height: 180px;
+            }
+            .headline-title {
+                font-size: 1.1rem;
+            }
+            
+            /* Carousel for small news on mobile */
+            .small-news-list {
+                flex-direction: row;
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch;
+                gap: 15px;
+                padding: 5px;
+            }
+            
+            .small-news-item {
+                flex: 0 0 280px;
+                scroll-snap-align: start;
+            }
+            
+            .small-news-item:hover {
+                transform: translateX(0);
+            }
+        }
+
+
+        /* --- Lihat Semua Button --- */
+        .btn-lihat-semua {
+            background: #2a2a35;
+            color: white;
+            padding: 14px 40px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            grid-column: 1 / -1;
+            justify-self: center;
+        }
+        .btn-lihat-semua:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* --- Carousel Modal --- */
+        .carousel-modal {
+            display: none;
+            position: fixed;
+            z-index: 10001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            align-items: center;
+            justify-content: center;
+        }
+        .carousel-modal.active {
+            display: flex;
+        }
+        .carousel-content {
+            width: 90%;
+            max-width: 1200px;
+            height: 80vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .carousel-slide {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .carousel-slide.active {
+            display: flex;
+        }
+        .carousel-image {
+            width: 100%;
+            height: 70%;
+            object-fit: contain;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 12px;
+        }
+        .carousel-info {
+            margin-top: 20px;
+            text-align: center;
+            color: white;
+            padding: 20px;
+        }
+        .carousel-tag {
+            background: linear-gradient(to right, #f093fb, #f5576c);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .carousel-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .carousel-year {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+        }
+        .carousel-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+            max-width: 800px;
+        }
+        .carousel-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .carousel-nav:hover {
+            opacity: 0.9;
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        .carousel-prev {
+            left: 10px;
+        }
+        .carousel-next {
+            right: 10px;
+        }
+        .carousel-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .carousel-close:hover {
+            opacity: 0.9;
+            transform: scale(1.1);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* --- Main Content Wrapper --- */
+        @media (max-width: 768px) {
+            .news-container {
+                margin: 1rem auto;
+                padding: 20px 15px;
+            }
+            .news-title {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <img src="icon-512.png" alt="Logo" style="display: block; margin: 0 auto 1rem auto; width: 100px; height: 100px; object-fit: contain; border-radius: 15px;">
+    <p style="text-align: center; color: white; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Sistem Informasi Manajemen Pelayanan Pendidikan</p>
+    <p id="headerSchoolName" style="text-align: center; color: white; font-size: 0.85rem; font-weight: 600; margin-bottom: 2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);"></p>
+
+    <!-- News Container -->
+        <div class="news-container">
+            <h2 class="news-title">Berita Sekolah</h2>
+            
+            <!-- Headline News (Berita Utama) -->
+            <div class="headline-news" id="headlineNews">
+                <div style="width:100%;height:250px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;">
+                    <span style="color:white;font-size:1rem;opacity:0.7;">Memuat berita...</span>
+                </div>
+            </div>
+
+            <!-- Small News List -->
+            <div class="small-news-list" id="smallNewsList">
+            </div>
+            
+            <button class="btn-lihat-semua" id="newsLihatSemuaBtn">Lihat Semua</button>
+        </div>
+
+
+    <!-- Modal Detail Berita -->
+    <div class="news-detail-modal" id="newsDetailModal">
+        <div class="news-detail-box" id="newsDetailBox">
+            <!-- Header: meta + tombol tutup -->
+            <div class="news-detail-header">
+                <div class="news-detail-meta">
+                    <span class="news-detail-tag" id="newsDetailTag"></span>
+                    <span class="news-detail-date" id="newsDetailDate"></span>
+                </div>
+                <button class="news-detail-close" id="newsDetailClose">&times;</button>
+            </div>
+            <!-- Body scrollable -->
+            <div class="news-detail-body">
+                <h2 class="news-detail-title" id="newsDetailTitle"></h2>
+                <div class="news-detail-divider"></div>
+                <!-- Gambar float kiri, teks mengalir di kanan -->
+                <div class="news-detail-img-wrap" id="newsDetailImgWrap">
+                    <div class="news-detail-img-placeholder" id="newsDetailImgPlaceholder">📰</div>
+                    <img id="newsDetailImg" src="" alt="" style="display:none;">
+                </div>
+                <div class="news-detail-content" id="newsDetailContent"></div>
+                <div class="news-detail-clearfix"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carousel Modal: Berita Sekolah (dinamis dari Supabase) -->
+    <div class="carousel-modal" id="newsCarouselModal">
+        <div class="carousel-content">
+            <button class="carousel-close" id="newsCarouselClose">&times;</button>
+            <button class="carousel-nav carousel-prev" id="newsCarouselPrev">&#10094;</button>
+            <button class="carousel-nav carousel-next" id="newsCarouselNext">&#10095;</button>
+            <!-- Slides akan diisi secara dinamis oleh JS -->
+        </div>
+    </div>
+
+    <!-- Modal Login -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="login-container">
+                <!-- Bagian Kiri: Identitas Sekolah -->
+                <div class="login-left">
+                    <img src="" alt="Logo Sekolah" class="school-logo" style="display: none;">
+                    <h1></h1>
+                    <p></p>
+                </div>
+
+                <!-- Bagian Kanan: Form Login -->
+                <div class="login-right">
+                    <div class="login-header">
+                        <h2>Selamat Datang</h2>
+                        <p>Silakan masuk ke akun Anda</p>
+                    </div>
+
+                    <div id="messageBox" class="message"></div>
+
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label>Masuk Sebagai</label>
+                            <div class="role-tabs">
+                                <button type="button" class="role-tab active" data-role="Siswa">Siswa/Orangtua</button>
+                                <button type="button" class="role-tab" data-role="Guru">Guru</button>
+                                <button type="button" class="role-tab" data-role="Administrator">Admin Utama</button>
+                            </div>
+                            <input type="hidden" id="role" value="Siswa">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="field1" id="label1">Nama Lengkap</label>
+                            <input type="text" id="field1" placeholder="Masukkan Nama Lengkap" required autocomplete="off">
+                            <div id="field1-dropdown" class="dropdown-options"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="field2" id="label2">NISN</label>
+                            <input type="number" id="field2" placeholder="Masukkan NISN" required>
+                            <button type="button" class="toggle-password" id="togglePassword" style="display: none;">Lihat</button>
+                        </div>
+
+                        <button type="submit" class="btn-login" id="submitBtn">Masuk</button>
+                        <button type="button" class="btn-cancel" id="cancelLoginBtn">Batal</button>
+                    </form>
+
+                    <div class="footer-text">
+                        <p style="font-size: 0.8rem; color: #666;">Copyright : SMKN 1 Simpang Teritip-2026</p>
+                        <p style="font-size: 0.75rem; color: #888;">Product Manager : Hasdiah, S.Pd, Ing., M.M.</p>
+                        <p style="font-size: 0.75rem; color: #888;">Software Engineer : KenjiStudioDeveloper</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky Footer -->
+    <div class="sticky-footer">
+        <button class="btn-login-footer" id="openLoginModal">Login</button>
+    </div>
+
+    <!-- Modal Selamat Datang -->
+    <div id="welcomeModal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center; padding: 40px 20px;">
+            <div style="margin-bottom: 20px;">
+                <i class="fas fa-check-circle" style="font-size: 5rem; color: #2ecc71;"></i>
+            </div>
+            <h3 style="color: #333; margin-bottom: 10px; font-size: 1.5rem;">Berhasil Masuk!</h3>
+            <p id="welcomeMessage" style="color: #666; margin-bottom: 30px; font-size: 1.1rem;"></p>
+            <button id="btnWelcomeOk" class="btn-primary" style="width: 100%; padding: 12px; font-size: 1rem;">OK</button>
+        </div>
+    </div>
+
+    <!-- Modal Pendaftaran Sekolah -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-school"></i> Pendaftaran Sekolah Baru</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <form id="registerForm">
+                <div class="reg-section-title">Identitas Sekolah</div>
+                <div class="reg-form-grid">
+                    <div class="reg-form-group">
+                        <label for="reg_npsn" class="required">NPSN</label>
+                        <input type="number" id="reg_npsn" required placeholder="8 Digit Angka">
+                    </div>
+                    <div class="reg-form-group">
+                        <label for="reg_nama_sekolah" class="required">Nama Sekolah</label>
+                        <input type="text" id="reg_nama_sekolah" required>
+                    </div>
+                    <div class="reg-form-group">
+                        <label for="reg_status" class="required">Status</label>
+                        <select id="reg_status" required>
+                            <option value="">Pilih Status</option>
+                            <option value="Negeri">Negeri</option>
+                            <option value="Swasta">Swasta</option>
+                        </select>
+                    </div>
+                    <div class="reg-form-group">
+                        <label for="reg_tahun_pelajaran" class="required">Tahun Pelajaran</label>
+                        <input type="text" id="reg_tahun_pelajaran" required placeholder="Contoh: 2023/2024">
+                    </div>
+                </div>
+
+                <div class="reg-section-title">Kepala Sekolah</div>
+                <div class="reg-form-grid">
+                    <div class="reg-form-group">
+                        <label for="reg_nama_kepsek" class="required">Nama Kepala Sekolah</label>
+                        <input type="text" id="reg_nama_kepsek" required>
+                    </div>
+                    <div class="reg-form-group">
+                        <label for="reg_nip_kepsek" class="required">NIP Kepala Sekolah</label>
+                        <input type="number" id="reg_nip_kepsek" required>
+                    </div>
+                    <div class="reg-form-group full-width">
+                        <label for="reg_jabatan" class="required">Jabatan</label>
+                        <input type="text" id="reg_jabatan" required value="Kepala Sekolah">
+                    </div>
+                </div>
+
+                <div class="reg-section-title">Kontak & Alamat</div>
+                <div class="reg-form-grid">
+                    <div class="reg-form-group full-width">
+                        <label for="reg_alamat" class="required">Alamat</label>
+                        <textarea id="reg_alamat" required></textarea>
+                    </div>
+                    <div class="reg-form-group">
+                        <label for="reg_tlp" class="required">Nomor Telepon</label>
+                        <input type="number" id="reg_tlp" required>
+                    </div>
+                    <div class="reg-form-group">
+                        <label for="reg_email" class="required">Email</label>
+                        <input type="email" id="reg_email" required>
+                    </div>
+                    <div class="reg-form-group full-width">
+                        <label for="reg_slogan">Slogan/Motto Sekolah</label>
+                        <input type="text" id="reg_slogan" placeholder="Contoh: Unggul dalam Prestasi">
+                    </div>
+                </div>
+
+                <div class="reg-section-title">Akun Login Admin</div>
+                <div class="reg-form-grid">
+                    <div class="reg-form-group">
+                        <label for="reg_username" class="required">Username</label>
+                        <input type="text" id="reg_username" required>
+                    </div>
+                    <div class="reg-form-group">
+                        <label for="reg_password" class="required">Password</label>
+                        <input type="password" id="reg_password" required placeholder="Min. 8 Karakter">
+                    </div>
+                </div>
+
+                <div class="reg-section-title">Logo Sekolah</div>
+                <div class="reg-form-group">
+                    <label for="reg_logo" class="required">Upload Logo (Max 5MB)</label>
+                    <input type="file" id="reg_logo" accept=".jpg,.jpeg,.png,.svg" required style="padding: 5px;">
+                    <div id="reg_file_info" style="font-size: 0.8rem; color: #666; margin-top: 5px;"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary cancel-reg-btn">Cancel</button>
+                    <button type="submit" class="btn-primary" id="btnDaftar">Daftar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        /* --- JavaScript: Logika Halaman --- */
+        
+        // --- Supabase Integration ---
+        const simpedikUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const simpedikKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        const simpedikClient = supabase.createClient(simpedikUrl, simpedikKey);
+
+        const absensiUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const absensiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        const absensiClient = supabase.createClient(absensiUrl, absensiKey);
+        
+        async function loadSchoolIdentity() {
+            try {
+                const { data, error } = await simpedikClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo, slogan')
+                    .limit(1)
+                    .single();
+                
+                if (data) {
+                    if (data.nama_sekolah) {
+                        document.querySelector('.login-left h1').textContent = data.nama_sekolah;
+                        const headerSchoolName = document.getElementById('headerSchoolName');
+                        if (headerSchoolName) headerSchoolName.textContent = data.nama_sekolah;
+                    }
+                    if (data.logo) {
+                        document.querySelector('.school-logo').src = data.logo;
+                        document.querySelector('.school-logo').style.display = 'block';
+                    }
+                    if (data.slogan) {
+                        document.querySelector('.login-left p').textContent = `"${data.slogan}"`;
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading school identity:", err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        document.addEventListener('DOMContentLoaded', loadBeritaSekolah);
+
+        // ============================================================
+        // Load Berita Sekolah dari Supabase
+        // ============================================================
+        async function loadBeritaSekolah() {
+            try {
+                const { data, error } = await absensiClient
+                    .from('berita')
+                    .select('id, judul, kategori, tanggal, isiberita, photo')
+                    .order('tanggal', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    renderBeritaKosong();
+                    return;
+                }
+
+                renderBeritaSekolah(data);
+                renderNewsCarousel(data);
+                setupNewsCarouselDynamic();
+
+            } catch (err) {
+                console.error('Error loading berita:', err);
+                renderBeritaKosong();
+            }
+        }
+
+        function formatTanggalBerita(tgl) {
+            if (!tgl) return '';
+            const d = new Date(tgl);
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        function truncateBerita(str, n) {
+            if (!str) return '';
+            return str.length > n ? str.substring(0, n) + '...' : str;
+        }
+
+        function renderBeritaSekolah(data) {
+            // Pisahkan: Berita Utama (headline) dan lainnya (small)
+            const beritaUtama = data.find(d => d.kategori === 'Berita Utama') || data[0];
+            const beritaLain  = data.filter(d => d.id !== beritaUtama.id).slice(0, 4);
+
+            // --- Render Headline ---
+            const headlineEl = document.getElementById('headlineNews');
+            const imgSrc = beritaUtama.photo || '';
+            headlineEl.innerHTML = `
+                ${imgSrc
+                    ? `<img src="${imgSrc}" class="headline-image" alt="${beritaUtama.judul}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+                    : ''}
+                <div class="headline-image" style="${imgSrc ? 'display:none;' : ''}align-items:center;justify-content:center;background:linear-gradient(135deg,#667eea,#764ba2);">
+                    <span style="color:white;font-size:2rem;">📰</span>
+                </div>
+                <div class="headline-content">
+                    <span class="headline-tag">${beritaUtama.kategori}</span>
+                    <h3 class="headline-title">${beritaUtama.judul}</h3>
+                    <p class="headline-excerpt">${truncateBerita(beritaUtama.isiberita, 150)}</p>
+                </div>`;
+            // Klik headline → buka halaman beritauser.html
+            headlineEl.style.cursor = 'pointer';
+            headlineEl.addEventListener('click', () => goToBeritaUser(beritaUtama));
+
+            // --- Render Small News ---
+            const smallEl = document.getElementById('smallNewsList');
+            if (beritaLain.length === 0) {
+                smallEl.innerHTML = '<p style="color:rgba(255,255,255,0.7);font-size:0.85rem;padding:10px;">Belum ada berita lainnya.</p>';
+                return;
+            }
+            smallEl.innerHTML = beritaLain.map((item, i) => `
+                <div class="small-news-item" data-idx="${i}">
+                    <span class="small-news-tag">${item.kategori}</span>
+                    <h4 class="small-news-title">${item.judul}</h4>
+                    <span class="small-news-date">${formatTanggalBerita(item.tanggal)}</span>
+                </div>`).join('');
+
+            // Pasang event click tiap small-news-item
+            smallEl.querySelectorAll('.small-news-item').forEach((el, i) => {
+                el.addEventListener('click', () => goToBeritaUser(beritaLain[i]));
+            });
+        }
+
+        // ============================================================
+        // Buka Halaman Detail Berita (beritauser.html)
+        // ============================================================
+        function goToBeritaUser(item) {
+            window.location.href = 'beritauser.html?id=' + encodeURIComponent(item.id);
+        }
+
+        // ============================================================
+        // Buka Modal Detail Berita (tidak lagi dipakai untuk klik berita,
+        // fungsi ini dibiarkan agar tidak merusak bagian lain yang mungkin masih memanggilnya)
+        // ============================================================
+        function openNewsDetail(item) {
+            const img         = document.getElementById('newsDetailImg');
+            const placeholder = document.getElementById('newsDetailImgPlaceholder');
+            const imgWrap     = document.getElementById('newsDetailImgWrap');
+
+            if (item.photo) {
+                img.src   = item.photo;
+                img.alt   = item.judul;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+                img.onerror = function() {
+                    img.style.display = 'none';
+                    placeholder.style.display = 'flex';
+                };
+            } else {
+                img.style.display = 'none';
+                placeholder.style.display = 'flex';
+            }
+
+            document.getElementById('newsDetailTag').textContent     = item.kategori;
+            document.getElementById('newsDetailDate').textContent    = '📅 ' + formatTanggalBerita(item.tanggal);
+            document.getElementById('newsDetailTitle').textContent   = item.judul;
+            document.getElementById('newsDetailContent').textContent = item.isiberita || 'Tidak ada isi berita.';
+
+            // Scroll body ke atas
+            document.getElementById('newsDetailBox').querySelector('.news-detail-body').scrollTop = 0;
+
+            document.getElementById('newsDetailModal').classList.add('active');
+        }
+
+        // Tutup modal detail
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('newsDetailClose').addEventListener('click', () => {
+                document.getElementById('newsDetailModal').classList.remove('active');
+            });
+            document.getElementById('newsDetailModal').addEventListener('click', function(e) {
+                if (e.target === this) this.classList.remove('active');
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') document.getElementById('newsDetailModal').classList.remove('active');
+            });
+        });
+
+        function renderBeritaKosong() {
+            const headlineEl = document.getElementById('headlineNews');
+            headlineEl.innerHTML = `
+                <div style="width:100%;height:250px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+                    <span style="font-size:2.5rem;">📰</span>
+                    <span style="color:white;font-size:0.9rem;opacity:0.8;">Belum ada berita</span>
+                </div>
+                <div class="headline-content">
+                    <span class="headline-tag">-</span>
+                    <h3 class="headline-title">Berita belum tersedia</h3>
+                    <p class="headline-excerpt">Berita sekolah akan segera hadir.</p>
+                </div>`;
+            document.getElementById('smallNewsList').innerHTML = '';
+        }
+
+        // Render slides carousel berita secara dinamis
+        function renderNewsCarousel(data) {
+            const carouselContent = document.querySelector('#newsCarouselModal .carousel-content');
+            // Hapus slide lama jika ada
+            carouselContent.querySelectorAll('.carousel-slide').forEach(s => s.remove());
+
+            // Susun: Berita Utama duluan
+            const sorted = [
+                ...data.filter(d => d.kategori === 'Berita Utama'),
+                ...data.filter(d => d.kategori !== 'Berita Utama')
+            ];
+
+            sorted.forEach((item, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'carousel-slide' + (index === 0 ? ' active' : '');
+                slide.setAttribute('data-index', index);
+                const imgSrc = item.photo || '';
+                slide.innerHTML = `
+                    ${imgSrc
+                        ? `<img src="${imgSrc}" class="carousel-image" alt="${item.judul}" onerror="this.style.background='linear-gradient(135deg,#667eea,#764ba2)';this.removeAttribute('src')">`
+                        : `<div class="carousel-image" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#667eea,#764ba2);"><span style="font-size:4rem;">📰</span></div>`
+                    }
+                    <div class="carousel-info">
+                        <span class="carousel-tag">${item.kategori}</span>
+                        <h3 class="carousel-title">${item.judul}</h3>
+                        <p class="carousel-year">${formatTanggalBerita(item.tanggal)}</p>
+                        <p class="carousel-description">${truncateBerita(item.isiberita, 300)}</p>
+                    </div>`;
+                carouselContent.appendChild(slide);
+            });
+        }
+
+        // Setup carousel berita (dinamis — dipanggil setelah slides di-render)
+        function setupNewsCarouselDynamic() {
+            const modal    = document.getElementById('newsCarouselModal');
+            const closeBtn = document.getElementById('newsCarouselClose');
+            const prevBtn  = document.getElementById('newsCarouselPrev');
+            const nextBtn  = document.getElementById('newsCarouselNext');
+            let currentSlide = 0;
+
+            function getSlides() {
+                return modal.querySelectorAll('.carousel-slide');
+            }
+
+            function updateCarousel() {
+                const slides = getSlides();
+                slides.forEach((s, i) => s.classList.toggle('active', i === currentSlide));
+            }
+
+            document.getElementById('newsLihatSemuaBtn').addEventListener('click', () => {
+                currentSlide = 0;
+                updateCarousel();
+                modal.classList.add('active');
+            });
+
+            closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+
+            nextBtn.addEventListener('click', () => {
+                const slides = getSlides();
+                currentSlide = (currentSlide + 1) % slides.length;
+                updateCarousel();
+            });
+
+            prevBtn.addEventListener('click', () => {
+                const slides = getSlides();
+                currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+                updateCarousel();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (!modal.classList.contains('active')) return;
+                const slides = getSlides();
+                if (e.key === 'ArrowRight') { currentSlide = (currentSlide + 1) % slides.length; updateCarousel(); }
+                else if (e.key === 'ArrowLeft') { currentSlide = (currentSlide - 1 + slides.length) % slides.length; updateCarousel(); }
+                else if (e.key === 'Escape') modal.classList.remove('active');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginForm = document.getElementById('loginForm');
+            const roleInput = document.getElementById('role'); // Input hidden
+            const roleTabs = document.querySelectorAll('.role-tab');
+            
+            // Elemen Form
+            const label1 = document.getElementById('label1');
+            const field1 = document.getElementById('field1');
+            const field1Dropdown = document.getElementById('field1-dropdown');
+            const label2 = document.getElementById('label2');
+            const field2 = document.getElementById('field2');
+            const togglePasswordBtn = document.getElementById('togglePassword');
+            const submitBtn = document.getElementById('submitBtn');
+            const messageBox = document.getElementById('messageBox');
+            const registerLink = document.getElementById('registerLink');
+
+            let currentOptions = [];
+
+            // Konfigurasi Field berdasarkan Role
+            const roleConfig = {
+                'Siswa': {
+                    label1: 'Nama Lengkap',
+                    isSelect1: true,
+                    options1: [], // Akan diisi dari database
+                    label2: 'NISN', placeholder2: 'Masukkan NISN', type2: 'number',
+                    isPassword: false
+                },
+                'Guru': {
+                    label1: 'Nama Lengkap',
+                    isSelect1: true,
+                    options1: [], // Akan diisi dari database
+                    label2: 'NIP', placeholder2: 'Masukkan NIP', type2: 'number',
+                    isPassword: false
+                },
+                'Administrator': {
+                    label1: 'Username', placeholder1: 'Masukkan Username', type1: 'text',
+                    isSelect1: false,
+                    label2: 'Password', placeholder2: 'Masukkan Password', type2: 'password',
+                    isPassword: true
+                }
+            };
+
+            // --- Fetch Data Guru untuk Dropdown ---
+            async function loadGuruData() {
+                try {
+                    const { data, error } = await simpedikClient
+                        .from('dataguru')
+                        .select('nama_guru')
+                        .order('nama_guru');
+                    
+                    if (error) throw error;
+                    
+                    if (data && data.length > 0) {
+                        roleConfig['Guru'].options1 = data.map(guru => guru.nama_guru);
+                        
+                        // Jika sedang di tab Guru, refresh dropdown
+                        if (roleInput.value === 'Guru') {
+                            updateFormUI(roleConfig['Guru']);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error loading guru options:', err);
+                }
+            }
+            loadGuruData();
+
+            // --- Fetch Data Siswa untuk Dropdown ---
+            async function loadSiswaData() {
+                try {
+                    const { data, error } = await simpedikClient
+                        .from('datasiswa')
+                        .select('nama_siswa')
+                        .order('nama_siswa');
+                    
+                    if (error) throw error;
+                    
+                    if (data && data.length > 0) {
+                        roleConfig['Siswa'].options1 = data.map(siswa => siswa.nama_siswa);
+                        
+                        // Jika sedang di tab Siswa, refresh dropdown
+                        if (roleInput.value === 'Siswa') {
+                            updateFormUI(roleConfig['Siswa']);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error loading siswa options:', err);
+                }
+            }
+            loadSiswaData();
+
+            // 0. Handle Role Tabs
+            roleTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const selectedRole = tab.getAttribute('data-role');
+                    const config = roleConfig[selectedRole];
+
+                    // Update UI Form
+                    if (config) {
+                        updateFormUI(config);
+                    }
+
+                    // Hapus class active dari semua tab
+                    roleTabs.forEach(t => t.classList.remove('active'));
+                    // Tambah class active ke tab yang diklik
+                    tab.classList.add('active');
+                    // Update nilai input hidden
+                    roleInput.value = tab.getAttribute('data-role');
+                });
+            });
+
+            function updateFormUI(config) {
+                // Update Field 1
+                label1.textContent = config.label1;
+                field1.value = ''; // Reset nilai
+                
+                if (config.isSelect1) {
+                    // Mode Searchable Dropdown
+                    field1.placeholder = "Ketik nama untuk mencari...";
+                    field1.type = "text";
+                    currentOptions = config.options1 || [];
+                } else {
+                    // Mode Input Text
+                    field1.placeholder = config.placeholder1;
+                    field1.type = config.type1;
+                    currentOptions = [];
+                }
+
+                // Update Field 2
+                label2.textContent = config.label2;
+                field2.placeholder = config.placeholder2;
+                field2.type = config.type2;
+                field2.value = ''; // Reset nilai
+
+                // Toggle Password Button visibility
+                togglePasswordBtn.style.display = config.isPassword ? 'block' : 'none';
+            }
+
+            // Inisialisasi UI awal
+            updateFormUI(roleConfig[roleInput.value]);
+
+            // --- Logic Searchable Dropdown ---
+            field1.addEventListener('input', function() {
+                if (currentOptions.length > 0) {
+                    const val = this.value.toLowerCase();
+                    const filtered = currentOptions.filter(opt => opt.toLowerCase().includes(val));
+                    renderDropdown(filtered);
+                }
+            });
+
+            field1.addEventListener('focus', function() {
+                if (currentOptions.length > 0) {
+                    const val = this.value.toLowerCase();
+                    const filtered = val ? currentOptions.filter(opt => opt.toLowerCase().includes(val)) : currentOptions;
+                    renderDropdown(filtered);
+                }
+            });
+
+            function renderDropdown(options) {
+                field1Dropdown.innerHTML = '';
+                if (options.length === 0) {
+                    field1Dropdown.innerHTML = '<div class="no-results">Tidak ditemukan</div>';
+                } else {
+                    options.forEach(opt => {
+                        const div = document.createElement('div');
+                        div.className = 'dropdown-option';
+                        div.textContent = opt;
+                        div.onclick = () => {
+                            field1.value = opt;
+                            field1Dropdown.classList.remove('show');
+                        };
+                        field1Dropdown.appendChild(div);
+                    });
+                }
+                field1Dropdown.classList.add('show');
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!field1.contains(e.target) && !field1Dropdown.contains(e.target)) {
+                    field1Dropdown.classList.remove('show');
+                }
+            });
+
+            // 1. Fitur Toggle Lihat/Sembunyikan Password
+            togglePasswordBtn.addEventListener('click', () => {
+                const type = field2.getAttribute('type') === 'password' ? 'text' : 'password';
+                field2.setAttribute('type', type);
+                togglePasswordBtn.textContent = type === 'password' ? 'Lihat' : 'Sembunyi';
+            });
+
+            // 2. Handle Submit Form
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault(); // Mencegah reload halaman
+
+                // Reset pesan
+                messageBox.className = 'message';
+                messageBox.style.display = 'none';
+                
+                const originalBtnText = submitBtn.textContent;
+                submitBtn.textContent = 'Memproses...';
+                submitBtn.disabled = true;
+
+                const role = roleInput.value;
+                const val1 = field1.value;
+                const val2 = field2.value;
+
+                if (role === 'Administrator') {
+                    try {
+                        const { data, error } = await simpedikClient
+                            .from('identitassekolah')
+                            .select('username, password')
+                            .eq('username', val1)
+                            .eq('password', val2)
+                            .single();
+
+                        if (error || !data) throw new Error('Username atau Password salah.');
+
+                        showMessage('Login Berhasil! Mengalihkan...', 'success');
+                        setTimeout(() => { window.location.href = 'dasboradmin.html'; }, 1000);
+                    } catch (err) {
+                        showMessage(err.message || 'Login gagal.', 'error');
+                        submitBtn.textContent = originalBtnText;
+                        submitBtn.disabled = false;
+                    }
+                } else if (role === 'Guru') {
+                    try {
+                        // Query Supabase untuk cek Nama dan NIP
+                        const { data, error } = await simpedikClient
+                            .from('dataguru')
+                            .select('*')
+                            .eq('nama_guru', val1)
+                            .eq('nip', val2.trim())
+                            .single();
+
+                        if (error || !data) throw new Error('Nama atau NIP tidak sesuai dengan data guru.');
+
+                        // Simpan sesi guru ke sessionStorage
+                        sessionStorage.setItem('guru_session', JSON.stringify({
+                            nama: data.nama_guru,
+                            nip: data.nip,
+                            photo: data.photo
+                        }));
+
+                        // Tampilkan Modal Selamat Datang
+                        const welcomeModal = document.getElementById('welcomeModal');
+                        const welcomeMessage = document.getElementById('welcomeMessage');
+                        const btnWelcomeOk = document.getElementById('btnWelcomeOk');
+
+                        welcomeMessage.textContent = `Selamat datang ${data.nama_guru} di aplikasi SIMPedik`;
+                        welcomeModal.classList.add('active');
+
+                        // Redirect saat klik OK
+                        btnWelcomeOk.onclick = () => window.location.href = 'adminguru.html';
+
+                    } catch (err) {
+                        showMessage(err.message || 'Login gagal.', 'error');
+                        submitBtn.textContent = originalBtnText;
+                        submitBtn.disabled = false;
+                    }
+                } else if (role === 'Siswa') {
+                    try {
+                        // Query Supabase untuk cek Nama dan NISN
+                        const { data, error } = await simpedikClient
+                            .from('datasiswa')
+                            .select('*')
+                            .eq('nama_siswa', val1)
+                            .eq('nisn', val2.trim())
+                            .single();
+
+                        if (error || !data) throw new Error('Nama atau NISN tidak sesuai.');
+
+                        // Simpan sesi siswa ke sessionStorage
+                        sessionStorage.setItem('siswa_session', JSON.stringify(data));
+
+                        showMessage('Login Berhasil! Mengalihkan...', 'success');
+                        setTimeout(() => { window.location.href = 'adminsiswa.html'; }, 1000);
+                    } catch (err) {
+                        showMessage('Nama atau NISN tidak ditemukan.', 'error');
+                        submitBtn.textContent = originalBtnText;
+                        submitBtn.disabled = false;
+                    }
+                }
+            });
+
+            // Fungsi Helper untuk menampilkan pesan
+            function showMessage(text, type) {
+                messageBox.textContent = text;
+                messageBox.className = `message ${type}`;
+                messageBox.style.display = 'block';
+            }
+
+            // --- Logic Modal Login ---
+            const loginModal = document.getElementById('loginModal');
+            const openLoginBtn = document.getElementById('openLoginModal');
+            const cancelLoginBtn = document.getElementById('cancelLoginBtn');
+            const loginModalContent = loginModal.querySelector('.modal-content');
+
+            // Buka Modal Login dengan animasi dari bawah
+            openLoginBtn.addEventListener('click', () => {
+                // Tambahkan class untuk animasi opening
+                loginModalContent.classList.add('modal-opening');
+                loginModal.classList.add('active');
+                
+                // Trigger reflow dan animasi
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        loginModalContent.classList.remove('modal-opening');
+                        loginModalContent.classList.add('modal-opened');
+                    });
+                });
+            });
+
+            // Tutup Modal Login dengan animasi ke bawah
+            function closeLoginModal() {
+                // Tambahkan class untuk animasi closing
+                loginModalContent.classList.remove('modal-opened');
+                loginModalContent.classList.add('modal-closing');
+                
+                // Sembunyikan modal setelah animasi selesai
+                setTimeout(() => {
+                    loginModal.classList.remove('active');
+                    loginModalContent.classList.remove('modal-closing');
+                }, 300);
+            }
+
+            cancelLoginBtn.addEventListener('click', closeLoginModal);
+            window.addEventListener('click', (e) => {
+                if (e.target === loginModal) closeLoginModal();
+            });
+
+
+            // --- Logic Carousel Modal (reusable untuk Galeri Prestasi & Berita Sekolah) ---
+            function setupCarousel({ btnId, modalId, closeId, prevId, nextId }) {
+                const btn = document.getElementById(btnId);
+                const modal = document.getElementById(modalId);
+                const closeBtn = document.getElementById(closeId);
+                const prevBtn = document.getElementById(prevId);
+                const nextBtn = document.getElementById(nextId);
+                const slides = modal.querySelectorAll('.carousel-slide');
+                let currentSlide = 0;
+
+                function updateCarousel() {
+                    slides.forEach((slide, index) => {
+                        slide.classList.toggle('active', index === currentSlide);
+                    });
+                }
+
+                // Buka Carousel Modal
+                btn.addEventListener('click', () => {
+                    modal.classList.add('active');
+                    currentSlide = 0;
+                    updateCarousel();
+                });
+
+                // Tutup Carousel Modal
+                closeBtn.addEventListener('click', () => {
+                    modal.classList.remove('active');
+                });
+
+                // Navigasi Next
+                nextBtn.addEventListener('click', () => {
+                    currentSlide = (currentSlide + 1) % slides.length;
+                    updateCarousel();
+                });
+
+                // Navigasi Previous
+                prevBtn.addEventListener('click', () => {
+                    currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+                    updateCarousel();
+                });
+
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (!modal.classList.contains('active')) return;
+                    if (e.key === 'ArrowRight') {
+                        currentSlide = (currentSlide + 1) % slides.length;
+                        updateCarousel();
+                    } else if (e.key === 'ArrowLeft') {
+                        currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+                        updateCarousel();
+                    } else if (e.key === 'Escape') {
+                        modal.classList.remove('active');
+                    }
+                });
+            }
+
+
+            // Berita Sekolah carousel dihandle secara dinamis oleh setupNewsCarouselDynamic()
+
+            // --- Logic Modal Pendaftaran ---
+            const regModal = document.getElementById('registerModal');
+            const closeRegModal = document.querySelector('.close-modal');
+            const cancelRegBtn = document.querySelector('.cancel-reg-btn');
+            const regForm = document.getElementById('registerForm');
+            const regLogoInput = document.getElementById('reg_logo');
+
+            // Buka Modal
+            registerLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                regModal.classList.add('active');
+            });
+
+            // Tutup Modal
+            function closeRegisterModal() {
+                regModal.classList.remove('active');
+                regForm.reset();
+                document.getElementById('reg_file_info').textContent = '';
+            }
+
+            closeRegModal.addEventListener('click', closeRegisterModal);
+            cancelRegBtn.addEventListener('click', closeRegisterModal);
+            window.addEventListener('click', (e) => {
+                if (e.target === regModal) closeRegisterModal();
+            });
+
+            // Handle File Info
+            regLogoInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('Ukuran file terlalu besar. Maksimal 5MB.');
+                        this.value = '';
+                        return;
+                    }
+                    document.getElementById('reg_file_info').textContent = `File terpilih: ${file.name}`;
+                }
+            });
+
+            // Handle Register Submit
+            regForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const btnDaftar = document.getElementById('btnDaftar');
+                const originalText = btnDaftar.textContent;
+                btnDaftar.textContent = 'Menyimpan...';
+                btnDaftar.disabled = true;
+
+                try {
+                    // Validasi NPSN
+                    const npsn = document.getElementById('reg_npsn').value;
+                    if (npsn.length !== 8) throw new Error('NPSN harus 8 digit angka.');
+
+                    // Validasi Password
+                    const password = document.getElementById('reg_password').value;
+                    if (password.length < 8) throw new Error('Password minimal 8 karakter.');
+
+                    // 1. Upload Logo
+                    const file = regLogoInput.files[0];
+                    if (!file) throw new Error('Harap upload logo sekolah.');
+
+                    const timestamp = Date.now();
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `logo_${npsn}_${timestamp}.${fileExt}`;
+
+                    const { error: uploadError } = await simpedikClient.storage
+                        .from('aset')
+                        .upload(fileName, file);
+                    
+                    if (uploadError) throw new Error('Gagal upload logo: ' + uploadError.message);
+
+                    const { data: urlData } = simpedikClient.storage
+                        .from('aset')
+                        .getPublicUrl(fileName);
+                    
+                    const logoUrl = urlData.publicUrl;
+
+                    // 2. Simpan Data ke Database
+                    const formData = {
+                        npsn: parseInt(npsn),
+                        nama_sekolah: document.getElementById('reg_nama_sekolah').value,
+                        status: document.getElementById('reg_status').value,
+                        nama_kepsek: document.getElementById('reg_nama_kepsek').value,
+                        nip_kepsek: parseInt(document.getElementById('reg_nip_kepsek').value),
+                        jabatan: document.getElementById('reg_jabatan').value,
+                        alamat: document.getElementById('reg_alamat').value,
+                        tlp: parseInt(document.getElementById('reg_tlp').value),
+                        email: document.getElementById('reg_email').value,
+                        slogan: document.getElementById('reg_slogan').value,
+                        tahun_pelajaran: document.getElementById('reg_tahun_pelajaran').value,
+                        logo: logoUrl,
+                        username: document.getElementById('reg_username').value,
+                        password: password
+                    };
+
+                    const { error: insertError } = await simpedikClient
+                        .from('identitassekolah')
+                        .upsert([formData]); // Menggunakan upsert sesuai logika identitassekolah.html
+
+                    if (insertError) throw new Error('Gagal menyimpan data: ' + insertError.message);
+
+                    alert('Pendaftaran Sekolah Berhasil! Silakan login.');
+                    closeRegisterModal();
+                    loadSchoolIdentity(); // Refresh data sekolah di halaman login
+                    
+                } catch (err) {
+                    console.error(err);
+                    alert('Terjadi kesalahan: ' + err.message);
+                } finally {
+                    btnDaftar.textContent = originalText;
+                    btnDaftar.disabled = false;
+                }
+            });
+        });
+    </script>
+             <!-- 🔥 SERVICE WORKER -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+            .then(reg => console.log('Service Worker aktif'))
+            .catch(err => console.log('SW gagal:', err));
+        });
+    }
+    </script>
+
+</body>
+</html>

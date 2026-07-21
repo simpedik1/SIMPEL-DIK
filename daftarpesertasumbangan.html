@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Peserta Sumbangan Komite</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --bg-light: #f4f6f9;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: url('bg2.jpg') no-repeat center center;
+            background-size: cover;
+            filter: blur(5px);
+            transform: scale(1.05);
+            z-index: -1;
+        }
+
+        /* Navbar */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img { height: 40px; width: auto; border-radius: 50%; object-fit: cover; }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        .navbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 7px 16px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s, transform 0.2s;
+            box-shadow: 0 3px 8px rgba(102,126,234,0.3);
+        }
+        .btn-back:hover { opacity: 0.88; transform: translateY(-1px); }
+
+        /* Main Content */
+        .main-content {
+            margin-top: calc(var(--header-height) + 1.5rem);
+            padding: 0 1rem 2rem;
+            flex: 1;
+            width: 100%;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+        }
+
+        .page-title h2 {
+            font-size: 1.25rem;
+            color: #ffffff;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .page-title p {
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.85);
+            margin-top: 4px;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 1.2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 16px 18px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 4px solid transparent;
+        }
+        .stat-card.c-indigo  { border-color: #667eea; }
+        .stat-card.c-green   { border-color: #10b981; }
+        .stat-card.c-purple  { border-color: #8b5cf6; }
+        .stat-card.c-orange  { border-color: #f59e0b; }
+
+        .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .si-indigo  { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .si-green   { background: linear-gradient(135deg, #10b981, #059669); }
+        .si-purple  { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .si-orange  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+        .stat-info h3 { font-size: 1.6rem; font-weight: 800; color: #1e293b; line-height: 1; }
+        .stat-info p  { font-size: 0.76rem; color: #64748b; margin-top: 3px; }
+
+        /* Dashboard Card */
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 1.2rem;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f1f5f9;
+            flex-wrap: wrap;
+        }
+        .card-title-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title i { color: var(--primary-color); }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 180px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 8px 10px 8px 34px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #333;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+        }
+        .search-box i {
+            position: absolute;
+            left: 11px; top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.86rem;
+            color: #333;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+            min-width: 130px;
+        }
+        .filter-select:focus { outline: none; border-color: var(--primary-color); }
+
+        /* Buttons */
+        .btn-pdf {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: opacity 0.2s, transform 0.2s;
+            box-shadow: 0 3px 8px rgba(239,68,68,0.3);
+        }
+        .btn-pdf:hover { opacity: 0.88; transform: translateY(-1px); }
+        .btn-pdf:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .btn-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            color: #555;
+            border: 1.5px solid #ddd;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .btn-refresh:hover { border-color: var(--primary-color); color: var(--primary-color); background: #f0f4ff; }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 11px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        thead th:first-child { border-radius: 8px 0 0 0; }
+        thead th:last-child  { border-radius: 0 8px 0 0; }
+
+        tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #f8f9ff; }
+
+        tbody td { padding: 10px 14px; color: #374151; vertical-align: middle; }
+
+        .badge-kelas {
+            display: inline-block;
+            background: #ede9fe;
+            color: #5b21b6;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-tahun {
+            display: inline-block;
+            background: #f3e8ff;
+            color: #6b21a8;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .nominal-text {
+            font-weight: 700;
+            color: #059669;
+        }
+
+        .no-text { color: #94a3b8; font-size: 0.78rem; }
+
+        /* Empty / Loading State */
+        .state-row td {
+            text-align: center;
+            padding: 32px;
+            color: #94a3b8;
+            font-size: 0.88rem;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 14px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .pagination-info { font-size: 0.8rem; color: #64748b; }
+        .pagination-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+        .btn-page {
+            padding: 5px 11px;
+            border: 1.5px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-page:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .btn-page.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-color: #667eea; }
+        .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            z-index: 9999;
+            transform: translateY(60px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            max-width: 340px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 4px solid #22c55e; }
+        .toast.error   { border-left: 4px solid #ef4444; }
+        .toast.info    { border-left: 4px solid #667eea; }
+
+        /* Preview Summary Rencana Pemasukan */
+        .preview-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 1.2rem;
+        }
+
+        .preview-card {
+            background: white;
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1.5px solid #e2e8f0;
+            transition: box-shadow 0.2s;
+        }
+        .preview-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.09); }
+        .preview-card.pc-indigo { border-left: 4px solid #667eea; }
+        .preview-card.pc-green  { border-left: 4px solid #10b981; }
+        .preview-card.pc-purple { border-left: 4px solid #8b5cf6; }
+        .preview-card.pc-amber  { border-left: 4px solid #f59e0b; }
+
+        .preview-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .pi-indigo { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .pi-green  { background: linear-gradient(135deg, #10b981, #059669); }
+        .pi-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .pi-amber  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+        .preview-info { min-width: 0; }
+        .preview-info h4 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .preview-info p {
+            font-size: 0.73rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 480px) {
+            .preview-summary { grid-template-columns: 1fr; }
+        }
+
+                /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 14px;
+            color: #94a3b8;
+            font-size: 0.78rem;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content { padding: 0 5px 2rem; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .toolbar { gap: 6px; }
+            .navbar-brand span { font-size: 0.95rem; }
+
+            /* Cegah elemen terpotong: samakan padding kiri-kanan jadi 5px */
+            .dashboard-card { padding-left: 5px; padding-right: 5px; }
+            .stat-card { padding-left: 5px; padding-right: 5px; }
+            .preview-card { padding-left: 5px; padding-right: 5px; }
+            .preview-summary { gap: 8px; }
+            .table-wrap { margin-left: 0; margin-right: 0; }
+            thead th, tbody td { padding-left: 5px; padding-right: 5px; }
+            .toast { left: 5px; right: 5px; max-width: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" id="navLogo" style="display:none;">
+            <span id="navSchoolName">SMKN 1 Simpang Teritip</span>
+        </a>
+        <div class="navbar-right">
+            <a href="dasboradmin.html" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title">
+                <h2><i class="fas fa-users" style="color:#fff;"></i> Daftar Peserta Sumbangan Komite</h2>
+                <p>Lihat seluruh data peserta tagihan sumbangan komite yang telah terdaftar</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card c-indigo">
+                <div class="stat-icon si-indigo"><i class="fas fa-users"></i></div>
+                <div class="stat-info"><h3 id="statTotal">—</h3><p>Total Peserta</p></div>
+            </div>
+            <div class="stat-card c-green">
+                <div class="stat-icon si-green"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="stat-info"><h3 id="statNominal">—</h3><p>Avg Nominal/Bln</p></div>
+            </div>
+            <div class="stat-card c-purple">
+                <div class="stat-icon si-purple"><i class="fas fa-school"></i></div>
+                <div class="stat-info"><h3 id="statKelas">—</h3><p>Jumlah Kelas</p></div>
+            </div>
+            <div class="stat-card c-orange">
+                <div class="stat-icon si-orange"><i class="fas fa-calendar-alt"></i></div>
+                <div class="stat-info"><h3 id="statTahun">—</h3><p>Tahun Pelajaran Aktif</p></div>
+            </div>
+        </div>
+
+        <!-- Preview Rencana Pemasukan -->
+        <div class="preview-summary">
+            <div class="preview-card pc-indigo">
+                <div class="preview-icon pi-indigo"><i class="fas fa-users"></i></div>
+                <div class="preview-info">
+                    <h4 id="previewJumlahAnggota">—</h4>
+                    <p>Jumlah Anggota Sumbangan</p>
+                </div>
+            </div>
+            <div class="preview-card pc-green">
+                <div class="preview-icon pi-green"><i class="fas fa-wallet"></i></div>
+                <div class="preview-info">
+                    <h4 id="previewTotalRencana">—</h4>
+                    <p>Total Rencana Pemasukan (12 bln)</p>
+                </div>
+            </div>
+            <div class="preview-card pc-purple">
+                <div class="preview-icon pi-purple"><i class="fas fa-calculator"></i></div>
+                <div class="preview-info">
+                    <h4 id="previewRataRata">—</h4>
+                    <p>Rata-rata Nominal/Bulan</p>
+                </div>
+            </div>
+            <div class="preview-card pc-amber">
+                <div class="preview-icon pi-amber"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="preview-info">
+                    <h4 id="previewTotalBulanan">—</h4>
+                    <p>Total Pemasukan/Bulan (semua)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel Data Peserta -->
+        <div class="dashboard-card">
+            <div class="card-title">
+                <div class="card-title-left">
+                    <i class="fas fa-list"></i>
+                    <span>Data Peserta Sumbangan Komite</span>
+                </div>
+                <button class="btn-pdf" id="btnExportPdf" onclick="exportPDF()">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+            </div>
+
+            <!-- Toolbar Filter & Search -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Cari nama siswa atau NISN..." oninput="applyFilter()">
+                </div>
+                <select class="filter-select" id="filterKelas" name="filterKelas" onchange="applyFilter()">
+                    <option value="">Semua Kelas</option>
+                </select>
+                <select class="filter-select" id="filterTahun" name="filterTahun" onchange="applyFilter()">
+                    <option value="">Semua Tahun</option>
+                </select>
+                <button class="btn-refresh" onclick="loadData()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:44px;">No</th>
+                            <th>Nama Siswa</th>
+                            <th>NISN</th>
+                            <th>Kelas</th>
+                            <th>Tahun Pelajaran</th>
+                            <th>Nominal/Bulan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr class="state-row">
+                            <td colspan="6"><i class="fas fa-spinner fa-spin" style="font-size:1.3rem;display:block;margin-bottom:8px;color:#667eea;"></i>Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <span class="pagination-info" id="paginationInfo"></span>
+                <div class="pagination-btns" id="paginationBtns"></div>
+            </div>
+        </div>
+
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    // ============================================================
+    // SUPABASE CONFIG
+    // ============================================================
+    const SUPABASE_URL_IDENTITY = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+    const SUPABASE_KEY_IDENTITY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+
+    const SUPABASE_URL_OPS = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+    const SUPABASE_KEY_OPS  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+
+    const identityDb = supabase.createClient(SUPABASE_URL_IDENTITY, SUPABASE_KEY_IDENTITY);
+    const db         = supabase.createClient(SUPABASE_URL_OPS, SUPABASE_KEY_OPS);
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let allData      = [];
+    let filteredData = [];
+    let currentPage  = 1;
+    const PAGE_SIZE  = 20;
+
+    // ============================================================
+    // LOAD SCHOOL IDENTITY (navbar)
+    // ============================================================
+    async function loadSchoolIdentity() {
+        try {
+            const { data } = await identityDb.from('identitassekolah').select('nama_sekolah, logo').limit(1).single();
+            if (data) {
+                document.getElementById('navSchoolName').textContent = data.nama_sekolah || 'SMKN 1 Simpang Teritip';
+                if (data.logo) {
+                    const img = document.getElementById('navLogo');
+                    img.src = data.logo;
+                    img.style.display = 'block';
+                }
+            }
+        } catch(e) { /* silent */ }
+    }
+
+    // ============================================================
+    // LOAD DATA
+    // ============================================================
+    async function loadData() {
+        document.getElementById('tableBody').innerHTML = `
+            <tr class="state-row">
+                <td colspan="6"><i class="fas fa-spinner fa-spin" style="font-size:1.3rem;display:block;margin-bottom:8px;color:#667eea;"></i>Memuat data...</td>
+            </tr>`;
+        document.getElementById('paginationInfo').textContent = '';
+        document.getElementById('paginationBtns').innerHTML  = '';
+
+        try {
+            const { data, error } = await db
+                .from('tagihansumbangan')
+                .select('id, nama_siswa, nisn, kelas, tahun_pelajaran, nominal_per_bulan')
+                .order('kelas')
+                .order('nama_siswa');
+
+            if (error) throw error;
+
+            allData = data || [];
+            buildFilters();
+            applyFilter();
+            updateStats();
+        } catch(err) {
+            document.getElementById('tableBody').innerHTML = `
+                <tr class="state-row">
+                    <td colspan="6"><i class="fas fa-exclamation-circle" style="font-size:1.3rem;display:block;margin-bottom:8px;color:#ef4444;"></i>Gagal memuat data: ${escHtml(err.message)}</td>
+                </tr>`;
+            showToast('Gagal memuat data: ' + err.message, 'error');
+        }
+    }
+
+    // ============================================================
+    // BUILD FILTER OPTIONS
+    // ============================================================
+    function buildFilters() {
+        const kelasList = [...new Set(allData.map(d => d.kelas).filter(Boolean))].sort();
+        const tahunList = [...new Set(allData.map(d => d.tahun_pelajaran).filter(Boolean))].sort().reverse();
+
+        const fKelas = document.getElementById('filterKelas');
+        const fTahun = document.getElementById('filterTahun');
+
+        fKelas.innerHTML = '<option value="">Semua Kelas</option>';
+        kelasList.forEach(k => {
+            fKelas.innerHTML += `<option value="${escHtml(k)}">${escHtml(k)}</option>`;
+        });
+
+        fTahun.innerHTML = '<option value="">Semua Tahun</option>';
+        tahunList.forEach(t => {
+            fTahun.innerHTML += `<option value="${escHtml(t)}">${escHtml(t)}</option>`;
+        });
+    }
+
+    // ============================================================
+    // FILTER & RENDER
+    // ============================================================
+    function applyFilter() {
+        const q      = document.getElementById('searchInput').value.trim().toLowerCase();
+        const kelas  = document.getElementById('filterKelas').value;
+        const tahun  = document.getElementById('filterTahun').value;
+
+        filteredData = allData.filter(d => {
+            const matchSearch = !q ||
+                (d.nama_siswa || '').toLowerCase().includes(q) ||
+                (d.nisn || '').toLowerCase().includes(q);
+            const matchKelas = !kelas || d.kelas === kelas;
+            const matchTahun = !tahun || d.tahun_pelajaran === tahun;
+            return matchSearch && matchKelas && matchTahun;
+        });
+
+        currentPage = 1;
+        renderTable();
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const total = filteredData.length;
+
+        if (total === 0) {
+            tbody.innerHTML = `<tr class="state-row"><td colspan="6"><i class="fas fa-inbox" style="font-size:1.5rem;display:block;margin-bottom:8px;color:#cbd5e1;"></i>Tidak ada data ditemukan.</td></tr>`;
+            document.getElementById('paginationInfo').textContent = 'Tidak ada data';
+            document.getElementById('paginationBtns').innerHTML  = '';
+            return;
+        }
+
+        const totalPages = Math.ceil(total / PAGE_SIZE);
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const slice = filteredData.slice(start, start + PAGE_SIZE);
+
+        tbody.innerHTML = slice.map((d, i) => `
+            <tr>
+                <td class="no-text">${start + i + 1}</td>
+                <td><strong>${escHtml(d.nama_siswa || '-')}</strong></td>
+                <td style="font-family:monospace;color:#475569;font-size:0.82rem;">${escHtml(d.nisn || '-')}</td>
+                <td><span class="badge-kelas">${escHtml(d.kelas || '-')}</span></td>
+                <td><span class="badge-tahun">${escHtml(d.tahun_pelajaran || '-')}</span></td>
+                <td class="nominal-text">Rp ${(parseFloat(d.nominal_per_bulan) || 0).toLocaleString('id-ID')}</td>
+            </tr>
+        `).join('');
+
+        document.getElementById('paginationInfo').textContent =
+            `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, total)} dari ${total} peserta`;
+
+        const btnsEl = document.getElementById('paginationBtns');
+        let html = `<button class="btn-page" onclick="goPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+        for (let p = 1; p <= totalPages; p++) {
+            if (totalPages <= 7 || Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages) {
+                html += `<button class="btn-page ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`;
+            } else if (Math.abs(p - currentPage) === 3) {
+                html += `<span style="padding:4px;color:#94a3b8;">…</span>`;
+            }
+        }
+        html += `<button class="btn-page" onclick="goPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+        btnsEl.innerHTML = html;
+    }
+
+    function goPage(p) {
+        const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+        if (p < 1 || p > totalPages) return;
+        currentPage = p;
+        renderTable();
+    }
+
+    // ============================================================
+    // UPDATE STATS
+    // ============================================================
+    function updateStats() {
+        const total    = allData.length;
+        const nominals = allData.map(d => parseFloat(d.nominal_per_bulan) || 0).filter(n => n > 0);
+        const avg      = nominals.length ? Math.round(nominals.reduce((a, b) => a + b, 0) / nominals.length) : 0;
+        const totalBln = nominals.reduce((a, b) => a + b, 0);
+        const total12  = totalBln * 12;
+        const kelas    = new Set(allData.map(d => d.kelas).filter(Boolean)).size;
+        const tahunSet = [...new Set(allData.map(d => d.tahun_pelajaran).filter(Boolean))].sort().reverse();
+
+        // Stat cards
+        document.getElementById('statTotal').textContent   = total.toLocaleString('id-ID');
+        document.getElementById('statNominal').textContent = avg > 0 ? 'Rp ' + avg.toLocaleString('id-ID') : '—';
+        document.getElementById('statKelas').textContent   = kelas || '—';
+        document.getElementById('statTahun').textContent   = tahunSet[0] || '—';
+
+        // Preview rencana pemasukan
+        document.getElementById('previewJumlahAnggota').textContent =
+            total > 0 ? total.toLocaleString('id-ID') + ' siswa' : '—';
+        document.getElementById('previewTotalRencana').textContent =
+            total12 > 0 ? 'Rp ' + total12.toLocaleString('id-ID') : '—';
+        document.getElementById('previewRataRata').textContent =
+            avg > 0 ? 'Rp ' + avg.toLocaleString('id-ID') : '—';
+        document.getElementById('previewTotalBulanan').textContent =
+            totalBln > 0 ? 'Rp ' + totalBln.toLocaleString('id-ID') : '—';
+    }
+
+    // ============================================================
+    // EXPORT PDF
+    // ============================================================
+    async function exportPDF() {
+        const btn = document.getElementById('btnExportPdf');
+        if (filteredData.length === 0) {
+            showToast('Tidak ada data untuk diekspor.', 'error');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyiapkan...';
+
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+            // Header info
+            const schoolName = document.getElementById('navSchoolName').textContent;
+            const filterKelas = document.getElementById('filterKelas').value || 'Semua Kelas';
+            const filterTahun = document.getElementById('filterTahun').value || 'Semua Tahun';
+            const now = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            // Judul
+            doc.setFontSize(13);
+            doc.setFont('helvetica', 'bold');
+            doc.text(schoolName.toUpperCase(), 105, 16, { align: 'center' });
+
+            doc.setFontSize(11);
+            doc.text('DAFTAR PESERTA SUMBANGAN KOMITE', 105, 23, { align: 'center' });
+
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Kelas: ${filterKelas}   |   Tahun Pelajaran: ${filterTahun}`, 105, 29, { align: 'center' });
+            doc.text(`Dicetak: ${now}`, 105, 34, { align: 'center' });
+
+            // Garis bawah judul
+            doc.setDrawColor(102, 126, 234);
+            doc.setLineWidth(0.6);
+            doc.line(14, 37, 196, 37);
+
+            // Tabel
+            const rows = filteredData.map((d, i) => [
+                i + 1,
+                d.nama_siswa || '-',
+                d.nisn || '-',
+                d.kelas || '-',
+                d.tahun_pelajaran || '-',
+                'Rp ' + (parseFloat(d.nominal_per_bulan) || 0).toLocaleString('id-ID'),
+            ]);
+
+            doc.autoTable({
+                startY: 40,
+                head: [['No', 'Nama Siswa', 'NISN', 'Kelas', 'Tahun Pelajaran', 'Nominal/Bulan']],
+                body: rows,
+                theme: 'grid',
+                styles: { fontSize: 8.5, cellPadding: 3, valign: 'middle', font: 'helvetica' },
+                headStyles: {
+                    fillColor: [102, 126, 234],
+                    textColor: 255,
+                    fontStyle: 'bold',
+                    fontSize: 8.5,
+                },
+                alternateRowStyles: { fillColor: [248, 249, 255] },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 10 },
+                    1: { cellWidth: 55 },
+                    2: { cellWidth: 28, font: 'courier' },
+                    3: { halign: 'center', cellWidth: 22 },
+                    4: { halign: 'center', cellWidth: 30 },
+                    5: { halign: 'right', cellWidth: 30 },
+                },
+                margin: { left: 14, right: 14 },
+                didDrawPage: function(data) {
+                    // Footer per halaman
+                    const pageCount = doc.internal.getNumberOfPages();
+                    doc.setFontSize(7.5);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(150);
+                    doc.text(`Halaman ${data.pageNumber} dari ${pageCount}`, 196, 290, { align: 'right' });
+                    doc.setTextColor(0);
+                }
+            });
+
+            // Ringkasan di bawah tabel
+            const finalY = doc.lastAutoTable.finalY + 6;
+            doc.setFontSize(8.5);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Total Peserta: ${filteredData.length} orang`, 14, finalY);
+
+            // Tanda tangan
+            const signY = finalY + 20;
+            if (signY < 265) {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8.5);
+                doc.text('Simpang Teritip, ' + now, 148, signY, { align: 'center' });
+                doc.text('Tata Usaha,', 148, signY + 6, { align: 'center' });
+                doc.text('_________________________', 148, signY + 26, { align: 'center' });
+                doc.text('NIP. ...........................', 148, signY + 31, { align: 'center' });
+            }
+
+            const fileName = `Daftar_Peserta_Sumbangan_${filterKelas.replace(/\s/g,'_')}_${filterTahun.replace(/\//g,'-')}.pdf`.replace(/\s+/g,'_');
+            doc.save(fileName);
+            showToast('PDF berhasil diunduh!', 'success');
+
+        } catch(err) {
+            showToast('Gagal export PDF: ' + err.message, 'error');
+            console.error(err);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-file-pdf"></i> Export PDF';
+        }
+    }
+
+    // ============================================================
+    // TOAST
+    // ============================================================
+    let toastTimer;
+    function showToast(msg, type = 'info') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `toast ${type} show`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    // ============================================================
+    // UTILS
+    // ============================================================
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSchoolIdentity();
+        loadData();
+    });
+    </script>
+</body>
+</html>

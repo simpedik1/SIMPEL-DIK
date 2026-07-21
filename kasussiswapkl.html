@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPPEDIK-SMKN 1 Mentok</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --bg-light: #f4f6f9;
+            --pkl-gradient: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: url('bg2.jpg') no-repeat center center;
+            background-size: cover;
+            filter: blur(5px);
+            transform: scale(1.05);
+            z-index: -1;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img { height: 40px; width: auto; }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        .navbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .navbar-date {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .btn-back {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            text-decoration: none;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 7px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: none;
+            transition: opacity 0.2s, transform 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-back:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        @media (max-width: 768px) {
+            .navbar-brand span { font-size: 1rem; }
+            .navbar-date { display: none !important; }
+
+            /* --- Padding kiri-kanan hanya 5px di mobile --- */
+            .main-content {
+                padding: 1rem 5px;
+            }
+
+            .dashboard-card {
+                padding: 15px;
+                width: 100%;
+            }
+
+            .header-stats-grid {
+                gap: 12px;
+            }
+
+            .stat-card {
+                padding: 15px;
+                width: 100%;
+            }
+
+            .tabs-wrapper-header {
+                padding: 12px;
+            }
+
+            .tabs-content {
+                padding: 12px;
+            }
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        /* ===== CARDS ===== */
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .header-stats-grid { grid-template-columns: 3fr 1fr; }
+        }
+
+        .header-stats-grid .dashboard-card {
+            margin-bottom: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-info h3 { font-size: 2rem; margin-bottom: 5px; color: #333; }
+        .stat-info p { color: #777; font-size: 0.9rem; }
+        .stat-icon { font-size: 2.5rem; opacity: 0.2; }
+
+        /* ===== TABS WRAPPER ===== */
+        .tabs-wrapper {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 20px;
+            overflow: hidden;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .tabs-wrapper-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tabs-header-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            background: var(--pkl-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+        .tabs-nav {
+            display: flex;
+            border-bottom: 2px solid #f0f0f0;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .tabs-nav::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            padding: 14px 20px;
+            border: none;
+            background: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #888;
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: color 0.2s, border-color 0.2s, background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .tab-btn:hover { color: var(--primary-color); background: rgba(102,126,234,0.04); }
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background: white;
+        }
+
+        .tabs-content { padding: 20px; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* ===== SUMMARY GRID ===== */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .summary-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        .summary-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .summary-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+        .summary-value { font-size: 1.3rem; font-weight: 700; color: #333; line-height: 1.1; }
+        .summary-label { font-size: 0.72rem; font-weight: 600; color: #888; white-space: normal; word-break: break-word; line-height: 1.25; }
+
+        .sum-total  { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .sum-kasus  { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+        .sum-siswa  { background: linear-gradient(135deg, #f7971e, #ffd200); }
+
+        @media (max-width: 600px) {
+            .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .summary-card { padding: 12px; gap: 8px; }
+            .summary-icon { width: 34px; height: 34px; font-size: 0.9rem; }
+            .summary-value { font-size: 1.1rem; }
+        }
+
+        /* ===== FILTER BAR ===== */
+        .filter-bar {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: #f8f9fb;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 18px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .filter-group label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .filter-group label i { color: var(--primary-color); font-size: 0.8rem; }
+
+        .filter-control {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.87rem;
+            font-family: inherit;
+            color: #333;
+            background: white;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .filter-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+
+        .btn-filter-reset {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: white;
+            color: #555;
+            border: 1.5px solid #ddd;
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .btn-filter-reset:hover { background: #f3f4f6; border-color: #bbb; }
+
+        .btn-export-pdf {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(239,68,68,0.25);
+            transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-export-pdf:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(239,68,68,0.35);
+        }
+
+        @media (max-width: 600px) {
+            .filter-group { min-width: 100%; }
+            .filter-actions { width: 100%; justify-content: flex-end; }
+            .filter-bar { padding: 12px; gap: 10px; }
+        }
+
+        /* ===== TABLE ===== */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead tr { background: var(--pkl-gradient); color: white; }
+
+        thead th {
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+        }
+
+        tbody tr:hover { background: #f5f3ff; }
+        tbody tr:last-child { border-bottom: none; }
+
+        tbody td {
+            padding: 11px 14px;
+            color: #444;
+            vertical-align: middle;
+        }
+
+        thead th.col-no, tbody td.col-no {
+            width: 40px;
+            text-align: center;
+        }
+
+        /* ===== BADGES ===== */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .badge-case    { background: #fee2e2; color: #991b1b; }
+        .badge-default { background: #f1f5f9; color: #475569; }
+
+        .empty-row td { text-align: center; color: #888; padding: 28px 14px; font-style: italic; }
+
+        /* ===== RESULT INFO ===== */
+        .result-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.82rem;
+            color: #888;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .result-info strong { color: #555; }
+
+        /* ===== LOADING ===== */
+        .loading-inline {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #888;
+            font-size: 0.85rem;
+            padding: 20px 14px;
+            justify-content: center;
+        }
+
+        .spinner-sm {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #e2e8f0;
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== REKAP TABLE ===== */
+        .rekap-table thead th { text-align: center; }
+        .rekap-table tbody td { text-align: center; }
+        .rekap-table tbody td:nth-child(2) { text-align: left; }
+
+        /* ===== FOOTER ===== */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            background: #1e293b;
+            color: white;
+            padding: 13px 20px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.22);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 4px solid #22c55e; }
+        .toast.error   { border-left: 4px solid #ef4444; }
+
+        .deskripsi-cell {
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tindak-cell {
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <div class="navbar-right">
+            <div class="navbar-date">
+                <i class="far fa-calendar-alt" style="color: var(--primary-color);"></i>
+                <span id="navbarDate"></span>
+            </div>
+            <a href="dasboradmin.html" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+
+        <!-- Header / Judul Halaman -->
+        <div class="header-stats-grid">
+            <div class="dashboard-card">
+                <h2>Kasus Siswa PKL</h2>
+                <p style="color: #666; margin-top: 10px;">Halaman ini menampilkan riwayat laporan kasus siswa yang sedang melaksanakan Praktik Kerja Lapangan (PKL), beserta deskripsi dan tindak lanjut penanganannya.</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3 id="totalKasusHeader">0</h3>
+                    <p>Total Kasus PKL</p>
+                </div>
+                <i class="fas fa-exclamation-triangle stat-icon" style="color: var(--primary-color);"></i>
+            </div>
+        </div>
+
+        <!-- Kontainer Tab -->
+        <div class="tabs-wrapper">
+            <div class="tabs-wrapper-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="tabs-header-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <div>
+                        <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:#333;">Riwayat Kasus Siswa PKL</h3>
+                        <p style="margin:0; font-size:0.78rem; color:#888;">Data pelanggaran dan kasus seluruh siswa PKL</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="kasus">
+                    <i class="fas fa-exclamation-triangle"></i> Data Kasus Siswa PKL
+                </button>
+                <button class="tab-btn" data-tab="rekap">
+                    <i class="fas fa-chart-bar"></i> Rekap per Siswa
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tabs-content">
+
+                <!-- ===== TAB: DATA KASUS ===== -->
+                <div class="tab-pane active" id="tab-kasus">
+
+                    <!-- Summary Cards -->
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div class="summary-icon sum-total"><i class="fas fa-clipboard-list"></i></div>
+                            <div class="summary-text">
+                                <span class="summary-value" id="kasusTotalCount">0</span>
+                                <span class="summary-label">Total Kasus</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon sum-kasus"><i class="fas fa-user-graduate"></i></div>
+                            <div class="summary-text">
+                                <span class="summary-value" id="kasusSiswaUnikCount">0</span>
+                                <span class="summary-label">Siswa Terlibat Kasus</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon sum-siswa"><i class="fas fa-calendar-alt"></i></div>
+                            <div class="summary-text">
+                                <span class="summary-value" id="kasusBulanIniCount">0</span>
+                                <span class="summary-label">Kasus Bulan Ini</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <label><i class="fas fa-calendar-alt"></i> Tanggal Mulai</label>
+                            <input type="date" class="filter-control" id="filterTanggalMulai">
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-calendar-check"></i> Tanggal Akhir</label>
+                            <input type="date" class="filter-control" id="filterTanggalAkhir">
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-user-graduate"></i> Nama Siswa</label>
+                            <select class="filter-control" id="filterNamaSiswa">
+                                <option value="">-- Semua Siswa --</option>
+                            </select>
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn-filter-reset" id="btnResetFilter" type="button">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                            <button class="btn-export-pdf" id="btnExportPdf" type="button">
+                                <i class="fas fa-file-pdf"></i> Export PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Result Info -->
+                    <div class="result-info">
+                        <span>Menampilkan <strong id="resultCount">0</strong> data kasus</span>
+                        <span id="filterActiveLabel" style="display:none; color: var(--primary-color); font-weight:600;">
+                            <i class="fas fa-filter"></i> Filter aktif
+                        </span>
+                    </div>
+
+                    <!-- Tabel Kasus -->
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th class="col-no">No</th>
+                                    <th>ID Kasus</th>
+                                    <th>Tanggal</th>
+                                    <th>Nama Siswa</th>
+                                    <th>Deskripsi Kasus</th>
+                                    <th>Tindak Lanjut</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kasusTableBody">
+                                <tr>
+                                    <td colspan="6">
+                                        <div class="loading-inline">
+                                            <div class="spinner-sm"></div>
+                                            Memuat data kasus...
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div><!-- end tab-kasus -->
+
+                <!-- ===== TAB: REKAP PER SISWA ===== -->
+                <div class="tab-pane" id="tab-rekap">
+
+                    <div class="result-info" style="margin-bottom: 14px;">
+                        <span>Total <strong id="rekapSiswaCount">0</strong> siswa memiliki riwayat kasus</span>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="rekap-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-no">No</th>
+                                    <th style="text-align:left;">Nama Siswa</th>
+                                    <th>Total Kasus</th>
+                                    <th>Kasus Terbaru</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rekapTableBody">
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="loading-inline">
+                                            <div class="spinner-sm"></div>
+                                            Memuat rekap data...
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div><!-- end tab-rekap -->
+
+            </div><!-- end tabs-content -->
+        </div><!-- end tabs-wrapper -->
+
+        <!-- Toast -->
+        <div class="toast" id="toast"></div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <script>
+        // ===== SUPABASE CONFIG =====
+        // Menggunakan 1 project Supabase untuk semua kebutuhan
+        const pklUrl = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const pklKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+
+        const simpedikUrl = pklUrl;
+        const simpedikKey = pklKey;
+
+        let pklClient      = null;
+        let simpedikClient = null;
+
+        if (typeof supabase !== 'undefined') {
+            pklClient      = supabase.createClient(pklUrl, pklKey);
+            simpedikClient = supabase.createClient(simpedikUrl, simpedikKey);
+        }
+
+        // ===== NAVBAR DATE =====
+        function updateNavbarDate() {
+            const now  = new Date();
+            const opts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            const el   = document.getElementById('navbarDate');
+            if (el) el.textContent = now.toLocaleDateString('id-ID', opts);
+        }
+
+        // ===== SCHOOL IDENTITY =====
+        let schoolData = {};
+
+        async function loadSchoolIdentity() {
+            if (!simpedikClient) return;
+            try {
+                const { data } = await simpedikClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo, kop_sekolah')
+                    .limit(1)
+                    .single();
+                if (data) {
+                    schoolData = data;
+                    if (data.nama_sekolah) {
+                        document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    }
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error('Gagal memuat identitas sekolah:', err);
+            }
+        }
+
+        // ===== TOAST =====
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.className = `toast ${type} show`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-times-circle'}"></i> ${msg}`;
+            setTimeout(() => { toast.classList.remove('show'); }, 3500);
+        }
+
+        // ===== HELPERS =====
+        function escapeHtml(str) {
+            if (str == null) return '-';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function formatTanggal(raw) {
+            if (!raw) return '-';
+            return new Date(raw).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        }
+
+        // ===== DATA STATE =====
+        // Kolom tabel kasuspkl: id, tanggal, nama_siswa, deskripsi, tindak_lanjut
+        let allKasusData  = [];
+        let filteredKasus = [];
+
+        // ===== UPDATE SUMMARY CARDS =====
+        function updateSummary(data) {
+            const total = data.length;
+
+            // Siswa unik
+            const siswaUnik = new Set(data.map(d => d.nama_siswa).filter(Boolean));
+
+            // Kasus bulan ini
+            const now = new Date();
+            const bulanIni = data.filter(item => {
+                if (!item.tanggal_raw) return false;
+                const d = new Date(item.tanggal_raw);
+                return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+            }).length;
+
+            document.getElementById('kasusTotalCount').textContent     = total;
+            document.getElementById('kasusSiswaUnikCount').textContent  = siswaUnik.size;
+            document.getElementById('kasusBulanIniCount').textContent   = bulanIni;
+            document.getElementById('totalKasusHeader').textContent     = total;
+        }
+
+        // ===== RENDER TABEL KASUS =====
+        function renderTable(data) {
+            const tbody = document.getElementById('kasusTableBody');
+            if (!tbody) return;
+
+            document.getElementById('resultCount').textContent = data.length;
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Tidak ada data yang sesuai dengan filter.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map((item, idx) => `
+                <tr>
+                    <td class="col-no">${idx + 1}</td>
+                    <td><span class="badge badge-case">${escapeHtml(item.id)}</span></td>
+                    <td style="white-space:nowrap;">${escapeHtml(item.tanggal)}</td>
+                    <td><strong>${escapeHtml(item.nama_siswa)}</strong></td>
+                    <td class="deskripsi-cell" title="${escapeHtml(item.deskripsi)}">${escapeHtml(item.deskripsi)}</td>
+                    <td class="tindak-cell" title="${escapeHtml(item.tindak_lanjut)}">${escapeHtml(item.tindak_lanjut)}</td>
+                </tr>`).join('');
+        }
+
+        // ===== RENDER REKAP PER SISWA =====
+        function renderRekap(data) {
+            const tbody = document.getElementById('rekapTableBody');
+            if (!tbody) return;
+
+            const grouped = {};
+            data.forEach(item => {
+                const nama = item.nama_siswa || 'Tidak Diketahui';
+                if (!grouped[nama]) {
+                    grouped[nama] = { total: 0, tanggalTerbaru: null, deskripsiTerbaru: '-' };
+                }
+                grouped[nama].total++;
+                // Tanggal terbaru
+                if (item.tanggal_raw) {
+                    if (!grouped[nama].tanggalTerbaru || item.tanggal_raw > grouped[nama].tanggalTerbaru) {
+                        grouped[nama].tanggalTerbaru    = item.tanggal_raw;
+                        grouped[nama].deskripsiTerbaru  = item.deskripsi || '-';
+                    }
+                }
+            });
+
+            const list = Object.entries(grouped).sort((a, b) => b[1].total - a[1].total);
+            document.getElementById('rekapSiswaCount').textContent = list.length;
+
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Belum ada data kasus.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = list.map(([nama, val], idx) => `
+                <tr>
+                    <td class="col-no">${idx + 1}</td>
+                    <td style="text-align:left;"><strong>${escapeHtml(nama)}</strong></td>
+                    <td><span class="badge badge-case">${val.total}</span></td>
+                    <td style="font-size:0.8rem; color:#666;">${escapeHtml(val.deskripsiTerbaru)}</td>
+                </tr>`).join('');
+        }
+
+        // ===== POPULATE FILTER NAMA =====
+        function populateSiswaFilter(data) {
+            const select = document.getElementById('filterNamaSiswa');
+            const names  = [...new Set(data.map(d => d.nama_siswa).filter(Boolean))].sort();
+            names.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                select.appendChild(opt);
+            });
+        }
+
+        // ===== APPLY FILTER =====
+        function applyFilters() {
+            const tglMulai  = document.getElementById('filterTanggalMulai').value;
+            const tglAkhir  = document.getElementById('filterTanggalAkhir').value;
+            const namaSiswa = document.getElementById('filterNamaSiswa').value;
+
+            const isFiltered = tglMulai || tglAkhir || namaSiswa;
+            const labelEl = document.getElementById('filterActiveLabel');
+            if (labelEl) labelEl.style.display = isFiltered ? 'inline-flex' : 'none';
+
+            filteredKasus = allKasusData.filter(item => {
+                if (namaSiswa && item.nama_siswa !== namaSiswa) return false;
+                if (tglMulai && item.tanggal_raw < tglMulai) return false;
+                if (tglAkhir && item.tanggal_raw > tglAkhir) return false;
+                return true;
+            });
+
+            renderTable(filteredKasus);
+            updateSummary(filteredKasus);
+        }
+
+        // ===== LOAD DATA DARI SUPABASE =====
+        // Tabel: kasuspkl
+        // Kolom: id, tanggal, nama_siswa, deskripsi, tindak_lanjut
+        async function loadKasusData() {
+            if (!pklClient) {
+                document.getElementById('kasusTableBody').innerHTML =
+                    '<tr class="empty-row"><td colspan="6">Supabase tidak tersedia.</td></tr>';
+                return;
+            }
+            try {
+                const { data, error } = await pklClient
+                    .from('kasuspkl')
+                    .select('id, tanggal, nama_siswa, deskripsi, tindak_lanjut')
+                    .order('tanggal', { ascending: false });
+
+                if (error) throw error;
+
+                allKasusData = (data || []).map(item => ({
+                    id:           item.id,
+                    tanggal:      item.tanggal
+                        ? new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
+                        : '-',
+                    tanggal_raw:  item.tanggal ? item.tanggal.substring(0, 10) : '',
+                    nama_siswa:   item.nama_siswa,
+                    deskripsi:    item.deskripsi,
+                    tindak_lanjut: item.tindak_lanjut
+                }));
+
+                filteredKasus = allKasusData;
+
+                populateSiswaFilter(allKasusData);
+                renderTable(filteredKasus);
+                renderRekap(allKasusData);
+                updateSummary(filteredKasus);
+
+            } catch (err) {
+                console.error('Gagal memuat data kasus PKL:', err);
+                document.getElementById('kasusTableBody').innerHTML =
+                    `<tr class="empty-row"><td colspan="6">Gagal memuat data: ${escapeHtml(err.message)}</td></tr>`;
+                showToast('Gagal memuat data kasus.', 'error');
+            }
+        }
+
+        // ===== EXPORT PDF =====
+        document.getElementById('btnExportPdf').addEventListener('click', async function () {
+            if (typeof window.jspdf === 'undefined') {
+                showToast('Library jsPDF belum termuat.', 'error');
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 10;
+
+            // KOP Sekolah
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response   = await fetch(schoolData.kop_sekolah);
+                    const blob       = await response.blob();
+                    const base64data = await new Promise(resolve => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                    const imgProps  = doc.getImageProperties(base64data);
+                    const pdfWidth  = pageWidth - 20;
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                    yPos = 10 + imgHeight + 6;
+                    doc.setDrawColor(180, 180, 180);
+                    doc.setLineWidth(0.5);
+                    doc.line(10, yPos, pageWidth - 10, yPos);
+                    yPos += 6;
+                } catch (err) {
+                    console.error('Gagal memuat KOP Sekolah:', err);
+                    yPos = 20;
+                }
+            } else {
+                const schoolName = schoolData.nama_sekolah || document.querySelector('.navbar-brand span').textContent || 'SMKN 1 Simpang Teritip';
+                doc.setFontSize(13);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(0);
+                doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 8;
+                doc.setDrawColor(180, 180, 180);
+                doc.setLineWidth(0.5);
+                doc.line(10, yPos, pageWidth - 10, yPos);
+                yPos += 6;
+            }
+
+            // Judul
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(0);
+            doc.text('Laporan Kasus PKL Siswa', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 10;
+
+            // Info filter & tanggal cetak
+            const namaSiswa    = document.getElementById('filterNamaSiswa').value;
+            const tglMulai     = document.getElementById('filterTanggalMulai').value;
+            const tglAkhir     = document.getElementById('filterTanggalAkhir').value;
+            const tanggalCetak = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(80);
+            if (namaSiswa) { doc.text(`Nama Siswa  : ${namaSiswa}`, 14, yPos); yPos += 5; }
+            if (tglMulai)  { doc.text(`Dari        : ${tglMulai}`,  14, yPos); yPos += 5; }
+            if (tglAkhir)  { doc.text(`Sampai      : ${tglAkhir}`,  14, yPos); yPos += 5; }
+            doc.text(`Dicetak     : ${tanggalCetak}`, 14, yPos);
+            yPos += 8;
+
+            // Ringkasan
+            doc.autoTable({
+                head: [['Total Kasus', 'Siswa Terlibat', 'Kasus Bulan Ini']],
+                body: [[
+                    document.getElementById('kasusTotalCount').textContent,
+                    document.getElementById('kasusSiswaUnikCount').textContent,
+                    document.getElementById('kasusBulanIniCount').textContent
+                ]],
+                startY: yPos,
+                theme: 'grid',
+                styles: { fontSize: 9, halign: 'center' },
+                headStyles: { fillColor: [102, 126, 234] }
+            });
+            yPos = doc.lastAutoTable.finalY + 10;
+
+            // Tabel detail
+            const rows = filteredKasus.map((item, idx) => [
+                idx + 1,
+                item.id            || '-',
+                item.tanggal       || '-',
+                item.nama_siswa    || '-',
+                item.deskripsi     || '-',
+                item.tindak_lanjut || '-'
+            ]);
+
+            doc.autoTable({
+                head: [['No', 'ID Kasus', 'Tanggal', 'Nama Siswa', 'Deskripsi Kasus', 'Tindak Lanjut']],
+                body: rows,
+                startY: yPos,
+                theme: 'grid',
+                styles: { fontSize: 8, overflow: 'linebreak', cellPadding: 3 },
+                headStyles: { fillColor: [102, 126, 234] },
+                alternateRowStyles: { fillColor: [245, 247, 255] },
+                columnStyles: {
+                    0: { cellWidth: 10, halign: 'center' },
+                    4: { cellWidth: 50 },
+                    5: { cellWidth: 45 }
+                }
+            });
+
+            doc.save(`Laporan_Kasus_PKL_${tanggalCetak.replace(/ /g, '_')}.pdf`);
+            showToast('PDF berhasil diekspor.', 'success');
+        });
+
+        // ===== RESET FILTER =====
+        document.getElementById('btnResetFilter').addEventListener('click', function () {
+            document.getElementById('filterTanggalMulai').value = '';
+            document.getElementById('filterTanggalAkhir').value = '';
+            document.getElementById('filterNamaSiswa').value    = '';
+            filteredKasus = allKasusData;
+            renderTable(filteredKasus);
+            updateSummary(filteredKasus);
+            const labelEl = document.getElementById('filterActiveLabel');
+            if (labelEl) labelEl.style.display = 'none';
+        });
+
+        // ===== EVENT LISTENERS FILTER =====
+        ['filterTanggalMulai', 'filterTanggalAkhir', 'filterNamaSiswa'].forEach(id => {
+            document.getElementById(id).addEventListener('change', applyFilters);
+        });
+
+        // ===== TAB LOGIC =====
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = 'tab-' + btn.dataset.tab;
+                document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === target));
+            });
+        });
+
+        // ===== INIT =====
+        document.addEventListener('DOMContentLoaded', () => {
+            updateNavbarDate();
+            loadSchoolIdentity();
+            loadKasusData();
+        });
+    </script>
+</body>
+</html>

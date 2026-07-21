@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPPEDIK-SMKN 1 Mentok</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF & AutoTable for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Mencegah scroll ganda pada body */
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .btn-navbar-dashboard {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--primary-color);
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .btn-navbar-dashboard:hover {
+            opacity: 0.9;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0; /* Default: Full width */
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Stats Grid Styles */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #eee;
+            border-left-width: 5px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-content h4 {
+            margin: 0;
+            font-size: 1rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .stat-content .count {
+            margin: 5px 0 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            opacity: 0.2;
+        }
+
+        /* Colors for dynamic classes */
+        .stat-card.blue { border-left-color: #3b82f6; } .stat-card.blue .stat-icon { color: #3b82f6; }
+        .stat-card.green { border-left-color: #10b981; } .stat-card.green .stat-icon { color: #10b981; }
+        .stat-card.orange { border-left-color: #f59e0b; } .stat-card.orange .stat-icon { color: #f59e0b; }
+        .stat-card.red { border-left-color: #ef4444; } .stat-card.red .stat-icon { color: #ef4444; }
+        .stat-card.purple { border-left-color: #8b5cf6; } .stat-card.purple .stat-icon { color: #8b5cf6; }
+        .stat-card.teal { border-left-color: #14b8a6; } .stat-card.teal .stat-icon { color: #14b8a6; }
+
+        /* Table Styles */
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+        }
+
+        .custom-table th, .custom-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .custom-table th {
+            background-color: #f8fafc;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        .custom-table tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        .custom-table td {
+            color: #334155;
+            font-size: 0.95rem;
+        }
+
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; color: white; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-danger { background-color: #ef4444; }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        /* --- Responsive Mobile --- */
+        @media (max-width: 768px) {
+            .navbar-brand span {
+                font-size: 1rem; /* Sedikit lebih kecil di HP */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="dasboradmin.html" class="btn-navbar-dashboard">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Data Kasus Siswa</h2>
+            <p style="color: #666; margin-top: 10px;">Halaman ini untuk mengelola data kasus dan pelanggaran siswa.</p>
+        </div>
+        
+        <!-- Container Statistik Per Kelas -->
+        <div class="dashboard-card">
+            <h3 style="margin-bottom: 20px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px;">Statistik Kasus Per Kelas</h3>
+            <div class="stats-grid" id="classStatsContainer">
+                <div style="grid-column: 1/-1; text-align: center; color: #666;">Memuat statistik...</div>
+            </div>
+        </div>
+
+        <!-- Container Data -->
+        <div class="dashboard-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-danger" id="btnExportPdf"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                </div>
+                <div>
+                    <input type="text" id="searchInput" placeholder="Cari Siswa..." style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 250px;">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Id Kasus</th>
+                            <th>Nama Siswa</th>
+                            <th>NISN</th>
+                            <th>Tanggal</th>
+                            <th>Kelas</th>
+                            <th>Jenis Kasus</th>
+                            <th>Pelapor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kasusTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 20px; color: #666;">Belum ada data kasus.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2024 SIMPPEDIK-SMK. All rights reserved.</p>
+            <p>Dikembangkan oleh Kenji StudioDeveloper@2026</p>
+        </footer>
+    </main>
+
+    <script>
+        // --- Supabase Integration for Navbar ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // --- Supabase Integration for Absensi (Kasus Siswa) ---
+        const absensiUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const absensiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        const absensiClient = supabase.createClient(absensiUrl, absensiKey);
+        
+        let schoolData = {}; // Menyimpan data sekolah untuk keperluan export
+
+        if (typeof supabase !== 'undefined') {
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo, kop_sekolah')
+                        .limit(1)
+                        .single();
+                    
+                    if (data) {
+                        schoolData = data; // Simpan data ke variabel global
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading school identity:", err);
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+            document.addEventListener('DOMContentLoaded', loadKasusData);
+        }
+
+        let allKasusData = [];
+
+        async function loadKasusData() {
+            const tbody = document.getElementById('kasusTableBody');
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #666;">Memuat data...</td></tr>';
+
+            try {
+                const { data, error } = await absensiClient
+                    .from('kasussiswa')
+                    .select('*')
+                    .order('tanggal', { ascending: false });
+
+                if (error) throw error;
+
+                allKasusData = data || [];
+                renderTable(allKasusData);
+                renderClassStats(allKasusData);
+
+            } catch (err) {
+                console.error("Error loading kasus:", err);
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px; color: red;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('kasusTableBody');
+            tbody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #666;">Belum ada data kasus.</td></tr>';
+                return;
+            }
+
+            data.forEach((item, index) => {
+                const row = document.createElement('tr');
+                let dateStr = item.tanggal;
+                if (dateStr) {
+                    const d = new Date(dateStr);
+                    dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                }
+
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${item.id_kasus || '-'}</td>
+                    <td>${item.nama_siswa || '-'}</td>
+                    <td>${item.nisn || '-'}</td>
+                    <td>${dateStr}</td>
+                    <td>${item.kelas || '-'}</td>
+                    <td>${item.jenis_kasus || '-'}</td>
+                    <td>${item.nama_guru || '-'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function renderClassStats(kasusData) {
+            const container = document.getElementById('classStatsContainer');
+            if (!container) return;
+
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666;">Memuat statistik...</div>';
+
+            try {
+                // 1. Fetch all classes from 'rombel' table (using supabaseClient)
+                const { data: rombelData, error: rombelError } = await supabaseClient
+                    .from('rombel')
+                    .select('nama_kelas')
+                    .order('nama_kelas');
+                
+                if (rombelError) throw rombelError;
+
+                // 2. Count cases per class
+                const stats = {};
+                // Initialize all classes with 0
+                if (rombelData) {
+                    rombelData.forEach(r => {
+                        stats[r.nama_kelas] = 0;
+                    });
+                }
+
+                // Count from kasusData
+                if (kasusData) {
+                    kasusData.forEach(item => {
+                        const kelas = item.kelas;
+                        if (kelas) {
+                            if (stats[kelas] === undefined) stats[kelas] = 0;
+                            stats[kelas]++;
+                        }
+                    });
+                }
+
+                container.innerHTML = '';
+                const classes = Object.keys(stats).sort();
+                
+                if (classes.length === 0) {
+                    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666;">Belum ada data kelas.</div>';
+                    return;
+                }
+
+                const colors = ['blue', 'green', 'orange', 'red', 'purple', 'teal'];
+
+                classes.forEach((kelas, index) => {
+                    const count = stats[kelas];
+                    const color = colors[index % colors.length];
+                    
+                    const card = document.createElement('div');
+                    card.className = `stat-card ${color}`;
+                    card.innerHTML = `
+                        <div class="stat-content">
+                            <h4>${kelas}</h4>
+                            <p class="count">${count}</p>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+
+            } catch (err) {
+                console.error("Error rendering stats:", err);
+                container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: red;">Gagal memuat statistik: ${err.message}</div>`;
+            }
+        }
+
+        // Search Functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const filtered = allKasusData.filter(item => 
+                (item.nama_siswa && item.nama_siswa.toLowerCase().includes(term)) ||
+                (item.kelas && item.kelas.toLowerCase().includes(term)) ||
+                (item.jenis_kasus && item.jenis_kasus.toLowerCase().includes(term))
+            );
+            renderTable(filtered);
+        });
+
+        // --- Export PDF Logic ---
+        document.getElementById('btnExportPdf').addEventListener('click', async () => {
+            // 1. Determine data to export
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            let dataToExport = allKasusData;
+
+            if (searchTerm) {
+                dataToExport = allKasusData.filter(item => 
+                    (item.nama_siswa && item.nama_siswa.toLowerCase().includes(searchTerm)) ||
+                    (item.kelas && item.kelas.toLowerCase().includes(searchTerm)) ||
+                    (item.jenis_kasus && item.jenis_kasus.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            if (dataToExport.length === 0) {
+                alert("Tidak ada data untuk diexport.");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 20;
+
+            // 2. Add KOP
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20; // Margin 10
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                    yPos = 10 + imgHeight + 10;
+                } catch (err) {
+                    console.error("Gagal memuat KOP Sekolah:", err);
+                }
+            }
+
+            // 3. Header
+            doc.setFontSize(18);
+            doc.text("Laporan Data Kasus Siswa", pageWidth / 2, yPos, { align: 'center' });
+            yPos += 8;
+            
+            const schoolName = schoolData.nama_sekolah || document.querySelector('.navbar-brand span').textContent || 'SMK Negeri 1 Simpang Teritip';
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+            yPos += 10;
+
+            // 4. Table
+            const tableBody = dataToExport.map((item, index) => {
+                let tgl = item.tanggal;
+                if (tgl) {
+                    const d = new Date(tgl);
+                    tgl = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                }
+                return [index + 1, item.id_kasus || '-', item.nama_siswa || '-', item.nisn || '-', tgl, item.kelas || '-', item.jenis_kasus || '-', item.nama_guru || '-'];
+            });
+
+            doc.autoTable({
+                head: [['No', 'Id Kasus', 'Nama Siswa', 'NISN', 'Tanggal', 'Kelas', 'Jenis Kasus', 'Pelapor']],
+                body: tableBody,
+                startY: yPos,
+                theme: 'grid',
+                headStyles: { fillColor: [239, 68, 68] }, // Red header
+                styles: { fontSize: 9 }
+            });
+
+            doc.save(`Laporan_Kasus_Siswa_${new Date().toISOString().slice(0,10)}.pdf`);
+        });
+
+        // Delete Function
+        window.deleteKasus = async function(id) {
+            if(confirm('Apakah Anda yakin ingin menghapus data kasus ini?')) {
+                try {
+                    const { error } = await absensiClient
+                        .from('kasussiswa')
+                        .delete()
+                        .eq('id_kasus', id);
+                    
+                    if (error) throw error;
+                    
+                    alert('Data berhasil dihapus');
+                    loadKasusData();
+                } catch (err) {
+                    alert('Gagal menghapus: ' + err.message);
+                }
+            }
+        }
+
+    </script>
+</body>
+</html>

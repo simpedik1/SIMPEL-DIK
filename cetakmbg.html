@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPPEDIK-SMKN 1 Mentok</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --navbar-bg: #dc2626;
+            --header-height: 60px;
+            --bg-light: #f4f6f9;
+            --primary-color: #667eea;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ── Navbar ── */
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--navbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            z-index: 100;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-back {
+            color: white;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+        .navbar-back:hover { background: rgba(255,255,255,0.35); }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .navbar-brand img {
+            height: 36px; width: auto;
+            background: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: white;
+        }
+
+        .navbar-title {
+            margin-left: auto;
+            color: rgba(255,255,255,0.9);
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(0,0,0,0.15);
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+
+        /* ── Main ── */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: auto;
+            margin-right: auto;
+            padding: 1.5rem;
+            flex: 1;
+            overflow-y: auto;
+            max-width: 1100px;
+            width: 100%;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        /* ── Page Header ── */
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 1.5rem;
+        }
+        .page-header-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--navbar-bg), #f87171);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.4rem;
+            box-shadow: 0 4px 12px rgba(220,38,38,0.3);
+        }
+        .page-header-text h1 { font-size: 1.3rem; color: #1f2937; }
+        .page-header-text p { font-size: 0.85rem; color: #6b7280; margin-top: 2px; }
+
+        /* ── Tabs ── */
+        .tab-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            overflow: hidden;
+        }
+
+        .tab-header {
+            display: flex;
+            border-bottom: 2px solid #f3f4f6;
+            background: #fafafa;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 14px 10px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab-btn:hover { color: var(--navbar-bg); background: #fff5f5; }
+        .tab-btn.active {
+            color: var(--navbar-bg);
+            border-bottom-color: var(--navbar-bg);
+            background: white;
+        }
+        .tab-btn .tab-count {
+            background: var(--navbar-bg);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 7px;
+            border-radius: 20px;
+            min-width: 22px;
+            text-align: center;
+        }
+        .tab-btn:not(.active) .tab-count {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+
+        .tab-panel { display: none; padding: 20px; }
+        .tab-panel.active { display: block; }
+
+        /* ── Filter Row ── */
+        .filter-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .form-control {
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-control:focus { border-color: var(--navbar-bg); }
+
+        .btn-refresh {
+            padding: 8px 16px;
+            background: var(--navbar-bg);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .btn-refresh:hover { opacity: 0.85; }
+
+        .btn-export-pdf {
+            padding: 8px 16px;
+            background: #166534;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s, color 0.2s;
+            white-space: nowrap;
+        }
+        .btn-export-pdf:hover {
+            background: #facc15;
+            color: #1a1a1a;
+        }
+
+        /* ── Stats Row ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .stat-chip {
+            background: white;
+            border: 1px solid #f3f4f6;
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        .stat-chip-icon {
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+        }
+        .stat-chip-icon.hadir  { background: #d1fae5; color: #065f46; }
+        .stat-chip-icon.sakit  { background: #dbeafe; color: #1e40af; }
+        .stat-chip-icon.izin   { background: #fef3c7; color: #92400e; }
+        .stat-chip-icon.alpa   { background: #fee2e2; color: #991b1b; }
+        .stat-chip-value { font-size: 1.3rem; font-weight: 700; color: #1f2937; line-height: 1; }
+        .stat-chip-label { font-size: 0.7rem; color: #6b7280; margin-top: 1px; }
+
+        /* ── Table ── */
+        .table-responsive { overflow-x: auto; }
+        .custom-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .custom-table th {
+            background: #f9fafb;
+            color: #374151;
+            font-weight: 600;
+            padding: 11px 14px;
+            text-align: left;
+            border-bottom: 2px solid #e5e7eb;
+            white-space: nowrap;
+        }
+        .custom-table td {
+            padding: 11px 14px;
+            border-bottom: 1px solid #f3f4f6;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .custom-table tr:hover td { background: #fafafa; }
+        .custom-table tr:last-child td { border-bottom: none; }
+
+        .badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .badge-hadir { background: #d1fae5; color: #065f46; }
+        .badge-sakit { background: #dbeafe; color: #1e40af; }
+        .badge-izin  { background: #fef3c7; color: #92400e; }
+        .badge-alpa  { background: #fee2e2; color: #991b1b; }
+
+        /* No column */
+        .col-no { width: 44px; text-align: center; color: #9ca3af; }
+
+        /* ── Empty / Loading State ── */
+        .state-box {
+            text-align: center;
+            padding: 48px 20px;
+            color: #9ca3af;
+        }
+        .state-box i { font-size: 2.5rem; margin-bottom: 12px; display: block; }
+        .state-box p { font-size: 0.9rem; }
+
+        /* ── Pagination ── */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+        .page-btn {
+            padding: 6px 11px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            color: #374151;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            transition: all 0.15s;
+        }
+        .page-btn:hover:not(:disabled) { background: #f9fafb; border-color: var(--navbar-bg); color: var(--navbar-bg); }
+        .page-btn.active { background: var(--navbar-bg); color: white; border-color: var(--navbar-bg); }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ── Search input ── */
+        .search-wrap { position: relative; flex: 1; min-width: 180px; max-width: 280px; }
+        .search-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.85rem; }
+        .search-wrap input { padding-left: 30px; width: 100%; }
+
+        /* ── Date Picker ── */
+        .date-picker-wrap {
+            position: relative;
+        }
+
+        .date-badge {
+            background: linear-gradient(135deg, var(--navbar-bg), #f87171);
+            color: white;
+            padding: 7px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            border: none;
+            user-select: none;
+            transition: opacity 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(220,38,38,0.25);
+            white-space: nowrap;
+        }
+        .date-badge:hover { opacity: 0.9; box-shadow: 0 4px 14px rgba(220,38,38,0.35); }
+        .date-badge .caret { font-size: 0.7rem; opacity: 0.8; margin-left: 2px; }
+
+        /* Calendar Popup */
+        .cal-popup {
+            display: none;
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+            width: 300px;
+            overflow: hidden;
+            animation: calPop 0.2s ease;
+        }
+        .cal-popup.open { display: block; }
+
+        @keyframes calPop {
+            from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .cal-header {
+            background: linear-gradient(135deg, var(--navbar-bg), #f87171);
+            padding: 16px 16px 14px;
+            color: white;
+        }
+        .cal-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .cal-nav-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 30px; height: 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s;
+        }
+        .cal-nav-btn:hover { background: rgba(255,255,255,0.35); }
+        .cal-month-label {
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+        .cal-month-label:hover { background: rgba(255,255,255,0.2); }
+
+        .cal-selected-display {
+            font-size: 0.8rem;
+            opacity: 0.85;
+            text-align: center;
+        }
+
+        /* Day names */
+        .cal-days-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            padding: 10px 12px 4px;
+            gap: 2px;
+        }
+        .cal-day-name {
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #9ca3af;
+            padding: 4px 0;
+        }
+
+        /* Grid */
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            padding: 4px 12px 12px;
+            gap: 3px;
+        }
+        .cal-cell {
+            text-align: center;
+            font-size: 0.82rem;
+            padding: 7px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #374151;
+            transition: background 0.15s, color 0.15s;
+            font-weight: 500;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cal-cell:hover:not(.empty):not(.selected) { background: #fee2e2; color: var(--navbar-bg); }
+        .cal-cell.other-month { color: #d1d5db; }
+        .cal-cell.today:not(.selected) {
+            background: #fef2f2;
+            color: var(--navbar-bg);
+            font-weight: 700;
+        }
+        .cal-cell.selected {
+            background: var(--navbar-bg);
+            color: white;
+            font-weight: 700;
+        }
+        .cal-cell.empty { cursor: default; }
+
+        /* Today button */
+        .cal-footer {
+            padding: 0 12px 12px;
+            display: flex;
+            gap: 8px;
+        }
+        .cal-today-btn {
+            flex: 1;
+            padding: 8px;
+            background: #fef2f2;
+            color: var(--navbar-bg);
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .cal-today-btn:hover { background: #fee2e2; }
+
+        /* ── Footer ── */
+        .main-footer {
+            text-align: center;
+            padding: 16px;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 16px;
+        }
+
+        /* ── Large screens (≥1200px) ── */
+        @media (min-width: 1200px) {
+            .main-content { padding: 2rem 1.5rem; }
+        }
+
+        /* ── Medium screens (768px–1199px) ── */
+        @media (max-width: 1199px) {
+            .main-content {
+                max-width: 960px;
+                padding: 1.5rem 1.25rem;
+            }
+        }
+
+        /* ── Tablet (601px–767px) ── */
+        @media (max-width: 767px) {
+            .main-content { padding: 1.25rem 1rem; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .filter-row { flex-direction: column; align-items: stretch; }
+            .search-wrap { max-width: 100%; }
+            .filter-row .date-badge { justify-content: center; }
+            .btn-refresh { width: 100%; justify-content: center; }
+        }
+
+        /* ── Mobile (≤600px) ── */
+        @media (max-width: 600px) {
+            .main-content { padding: 1rem 0.75rem; }
+            .tab-btn { font-size: 0.78rem; padding: 12px 6px; }
+            .navbar-title { display: none; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .page-header { gap: 10px; }
+            .page-header-icon { width: 40px; height: 40px; font-size: 1.1rem; }
+            .page-header-text h1 { font-size: 1.1rem; }
+            .custom-table { font-size: 0.8rem; }
+            .custom-table th,
+            .custom-table td { padding: 9px 10px; }
+            .tab-panel { padding: 14px; }
+        }
+
+        /* ── Very small (≤360px) ── */
+        @media (max-width: 360px) {
+            .main-content { padding: 0.75rem 0.5rem; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .stat-chip { padding: 10px 10px; gap: 8px; }
+            .navbar-brand span { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar (sama dengan adminguru.html) -->
+    <nav class="navbar">
+        <a href="adminguru.html" class="navbar-back" title="Kembali">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo" id="navLogo" style="display:none;">
+            <span id="navSchoolName"></span>
+        </a>
+        <div class="navbar-title">
+            <i class="fas fa-print"></i> Daftar MBG
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-header-icon"><i class="fas fa-utensils"></i></div>
+            <div class="page-header-text">
+                <h1>Daftar Makan Bergizi Gratis (MBG)</h1>
+                <p id="headerDate">Memuat tanggal...</p>
+            </div>
+        </div>
+
+        <!-- Tab Container -->
+        <div class="tab-container">
+            <div class="tab-header">
+                <button class="tab-btn active" onclick="switchTab('hadir')" id="tabBtnHadir">
+                    <i class="fas fa-check-circle"></i> Siswa Hadir Hari Ini
+                    <span class="tab-count" id="countHadir">0</span>
+                </button>
+            </div>
+
+            <!-- Tab: Siswa Hadir Hari Ini -->
+            <div class="tab-panel active" id="tabHadir">
+
+                <!-- Stats Row -->
+                <div class="stats-row">
+                    <div class="stat-chip">
+                        <div class="stat-chip-icon hadir"><i class="fas fa-user-check"></i></div>
+                        <div>
+                            <div class="stat-chip-value" id="statHadir">0</div>
+                            <div class="stat-chip-label">Hadir</div>
+                        </div>
+                    </div>
+                    <div class="stat-chip">
+                        <div class="stat-chip-icon sakit"><i class="fas fa-procedures"></i></div>
+                        <div>
+                            <div class="stat-chip-value" id="statSakit">0</div>
+                            <div class="stat-chip-label">Sakit</div>
+                        </div>
+                    </div>
+                    <div class="stat-chip">
+                        <div class="stat-chip-icon izin"><i class="fas fa-file-alt"></i></div>
+                        <div>
+                            <div class="stat-chip-value" id="statIzin">0</div>
+                            <div class="stat-chip-label">Izin</div>
+                        </div>
+                    </div>
+                    <div class="stat-chip">
+                        <div class="stat-chip-icon alpa"><i class="fas fa-user-times"></i></div>
+                        <div>
+                            <div class="stat-chip-value" id="statAlpa">0</div>
+                            <div class="stat-chip-label">Alpa</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Row -->
+                <div class="filter-row">
+                    <div class="date-picker-wrap">
+                        <button class="date-badge" id="dateBadgeBtn" onclick="toggleCalendar(event)" type="button">
+                            <i class="fas fa-calendar-day"></i>
+                            <span id="filterDateDisplay">Hari Ini</span>
+                            <i class="fas fa-chevron-down caret" id="calCaret"></i>
+                        </button>
+                        <div class="cal-popup" id="calPopup">
+                            <div class="cal-header">
+                                <div class="cal-header-top">
+                                    <button class="cal-nav-btn" onclick="calNav(-1)" type="button"><i class="fas fa-chevron-left"></i></button>
+                                    <span class="cal-month-label" id="calMonthLabel"></span>
+                                    <button class="cal-nav-btn" onclick="calNav(1)" type="button"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                                <div class="cal-selected-display" id="calSelectedDisplay"></div>
+                            </div>
+                            <div class="cal-days-header">
+                                <div class="cal-day-name">Min</div>
+                                <div class="cal-day-name">Sen</div>
+                                <div class="cal-day-name">Sel</div>
+                                <div class="cal-day-name">Rab</div>
+                                <div class="cal-day-name">Kam</div>
+                                <div class="cal-day-name">Jum</div>
+                                <div class="cal-day-name">Sab</div>
+                            </div>
+                            <div class="cal-grid" id="calGrid"></div>
+                            <div class="cal-footer">
+                                <button class="cal-today-btn" onclick="selectToday()" type="button">
+                                    <i class="fas fa-dot-circle"></i> Hari Ini
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="search-wrap">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="form-control" id="searchNama" placeholder="Cari nama siswa...">
+                    </div>
+                    <select class="form-control" id="filterKelas" style="min-width:140px;">
+                        <option value="">-- Semua Kelas --</option>
+                    </select>
+                    <button class="btn-refresh" onclick="loadHadirData()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="btn-export-pdf" onclick="exportPDF()">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th class="col-no">No</th>
+                                <th>NISN</th>
+                                <th>Nama Siswa</th>
+                                <th>Kelas</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hadirTableBody">
+                            <tr>
+                                <td colspan="5">
+                                    <div class="state-box">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <p>Memuat data kehadiran...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="hadirPagination"></div>
+
+            </div>
+        </div>
+
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP &mdash; CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <script>
+        // ── Supabase Config ──────────────────────────────────────────────
+        const supabaseUrl     = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        const attendanceUrl   = 'https://obamjophcayslmubcqrp.supabase.co';
+        const attendanceKey   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+
+        const sbClient  = supabase.createClient(supabaseUrl, supabaseKey);
+        const abClient  = supabase.createClient(attendanceUrl, attendanceKey);
+
+        // ── State ────────────────────────────────────────────────────────
+        let allData        = [];
+        let filteredData   = [];
+        let currentPage    = 1;
+        const rowsPerPage  = 50;
+
+        // ── Calendar State ───────────────────────────────────────────────
+        const todayDate  = new Date();
+        let selectedDate = new Date();
+        let calViewYear  = todayDate.getFullYear();
+        let calViewMonth = todayDate.getMonth();
+
+        // ── Helpers ──────────────────────────────────────────────────────
+        function dateToISO(d) {
+            return d.toLocaleDateString('sv-SE');
+        }
+        function todayISO() { return dateToISO(new Date()); }
+
+        function dateToDisplay(d) {
+            return d.toLocaleDateString('id-ID', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+        }
+        function todayDisplay() { return dateToDisplay(new Date()); }
+
+        function badgeClass(status) {
+            if (!status) return '';
+            const s = status.toLowerCase();
+            if (s === 'hadir')                    return 'badge-hadir';
+            if (s === 'sakit')                    return 'badge-sakit';
+            if (s === 'ijin' || s === 'izin')     return 'badge-izin';
+            if (s === 'alpa' || s === 'alpha')    return 'badge-alpa';
+            return '';
+        }
+
+        // ── Load School Identity (Navbar) ─────────────────────────────────
+        async function loadSchoolIdentity() {
+            try {
+                const { data } = await sbClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo')
+                    .limit(1).single();
+
+                if (data) {
+                    if (data.nama_sekolah) document.getElementById('navSchoolName').textContent = data.nama_sekolah;
+                    if (data.logo) {
+                        const img = document.getElementById('navLogo');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch (e) { console.error('loadSchoolIdentity:', e); }
+        }
+
+        // ── Load Kelas Dropdown ───────────────────────────────────────────
+        async function loadKelas() {
+            try {
+                const { data } = await sbClient
+                    .from('rombel')
+                    .select('nama_kelas')
+                    .order('nama_kelas');
+
+                const sel = document.getElementById('filterKelas');
+                if (data) {
+                    data.forEach(r => {
+                        const opt = document.createElement('option');
+                        opt.value = r.nama_kelas;
+                        opt.textContent = r.nama_kelas;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (e) { console.error('loadKelas:', e); }
+        }
+
+        // ── Load Hadir Data ───────────────────────────────────────────────
+        async function loadHadirData() {
+            const tbody = document.getElementById('hadirTableBody');
+            tbody.innerHTML = `<tr><td colspan="5"><div class="state-box"><i class="fas fa-spinner fa-spin"></i><p>Memuat data...</p></div></td></tr>`;
+
+            const today       = dateToISO(selectedDate);
+            const displayText = dateToDisplay(selectedDate);
+            document.getElementById('filterDateDisplay').textContent = displayText;
+            document.getElementById('headerDate').textContent = 'Data kehadiran: ' + displayText;
+
+            try {
+                // Ambil semua data hari ini (loop pagination 1000/batch)
+                let result = [];
+                let from = 0;
+                const batch = 1000;
+                let hasMore = true;
+
+                while (hasMore) {
+                    const { data, error } = await abClient
+                        .from('absensiswa')
+                        .select('nisn, nama_siswa, kelas, status_kehadiran, tanggal')
+                        .eq('tanggal', today)
+                        .order('kelas', { ascending: true })
+                        .order('nama_siswa', { ascending: true })
+                        .range(from, from + batch - 1);
+
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        result = result.concat(data);
+                        from += batch;
+                        if (data.length < batch) hasMore = false;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+
+                allData = result;
+
+                // Hitung stats
+                let h = 0, s = 0, iz = 0, a = 0;
+                allData.forEach(r => {
+                    const st = (r.status_kehadiran || '').toLowerCase();
+                    if (st === 'hadir')                   h++;
+                    else if (st === 'sakit')              s++;
+                    else if (st === 'ijin' || st === 'izin') iz++;
+                    else if (st === 'alpa' || st === 'alpha') a++;
+                });
+                document.getElementById('statHadir').textContent = h;
+                document.getElementById('statSakit').textContent = s;
+                document.getElementById('statIzin').textContent  = iz;
+                document.getElementById('statAlpa').textContent  = a;
+
+                // Tab count = total hadir
+                document.getElementById('countHadir').textContent = h;
+
+                applyFilter();
+
+            } catch (err) {
+                console.error('loadHadirData:', err);
+                tbody.innerHTML = `<tr><td colspan="5"><div class="state-box" style="color:#ef4444;"><i class="fas fa-exclamation-circle"></i><p>Gagal memuat data: ${err.message}</p></div></td></tr>`;
+            }
+        }
+
+        // ── Filter & Render ───────────────────────────────────────────────
+        function applyFilter() {
+            const nama  = document.getElementById('searchNama').value.toLowerCase().trim();
+            const kelas = document.getElementById('filterKelas').value;
+
+            // Default: hanya tampilkan status Hadir
+            filteredData = allData.filter(r => {
+                const st = (r.status_kehadiran || '').toLowerCase();
+                const isHadir = st === 'hadir';
+                const matchNama  = !nama  || (r.nama_siswa || '').toLowerCase().includes(nama);
+                const matchKelas = !kelas || r.kelas === kelas;
+                return isHadir && matchNama && matchKelas;
+            });
+
+            currentPage = 1;
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('hadirTableBody');
+            tbody.innerHTML = '';
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5"><div class="state-box"><i class="fas fa-inbox"></i><p>Tidak ada data siswa hadir hari ini.</p></div></td></tr>`;
+                document.getElementById('hadirPagination').innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const slice = filteredData.slice(start, start + rowsPerPage);
+
+            slice.forEach((r, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="col-no">${start + i + 1}</td>
+                    <td>${r.nisn || '-'}</td>
+                    <td><strong>${r.nama_siswa || '-'}</strong></td>
+                    <td>${r.kelas || '-'}</td>
+                    <td><span class="badge ${badgeClass(r.status_kehadiran)}">${r.status_kehadiran || '-'}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            renderPagination(totalPages);
+        }
+
+        function renderPagination(totalPages) {
+            const container = document.getElementById('hadirPagination');
+            container.innerHTML = '';
+            if (totalPages <= 1) return;
+
+            const mkBtn = (label, page, active = false, disabled = false) => {
+                const btn = document.createElement('button');
+                btn.className = 'page-btn' + (active ? ' active' : '');
+                btn.textContent = label;
+                btn.disabled = disabled;
+                btn.onclick = () => { currentPage = page; renderTable(); };
+                return btn;
+            };
+
+            container.appendChild(mkBtn('‹ Prev', currentPage - 1, false, currentPage === 1));
+
+            let start = Math.max(1, currentPage - 2);
+            let end   = Math.min(totalPages, currentPage + 2);
+            if (start > 1)  { container.appendChild(mkBtn('1', 1)); if (start > 2) container.insertAdjacentHTML('beforeend', '<span style="padding:0 4px;color:#9ca3af">…</span>'); }
+            for (let p = start; p <= end; p++) container.appendChild(mkBtn(p, p, p === currentPage));
+            if (end < totalPages) { if (end < totalPages - 1) container.insertAdjacentHTML('beforeend', '<span style="padding:0 4px;color:#9ca3af">…</span>'); container.appendChild(mkBtn(totalPages, totalPages)); }
+
+            container.appendChild(mkBtn('Next ›', currentPage + 1, false, currentPage === totalPages));
+        }
+
+        // ── Calendar ─────────────────────────────────────────────────────
+        const BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni',
+                          'Juli','Agustus','September','Oktober','November','Desember'];
+
+        function toggleCalendar(e) {
+            e.stopPropagation();
+            const popup = document.getElementById('calPopup');
+            const caret = document.getElementById('calCaret');
+            const isOpen = popup.classList.contains('open');
+            if (!isOpen) {
+                calViewYear  = selectedDate.getFullYear();
+                calViewMonth = selectedDate.getMonth();
+                renderCalendar();
+            }
+            popup.classList.toggle('open', !isOpen);
+            caret.style.transform = isOpen ? '' : 'rotate(180deg)';
+        }
+
+        function closeCalendar() {
+            document.getElementById('calPopup').classList.remove('open');
+            document.getElementById('calCaret').style.transform = '';
+        }
+
+        function calNav(dir) {
+            calViewMonth += dir;
+            if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+            if (calViewMonth < 0)  { calViewMonth = 11; calViewYear--; }
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            document.getElementById('calMonthLabel').textContent =
+                BULAN_ID[calViewMonth] + ' ' + calViewYear;
+
+            document.getElementById('calSelectedDisplay').textContent =
+                dateToDisplay(selectedDate);
+
+            const grid = document.getElementById('calGrid');
+            grid.innerHTML = '';
+
+            const firstDay = new Date(calViewYear, calViewMonth, 1).getDay();
+            const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+            const daysInPrev  = new Date(calViewYear, calViewMonth, 0).getDate();
+
+            // prev month filler
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const cell = document.createElement('div');
+                cell.className = 'cal-cell other-month empty';
+                cell.textContent = daysInPrev - i;
+                grid.appendChild(cell);
+            }
+
+            // current month
+            for (let d = 1; d <= daysInMonth; d++) {
+                const cell = document.createElement('div');
+                cell.className = 'cal-cell';
+                cell.textContent = d;
+
+                const isToday = (d === todayDate.getDate() &&
+                                 calViewMonth === todayDate.getMonth() &&
+                                 calViewYear  === todayDate.getFullYear());
+                const isSelected = (d === selectedDate.getDate() &&
+                                    calViewMonth === selectedDate.getMonth() &&
+                                    calViewYear  === selectedDate.getFullYear());
+
+                if (isSelected) cell.classList.add('selected');
+                else if (isToday) cell.classList.add('today');
+
+                cell.onclick = () => pickDate(calViewYear, calViewMonth, d);
+                grid.appendChild(cell);
+            }
+
+            // next month filler
+            const totalCells = firstDay + daysInMonth;
+            const remainder  = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            for (let d = 1; d <= remainder; d++) {
+                const cell = document.createElement('div');
+                cell.className = 'cal-cell other-month empty';
+                cell.textContent = d;
+                grid.appendChild(cell);
+            }
+        }
+
+        function pickDate(year, month, day) {
+            selectedDate = new Date(year, month, day);
+            closeCalendar();
+            loadHadirData();
+        }
+
+        function selectToday() {
+            selectedDate = new Date();
+            calViewYear  = selectedDate.getFullYear();
+            calViewMonth = selectedDate.getMonth();
+            closeCalendar();
+            loadHadirData();
+        }
+
+        // Close calendar when clicking outside
+        document.addEventListener('click', (e) => {
+            const wrap = document.querySelector('.date-picker-wrap');
+            if (wrap && !wrap.contains(e.target)) closeCalendar();
+        });
+
+        // ── Export PDF ────────────────────────────────────────────────────
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+            const schoolName = document.getElementById('navSchoolName').textContent || 'SMKN 1 Simpang Teritip';
+            const dateText   = document.getElementById('filterDateDisplay').textContent || 'Hari Ini';
+            const kelas      = document.getElementById('filterKelas').value || 'Semua Kelas';
+
+            const pageW = doc.internal.pageSize.getWidth();
+
+            // Header
+            doc.setFillColor(220, 38, 38);
+            doc.rect(0, 0, pageW, 28, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text('DAFTAR MAKAN BERGIZI GRATIS (MBG)', pageW / 2, 11, { align: 'center' });
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(schoolName, pageW / 2, 18, { align: 'center' });
+            doc.setFontSize(9);
+            doc.text(dateText + (kelas !== 'Semua Kelas' ? '  |  Kelas: ' + kelas : ''), pageW / 2, 24, { align: 'center' });
+
+            // Table
+            const rows = filteredData.map((r, i) => [
+                i + 1,
+                r.nisn || '-',
+                r.nama_siswa || '-',
+                r.kelas || '-',
+                r.status_kehadiran || '-',
+            ]);
+
+            doc.autoTable({
+                startY: 34,
+                head: [['No', 'NISN', 'Nama Siswa', 'Kelas', 'Status']],
+                body: rows,
+                styles: {
+                    fontSize: 8.5,
+                    cellPadding: 3,
+                    valign: 'middle',
+                    lineColor: [229, 231, 235],
+                    lineWidth: 0.2,
+                },
+                headStyles: {
+                    fillColor: [30, 58, 95],
+                    textColor: 255,
+                    fontStyle: 'bold',
+                    halign: 'center',
+                    fontSize: 9,
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 12 },
+                    1: { halign: 'center', cellWidth: 30 },
+                    2: { cellWidth: 'auto' },
+                    3: { halign: 'center', cellWidth: 30 },
+                    4: { halign: 'center', cellWidth: 24 },
+                },
+                alternateRowStyles: { fillColor: [249, 250, 251] },
+                didDrawCell: (data) => {
+                    // Color status badge
+                    if (data.section === 'body' && data.column.index === 4) {
+                        const val = (data.cell.raw || '').toLowerCase();
+                        let bg, fg;
+                        if (val === 'hadir')                      { bg = [209,250,229]; fg = [6,95,70]; }
+                        else if (val === 'sakit')                 { bg = [219,234,254]; fg = [30,64,175]; }
+                        else if (val === 'ijin' || val === 'izin'){ bg = [254,243,199]; fg = [146,64,14]; }
+                        else if (val === 'alpa' || val === 'alpha'){ bg = [254,226,226]; fg = [153,27,27]; }
+                        if (bg) {
+                            const { x, y, width, height } = data.cell;
+                            doc.setFillColor(...bg);
+                            doc.roundedRect(x + 2, y + 1.5, width - 4, height - 3, 2, 2, 'F');
+                            doc.setTextColor(...fg);
+                            doc.setFont('helvetica', 'bold');
+                            doc.setFontSize(7.5);
+                            doc.text(data.cell.raw, x + width / 2, y + height / 2 + 1, { align: 'center' });
+                        }
+                    }
+                },
+                margin: { left: 14, right: 14 },
+                didDrawPage: (data) => {
+                    // Footer
+                    const pCount = doc.internal.getNumberOfPages();
+                    const pgY = doc.internal.pageSize.getHeight() - 8;
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(156, 163, 175);
+                    doc.text('© 2026 SMKN 1 Simpang Teritip — Kenji Studio Developer', 14, pgY);
+                    doc.text(`Halaman ${data.pageNumber} / ${pCount}`, pageW - 14, pgY, { align: 'right' });
+                },
+            });
+            const safeDate = dateText.replace(/[\/\\:*?"<>|]/g, '-');
+            doc.save(`Daftar_MBG_${safeDate}.pdf`);
+        }
+
+        // ── Tab Switch ────────────────────────────────────────────────────
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('tabBtn' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+            document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+        }
+
+        // ── Event Listeners ───────────────────────────────────────────────
+        document.getElementById('searchNama').addEventListener('input', applyFilter);
+        document.getElementById('filterKelas').addEventListener('change', applyFilter);
+
+        // ── Init ──────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSchoolIdentity();
+            loadKelas();
+            loadHadirData();
+        });
+    </script>
+</body>
+</html>

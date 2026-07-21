@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ekstrakurikuler | SIMPPEDIK-SMKN 1 Mentok</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF untuk Export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- SheetJS untuk Export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --bg-light: #f4f6f9;
+            --header-height: 60px;
+            --navbar-bg: #dc2626; /* Warna Merah untuk Navbar */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar (Custom Red, sama dengan adminguru.html) --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--navbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        /* --- Tombol Dashboard --- */
+        .btn-back-dashboard {
+            margin-left: auto;
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .btn-back-dashboard:hover {
+            background-color: white;
+            color: var(--navbar-bg);
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 2rem 5px;
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .main-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .tab-placeholder {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        .tab-placeholder i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #ddd;
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand span { font-size: 1rem; }
+            .btn-back-dashboard span.btn-label { display: none; }
+        }
+
+        /* --- Modal Styles (sama seperti adminguru.html) --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 90%; max-width: 400px; padding: 30px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; text-align: center; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="adminguru.html" class="btn-back-dashboard">
+            <i class="fas fa-th-large"></i>
+            <span class="btn-label">Dashboard</span>
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Ekstrakurikuler</h2>
+            <p style="color: #666; margin-top: 10px;">Halaman untuk mengelola data ekstrakurikuler.</p>
+        </div>
+
+        <!-- Container Biodata Pembina Ekstrakurikuler -->
+        <div class="dashboard-card" id="biodataContainer" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: #333; font-size: 1.2rem;">
+                    <i class="fas fa-id-card" style="color: var(--navbar-bg); margin-right: 10px;"></i>
+                    Biodata Pembina Ekstrakurikuler
+                </h3>
+            </div>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+                <div style="flex: 0 0 auto; width: 120px; text-align: center;">
+                    <img id="bioPhoto" src="" alt="Foto Guru" style="width: 120px; height: 120px; object-fit: cover; border-radius: 10px; border: 3px solid #eee; background: #f0f0f0;">
+                </div>
+                <div style="flex: 1; min-width: 250px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0; width: 160px; color: #666; font-weight: 600;">Nama Lengkap</td>
+                            <td style="padding: 8px 0; color: #333;">: <span id="bioNama">-</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #666; font-weight: 600;">NIP</td>
+                            <td style="padding: 8px 0; color: #333;">: <span id="bioNip">-</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #666; font-weight: 600;">Ekstrakurikuler Dibina</td>
+                            <td style="padding: 8px 0; color: #333;">: <span id="bioNamaEkskul">-</span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container Data Siswa Ekskul -->
+        <div class="dashboard-card" id="siswaEkskulContainer" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: #333; font-size: 1.2rem;">
+                    <i class="fas fa-users" style="color: var(--navbar-bg); margin-right: 10px;"></i>
+                    Data Siswa Ekskul <span id="siswaEkskulNamaTitle" style="color: var(--navbar-bg);">-</span>
+                </h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="btnTambahSiswa" style="background-color: #3b82f6; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-plus"></i> Tambah Data Siswa
+                    </button>
+                    <button id="btnExportPdf" style="background-color: #dc2626; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="siswaEkskulTable" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="background: #f4f6f9; text-align: left;">
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">No</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Nama Siswa</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">NISN</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Kelas</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Nama Ekstrakurikuler</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee; text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="siswaEkskulTableBody"></tbody>
+                </table>
+                <p id="siswaEkskulEmptyMsg" style="text-align: center; color: #999; padding: 20px; display: none;">Belum ada data siswa untuk ekstrakurikuler ini.</p>
+            </div>
+        </div>
+
+        <!-- Container Penilaian Ekskul -->
+        <div class="dashboard-card" id="nilaiEkskulContainer" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: #333; font-size: 1.2rem;">
+                    <i class="fas fa-star" style="color: var(--navbar-bg); margin-right: 10px;"></i>
+                    Penilaian Ekskul <span id="nilaiEkskulNamaTitle" style="color: var(--navbar-bg);">-</span>
+                </h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="btnTambahNilai" style="background-color: #3b82f6; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-plus"></i> Penilaian
+                    </button>
+                    <button id="btnExportNilaiPdf" style="background-color: #dc2626; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-file-pdf"></i> Export Pdf
+                    </button>
+                    <button id="btnExportNilaiExcel" style="background-color: #16a34a; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="nilaiEkskulTable" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="background: #f4f6f9; text-align: left;">
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Id</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Nama Siswa</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">NISN</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Kelas</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Nama Ekskul</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Nilai</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Deskripsi</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee; text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nilaiEkskulTableBody"></tbody>
+                </table>
+                <p id="nilaiEkskulEmptyMsg" style="text-align: center; color: #999; padding: 20px; display: none;">Belum ada data penilaian untuk ekstrakurikuler ini.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Tambah Data Siswa -->
+    <div id="tambahSiswaModal" class="modal">
+        <div class="modal-content" style="text-align: left; max-width: 450px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 id="tambahSiswaModalTitle" style="margin: 0; font-size: 1.2rem; color: #333;">Tambah Data Siswa</h3>
+                <span id="closeTambahSiswaModal" style="cursor: pointer; font-size: 1.5rem; color: #888;">&times;</span>
+            </div>
+            <form id="tambahSiswaForm">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Kelas</label>
+                    <select id="inputKelas" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="">-- Pilih Kelas --</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Nama Siswa</label>
+                    <select id="inputNamaSiswa" required disabled style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="">-- Pilih Kelas Terlebih Dahulu --</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">NISN</label>
+                    <input type="text" id="inputNisn" readonly style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Nama Ekstrakurikuler</label>
+                    <input type="text" id="inputNamaEkskul" readonly style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f3f4f6; cursor: not-allowed;">
+                    <small style="color: #888;">Otomatis sesuai ekstrakurikuler yang Anda bina.</small>
+                </div>
+                <div style="text-align: right;">
+                    <button type="button" id="cancelTambahSiswaBtn" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600; color: #4b5563;">Batal</button>
+                    <button type="submit" id="saveTambahSiswaBtn" style="padding: 10px 20px; background: #3b82f6; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Tambah/Edit Penilaian -->
+    <div id="nilaiModal" class="modal">
+        <div class="modal-content" style="text-align: left; max-width: 450px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 id="nilaiModalTitle" style="margin: 0; font-size: 1.2rem; color: #333;">Tambah Penilaian</h3>
+                <span id="closeNilaiModal" style="cursor: pointer; font-size: 1.5rem; color: #888;">&times;</span>
+            </div>
+            <form id="nilaiForm">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Nama Siswa</label>
+                    <select id="nilaiNamaSiswa" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="">-- Pilih Siswa --</option>
+                    </select>
+                    <small style="color: #888;">Daftar diambil dari Data Siswa Ekskul.</small>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">NISN</label>
+                    <input type="text" id="nilaiNisn" readonly style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Kelas</label>
+                    <input type="text" id="nilaiKelas" readonly style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Nama Ekstrakurikuler</label>
+                    <input type="text" id="nilaiNamaEkskul" readonly style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Nilai</label>
+                    <select id="nilaiNilai" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="">-- Pilih Predikat --</option>
+                        <option value="Cukup (C)">Cukup (C)</option>
+                        <option value="Baik (B)">Baik (B)</option>
+                        <option value="Amat Baik (A)">Amat Baik (A)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Deskripsi <small style="font-weight: 400; color: #888;">(otomatis, bisa disunting)</small></label>
+                    <textarea id="nilaiDeskripsi" rows="4" placeholder="Pilih predikat terlebih dahulu untuk mengisi deskripsi otomatis" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; resize: vertical; font-family: inherit;"></textarea>
+                </div>
+                <div style="text-align: right;">
+                    <button type="button" id="cancelNilaiBtn" style="padding: 10px 20px; background: #e5e7eb; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; font-weight: 600; color: #4b5563;">Batal</button>
+                    <button type="submit" id="saveNilaiBtn" style="padding: 10px 20px; background: #3b82f6; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; color: white;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Integration for Navbar ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+
+        let supabaseClient;
+        let schoolData = {}; // Menyimpan data identitas sekolah untuk keperluan export PDF (nama, logo, kop surat)
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo, kop_sekolah')
+                        .limit(1)
+                        .single();
+
+                    if (data) {
+                        schoolData = data;
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading school identity:", err);
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        }
+
+        let currentNamaEkskul = null; // Variabel global nama ekskul milik pembina yang login
+        let currentSiswaEkskulList = []; // Variabel global daftar siswa ekskul (dipakai dropdown Penilaian)
+        let editingNilaiId = null; // null = mode tambah, terisi = mode edit penilaian
+        let currentPembinaData = {}; // Menyimpan nama & NIP asli pembina untuk tanda tangan di PDF
+
+        // --- Load Biodata Pembina Ekstrakurikuler ---
+        async function loadPembinaBiodata() {
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            if (!session || !session.nama) return;
+
+            try {
+                // Ambil nama_ekskul dari tabel ekstrakurikuler
+                const { data: ekskulData, error: ekskulError } = await supabaseClient
+                    .from('ekstrakurikuler')
+                    .select('nama_guru, nama_ekskul')
+                    .eq('nama_guru', session.nama)
+                    .maybeSingle();
+
+                if (ekskulError) throw ekskulError;
+
+                // Ambil foto & NIP dari tabel dataguru (sama seperti adminguru.html)
+                const { data: guruData, error: guruError } = await supabaseClient
+                    .from('dataguru')
+                    .select('nama_guru, nip::text, photo')
+                    .eq('nama_guru', session.nama)
+                    .single();
+
+                if (guruError) throw guruError;
+
+                if (guruData || ekskulData) {
+                    document.getElementById('biodataContainer').style.display = 'block';
+                    document.getElementById('bioNama').textContent = (guruData && guruData.nama_guru) || session.nama || '-';
+
+                    // Mask NIP: tampilkan 10 digit pertama, sisanya dengan *
+                    const nip = (guruData && guruData.nip) || '-';
+                    let maskedNip = nip;
+                    if (nip !== '-' && nip.length > 10) {
+                        maskedNip = nip.substring(0, 10) + '*'.repeat(nip.length - 10);
+                    }
+                    document.getElementById('bioNip').textContent = maskedNip;
+
+                    // Simpan data asli (tidak di-mask) untuk keperluan tanda tangan di PDF
+                    currentPembinaData = {
+                        nama_guru: (guruData && guruData.nama_guru) || session.nama || '-',
+                        nip: nip
+                    };
+
+                    document.getElementById('bioNamaEkskul').textContent = (ekskulData && ekskulData.nama_ekskul) || '-';
+
+                    currentNamaEkskul = (ekskulData && ekskulData.nama_ekskul) || null;
+                    loadSiswaEkskul(currentNamaEkskul);
+                    loadNilaiEkskul(currentNamaEkskul);
+
+                    const photoEl = document.getElementById('bioPhoto');
+                    if (guruData && guruData.photo) {
+                        photoEl.src = guruData.photo;
+                    } else {
+                        photoEl.src = 'https://via.placeholder.com/120?text=No+Photo';
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading biodata pembina ekstrakurikuler:', err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadPembinaBiodata);
+
+        // --- Load & Render Data Siswa Ekskul ---
+        async function loadSiswaEkskul(namaEkskul) {
+            const container = document.getElementById('siswaEkskulContainer');
+            document.getElementById('siswaEkskulNamaTitle').textContent = namaEkskul || '-';
+            document.getElementById('inputNamaEkskul').value = namaEkskul || '';
+
+            if (!namaEkskul) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'block';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('pesertaekstrakurikuler')
+                    .select('id, nama_siswa, nisn, kelas, nama_ekskul')
+                    .eq('nama_ekskul', namaEkskul)
+                    .order('nama_siswa', { ascending: true });
+
+                if (error) throw error;
+
+                currentSiswaEkskulList = data || [];
+                renderSiswaEkskulTable(data || []);
+            } catch (err) {
+                console.error('Error loading data siswa ekskul:', err);
+            }
+        }
+
+        function renderSiswaEkskulTable(list) {
+            const tbody = document.getElementById('siswaEkskulTableBody');
+            const emptyMsg = document.getElementById('siswaEkskulEmptyMsg');
+            tbody.innerHTML = '';
+
+            if (!list.length) {
+                emptyMsg.style.display = 'block';
+                return;
+            }
+            emptyMsg.style.display = 'none';
+
+            list.forEach((item, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${idx + 1}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nama_siswa || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nisn || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.kelas || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nama_ekskul || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; text-align: center;">
+                        <button class="btnEditSiswa" data-id="${item.id}" data-nama_siswa="${item.nama_siswa || ''}" data-nisn="${item.nisn || ''}" data-kelas="${item.kelas || ''}" style="background: #dbeafe; color: #2563eb; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; margin-right: 6px;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btnHapusSiswa" data-id="${item.id}" style="background: #fee2e2; color: #dc2626; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.querySelectorAll('.btnHapusSiswa').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!confirm('Hapus data siswa ini?')) return;
+                    const id = btn.getAttribute('data-id');
+                    try {
+                        const { error } = await supabaseClient
+                            .from('pesertaekstrakurikuler')
+                            .delete()
+                            .eq('id', id);
+                        if (error) throw error;
+                        loadSiswaEkskul(currentNamaEkskul);
+                    } catch (err) {
+                        console.error('Error deleting siswa:', err);
+                        alert('Gagal menghapus data: ' + err.message);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.btnEditSiswa').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const item = {
+                        id: btn.getAttribute('data-id'),
+                        nama_siswa: btn.getAttribute('data-nama_siswa'),
+                        nisn: btn.getAttribute('data-nisn'),
+                        kelas: btn.getAttribute('data-kelas')
+                    };
+                    openEditSiswaModal(item);
+                });
+            });
+        }
+
+        // --- Load Data Kelas dari tabel mappingsiswa (untuk dropdown Kelas) ---
+        async function loadKelasOptions() {
+            const kelasSelect = document.getElementById('inputKelas');
+            try {
+                const { data, error } = await supabaseClient
+                    .from('mappingsiswa')
+                    .select('kelas')
+                    .order('kelas', { ascending: true });
+
+                if (error) throw error;
+
+                const uniqueKelas = [...new Set((data || []).map(d => d.kelas).filter(Boolean))];
+                kelasSelect.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+                uniqueKelas.forEach(k => {
+                    const opt = document.createElement('option');
+                    opt.value = k;
+                    opt.textContent = k;
+                    kelasSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Error loading kelas options:', err);
+            }
+        }
+
+        // --- Muat dropdown Nama Siswa berdasarkan kelas (dipakai saat tambah maupun edit) ---
+        async function loadNamaSiswaOptions(kelas, selectedNamaSiswa) {
+            const namaSiswaSelect = document.getElementById('inputNamaSiswa');
+            const nisnInput = document.getElementById('inputNisn');
+
+            namaSiswaSelect.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+            namaSiswaSelect.disabled = true;
+            if (!selectedNamaSiswa) nisnInput.value = '';
+
+            if (!kelas) return;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('mappingsiswa')
+                    .select('nama_siswa, nisn')
+                    .eq('kelas', kelas)
+                    .order('nama_siswa', { ascending: true });
+
+                if (error) throw error;
+
+                (data || []).forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.nama_siswa;
+                    opt.textContent = s.nama_siswa;
+                    opt.setAttribute('data-nisn', s.nisn !== null && s.nisn !== undefined ? s.nisn : '');
+                    namaSiswaSelect.appendChild(opt);
+                });
+                namaSiswaSelect.disabled = false;
+
+                if (selectedNamaSiswa) {
+                    namaSiswaSelect.value = selectedNamaSiswa;
+                    const selectedOption = namaSiswaSelect.selectedOptions[0];
+                    nisnInput.value = selectedOption ? (selectedOption.getAttribute('data-nisn') || '') : '';
+                }
+            } catch (err) {
+                console.error('Error loading siswa berdasarkan kelas:', err);
+            }
+        }
+
+        // --- Saat Kelas dipilih, isi dropdown Nama Siswa dari mappingsiswa ---
+        const inputKelasSelect = document.getElementById('inputKelas');
+        if (inputKelasSelect) {
+            inputKelasSelect.addEventListener('change', (e) => {
+                loadNamaSiswaOptions(e.target.value);
+            });
+        }
+
+        // --- Saat Nama Siswa dipilih, isi otomatis NISN ---
+        const inputNamaSiswaSelect = document.getElementById('inputNamaSiswa');
+        if (inputNamaSiswaSelect) {
+            inputNamaSiswaSelect.addEventListener('change', (e) => {
+                const selectedOption = e.target.selectedOptions[0];
+                const nisn = selectedOption ? selectedOption.getAttribute('data-nisn') : '';
+                document.getElementById('inputNisn').value = nisn || '';
+            });
+        }
+
+        // --- Logic Modal Tambah / Edit Data Siswa ---
+        const tambahSiswaModal = document.getElementById('tambahSiswaModal');
+        const btnTambahSiswa = document.getElementById('btnTambahSiswa');
+        const closeTambahSiswaModal = document.getElementById('closeTambahSiswaModal');
+        const cancelTambahSiswaBtn = document.getElementById('cancelTambahSiswaBtn');
+        const tambahSiswaForm = document.getElementById('tambahSiswaForm');
+        let editingSiswaId = null; // null = mode tambah, terisi = mode edit
+
+        if (btnTambahSiswa) {
+            btnTambahSiswa.addEventListener('click', () => {
+                if (!currentNamaEkskul) {
+                    alert('Data ekstrakurikuler pembina belum termuat. Silakan refresh halaman.');
+                    return;
+                }
+                editingSiswaId = null;
+                document.getElementById('tambahSiswaModalTitle').textContent = 'Tambah Data Siswa';
+                document.getElementById('saveTambahSiswaBtn').textContent = 'Simpan';
+                tambahSiswaForm.reset();
+                document.getElementById('inputNamaSiswa').innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
+                document.getElementById('inputNamaSiswa').disabled = true;
+                document.getElementById('inputNisn').value = '';
+                document.getElementById('inputNamaEkskul').value = currentNamaEkskul;
+                loadKelasOptions();
+                tambahSiswaModal.classList.add('active');
+            });
+        }
+
+        // --- Buka modal dalam mode Edit, isi otomatis Kelas -> Nama Siswa -> NISN ---
+        async function openEditSiswaModal(item) {
+            editingSiswaId = item.id;
+            document.getElementById('tambahSiswaModalTitle').textContent = 'Edit Data Siswa';
+            document.getElementById('saveTambahSiswaBtn').textContent = 'Update';
+            document.getElementById('inputNamaEkskul').value = currentNamaEkskul;
+
+            await loadKelasOptions();
+            document.getElementById('inputKelas').value = item.kelas || '';
+            await loadNamaSiswaOptions(item.kelas, item.nama_siswa);
+
+            tambahSiswaModal.classList.add('active');
+        }
+
+        function closeTambahSiswaModalFunc() {
+            tambahSiswaModal.classList.remove('active');
+            editingSiswaId = null;
+            document.getElementById('tambahSiswaModalTitle').textContent = 'Tambah Data Siswa';
+            document.getElementById('saveTambahSiswaBtn').textContent = 'Simpan';
+        }
+        if (closeTambahSiswaModal) closeTambahSiswaModal.addEventListener('click', closeTambahSiswaModalFunc);
+        if (cancelTambahSiswaBtn) cancelTambahSiswaBtn.addEventListener('click', closeTambahSiswaModalFunc);
+
+        if (tambahSiswaForm) {
+            tambahSiswaForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const saveBtn = document.getElementById('saveTambahSiswaBtn');
+                const originalText = saveBtn.textContent;
+                saveBtn.textContent = editingSiswaId ? 'Memperbarui...' : 'Menyimpan...';
+                saveBtn.disabled = true;
+
+                try {
+                    const nama_siswa = document.getElementById('inputNamaSiswa').value;
+                    const nisn = document.getElementById('inputNisn').value;
+                    const kelas = document.getElementById('inputKelas').value;
+
+                    if (editingSiswaId) {
+                        const { error } = await supabaseClient
+                            .from('pesertaekstrakurikuler')
+                            .update({
+                                nama_siswa: nama_siswa,
+                                nisn: nisn,
+                                kelas: kelas,
+                                nama_ekskul: currentNamaEkskul
+                            })
+                            .eq('id', editingSiswaId);
+
+                        if (error) throw error;
+                        alert('Data siswa berhasil diperbarui!');
+                    } else {
+                        const { error } = await supabaseClient
+                            .from('pesertaekstrakurikuler')
+                            .insert({
+                                nama_siswa: nama_siswa,
+                                nisn: nisn,
+                                kelas: kelas,
+                                nama_ekskul: currentNamaEkskul
+                            });
+
+                        if (error) throw error;
+                        alert('Data siswa berhasil ditambahkan!');
+                    }
+
+                    closeTambahSiswaModalFunc();
+                    loadSiswaEkskul(currentNamaEkskul);
+                } catch (err) {
+                    console.error(err);
+                    alert('Gagal menyimpan data: ' + err.message);
+                } finally {
+                    saveBtn.textContent = originalText;
+                    saveBtn.disabled = false;
+                }
+            });
+        }
+
+        // =========================================================
+        // --- FITUR PENILAIAN EKSKUL (tabel nilaiekskul) ---
+        // =========================================================
+
+        // --- Load & Render Data Penilaian Ekskul ---
+        async function loadNilaiEkskul(namaEkskul) {
+            const container = document.getElementById('nilaiEkskulContainer');
+            document.getElementById('nilaiEkskulNamaTitle').textContent = namaEkskul || '-';
+
+            if (!namaEkskul) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'block';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('nilaiekskul')
+                    .select('id, nama_siswa, nisn, kelas, nama_ekskul, nilai, deskripsi')
+                    .eq('nama_ekskul', namaEkskul)
+                    .order('nama_siswa', { ascending: true });
+
+                if (error) throw error;
+
+                renderNilaiEkskulTable(data || []);
+            } catch (err) {
+                console.error('Error loading data nilai ekskul:', err);
+            }
+        }
+
+        function renderNilaiEkskulTable(list) {
+            const tbody = document.getElementById('nilaiEkskulTableBody');
+            const emptyMsg = document.getElementById('nilaiEkskulEmptyMsg');
+            tbody.innerHTML = '';
+
+            if (!list.length) {
+                emptyMsg.style.display = 'block';
+                return;
+            }
+            emptyMsg.style.display = 'none';
+
+            list.forEach((item) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.id}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nama_siswa || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nisn || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.kelas || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nama_ekskul || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nilai !== null && item.nilai !== undefined ? item.nilai : '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.deskripsi || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #f0f0f0; text-align: center; white-space: nowrap;">
+                        <button class="btnEditNilai" data-id="${item.id}" style="background: #dbeafe; color: #2563eb; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; margin-right: 6px;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btnHapusNilai" data-id="${item.id}" style="background: #fee2e2; color: #dc2626; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.querySelectorAll('.btnHapusNilai').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!confirm('Hapus data penilaian ini?')) return;
+                    const id = btn.getAttribute('data-id');
+                    try {
+                        const { error } = await supabaseClient
+                            .from('nilaiekskul')
+                            .delete()
+                            .eq('id', id);
+                        if (error) throw error;
+                        loadNilaiEkskul(currentNamaEkskul);
+                    } catch (err) {
+                        console.error('Error deleting nilai:', err);
+                        alert('Gagal menghapus data: ' + err.message);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.btnEditNilai').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-id');
+                    const item = list.find(n => String(n.id) === String(id));
+                    if (item) openEditNilaiModal(item);
+                });
+            });
+        }
+
+        // --- Isi dropdown Nama Siswa di modal Penilaian dari data Siswa Ekskul yang sedang tampil ---
+        function populateNilaiNamaSiswaOptions(selectedNamaSiswa) {
+            const select = document.getElementById('nilaiNamaSiswa');
+            select.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+
+            currentSiswaEkskulList.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.nama_siswa;
+                opt.textContent = s.nama_siswa;
+                opt.setAttribute('data-nisn', s.nisn || '');
+                opt.setAttribute('data-kelas', s.kelas || '');
+                select.appendChild(opt);
+            });
+
+            if (selectedNamaSiswa) {
+                select.value = selectedNamaSiswa;
+                const selectedOption = select.selectedOptions[0];
+                document.getElementById('nilaiNisn').value = selectedOption ? (selectedOption.getAttribute('data-nisn') || '') : '';
+                document.getElementById('nilaiKelas').value = selectedOption ? (selectedOption.getAttribute('data-kelas') || '') : '';
+            } else {
+                document.getElementById('nilaiNisn').value = '';
+                document.getElementById('nilaiKelas').value = '';
+            }
+        }
+
+        // --- Mapping Deskripsi Otomatis berdasarkan Predikat Nilai ---
+        const deskripsiPredikatMap = {
+            'Cukup (C)': 'Menunjukkan penguasaan kompetensi dasar pada kegiatan ekstrakurikuler sesuai kemampuan. Kehadiran dan partisipasi cukup baik, namun masih perlu meningkatkan kerajinan, kedisiplinan, serta konsistensi dalam mengikuti latihan agar kemampuan berkembang lebih optimal.',
+            'Baik (B)': 'Menunjukkan penguasaan kompetensi yang baik pada kegiatan ekstrakurikuler. Aktif dan rajin mengikuti latihan, mampu berpartisipasi dengan baik dalam setiap kegiatan, serta menunjukkan konsistensi yang baik dalam mengembangkan keterampilan dan sikap positif.',
+            'Amat Baik (A)': 'Menunjukkan penguasaan kompetensi yang sangat baik pada kegiatan ekstrakurikuler. Sangat rajin, disiplin, dan konsisten dalam mengikuti setiap kegiatan maupun latihan. Berperan aktif, menunjukkan sikap yang baik, serta mampu mengembangkan keterampilan secara optimal dan menjadi teladan bagi peserta lainnya.'
+        };
+
+        // --- Saat predikat Nilai dipilih, isi otomatis Deskripsi ---
+        const nilaiNilaiSelect = document.getElementById('nilaiNilai');
+        if (nilaiNilaiSelect) {
+            nilaiNilaiSelect.addEventListener('change', (e) => {
+                document.getElementById('nilaiDeskripsi').value = deskripsiPredikatMap[e.target.value] || '';
+            });
+        }
+
+        // --- Saat Nama Siswa dipilih di modal Penilaian, isi otomatis NISN & Kelas ---
+        const nilaiNamaSiswaSelect = document.getElementById('nilaiNamaSiswa');
+        if (nilaiNamaSiswaSelect) {
+            nilaiNamaSiswaSelect.addEventListener('change', (e) => {
+                const selectedOption = e.target.selectedOptions[0];
+                document.getElementById('nilaiNisn').value = selectedOption ? (selectedOption.getAttribute('data-nisn') || '') : '';
+                document.getElementById('nilaiKelas').value = selectedOption ? (selectedOption.getAttribute('data-kelas') || '') : '';
+            });
+        }
+
+        // --- Logic Modal Tambah / Edit Penilaian ---
+        const nilaiModal = document.getElementById('nilaiModal');
+        const btnTambahNilai = document.getElementById('btnTambahNilai');
+        const closeNilaiModal = document.getElementById('closeNilaiModal');
+        const cancelNilaiBtn = document.getElementById('cancelNilaiBtn');
+        const nilaiForm = document.getElementById('nilaiForm');
+
+        if (btnTambahNilai) {
+            btnTambahNilai.addEventListener('click', () => {
+                if (!currentNamaEkskul) {
+                    alert('Data ekstrakurikuler pembina belum termuat. Silakan refresh halaman.');
+                    return;
+                }
+                if (!currentSiswaEkskulList.length) {
+                    alert('Belum ada Data Siswa Ekskul. Tambahkan siswa terlebih dahulu di bagian Data Siswa Ekskul.');
+                    return;
+                }
+                editingNilaiId = null;
+                document.getElementById('nilaiModalTitle').textContent = 'Tambah Penilaian';
+                document.getElementById('saveNilaiBtn').textContent = 'Simpan';
+                nilaiForm.reset();
+                document.getElementById('nilaiNamaEkskul').value = currentNamaEkskul;
+                populateNilaiNamaSiswaOptions(null);
+                nilaiModal.classList.add('active');
+            });
+        }
+
+        function openEditNilaiModal(item) {
+            editingNilaiId = item.id;
+            document.getElementById('nilaiModalTitle').textContent = 'Edit Penilaian';
+            document.getElementById('saveNilaiBtn').textContent = 'Update';
+            document.getElementById('nilaiNamaEkskul').value = currentNamaEkskul;
+            populateNilaiNamaSiswaOptions(item.nama_siswa);
+            document.getElementById('nilaiNilai').value = item.nilai !== null && item.nilai !== undefined ? item.nilai : '';
+            document.getElementById('nilaiDeskripsi').value = item.deskripsi || '';
+            nilaiModal.classList.add('active');
+        }
+
+        function closeNilaiModalFunc() {
+            nilaiModal.classList.remove('active');
+            editingNilaiId = null;
+            document.getElementById('nilaiModalTitle').textContent = 'Tambah Penilaian';
+            document.getElementById('saveNilaiBtn').textContent = 'Simpan';
+        }
+        if (closeNilaiModal) closeNilaiModal.addEventListener('click', closeNilaiModalFunc);
+        if (cancelNilaiBtn) cancelNilaiBtn.addEventListener('click', closeNilaiModalFunc);
+
+        if (nilaiForm) {
+            nilaiForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const saveBtn = document.getElementById('saveNilaiBtn');
+                const originalText = saveBtn.textContent;
+                saveBtn.textContent = editingNilaiId ? 'Memperbarui...' : 'Menyimpan...';
+                saveBtn.disabled = true;
+
+                try {
+                    const nama_siswa = document.getElementById('nilaiNamaSiswa').value;
+                    const nisn = document.getElementById('nilaiNisn').value;
+                    const kelas = document.getElementById('nilaiKelas').value;
+                    const nilai = document.getElementById('nilaiNilai').value;
+                    const deskripsi = document.getElementById('nilaiDeskripsi').value;
+
+                    if (!nama_siswa) {
+                        alert('Silakan pilih siswa terlebih dahulu.');
+                        return;
+                    }
+
+                    const payload = {
+                        nama_siswa: nama_siswa,
+                        nisn: nisn,
+                        kelas: kelas,
+                        nama_ekskul: currentNamaEkskul,
+                        nilai: nilai === '' ? null : nilai,
+                        deskripsi: deskripsi
+                    };
+
+                    if (editingNilaiId) {
+                        const { error } = await supabaseClient
+                            .from('nilaiekskul')
+                            .update(payload)
+                            .eq('id', editingNilaiId);
+
+                        if (error) throw error;
+                        alert('Penilaian berhasil diperbarui!');
+                    } else {
+                        const { error } = await supabaseClient
+                            .from('nilaiekskul')
+                            .insert(payload);
+
+                        if (error) throw error;
+                        alert('Penilaian berhasil ditambahkan!');
+                    }
+
+                    closeNilaiModalFunc();
+                    loadNilaiEkskul(currentNamaEkskul);
+                } catch (err) {
+                    console.error(err);
+                    alert('Gagal menyimpan penilaian: ' + err.message);
+                } finally {
+                    saveBtn.textContent = originalText;
+                    saveBtn.disabled = false;
+                }
+            });
+        }
+
+        // =========================================================
+        // --- HELPER: KOP SEKOLAH & TANDA TANGAN PEMBINA UNTUK PDF ---
+        // =========================================================
+
+        // Menambahkan gambar KOP Sekolah di bagian atas PDF (jika ada), mengembalikan posisi Y berikutnya
+        async function tambahKopSekolahPdf(doc, pageWidth) {
+            let yPos = 20;
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20; // Margin kiri kanan 10
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                    doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                    yPos = 10 + imgHeight + 10;
+                } catch (err) {
+                    console.error('Gagal memuat KOP Sekolah:', err);
+                }
+            }
+            return yPos;
+        }
+
+        // Menambahkan blok tanda tangan Pembina Ekstrakurikuler di kanan bawah dokumen
+        function tambahTandaTanganPembinaPdf(doc, finalY, pageWidth, pageHeight) {
+            const marginRight = 14;
+            let sigY = finalY + 15;
+
+            // Jika ruang di halaman tidak cukup, buat halaman baru untuk tanda tangan
+            if (sigY + 35 > pageHeight - 10) {
+                doc.addPage();
+                sigY = 25;
+            }
+
+            const tanggal = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const namaPembina = (currentPembinaData && currentPembinaData.nama_guru) || '-';
+            const nipPembina = (currentPembinaData && currentPembinaData.nip && currentPembinaData.nip !== '-') ? currentPembinaData.nip : '-';
+
+            doc.setTextColor(0);
+            doc.setFontSize(11);
+            doc.text(`Simpang Teritip, ${tanggal}`, pageWidth - marginRight, sigY, { align: 'right' });
+            doc.text(`Pembina Ekstrakurikuler ${currentNamaEkskul || ''}`, pageWidth - marginRight, sigY + 6, { align: 'right' });
+
+            // Ruang kosong untuk tanda tangan basah, lalu nama & NIP
+            doc.setFont(undefined, 'bold');
+            doc.text(namaPembina, pageWidth - marginRight, sigY + 28, { align: 'right' });
+            doc.setFont(undefined, 'normal');
+            doc.text(`NIP. ${nipPembina}`, pageWidth - marginRight, sigY + 34, { align: 'right' });
+
+            // Garis bawah nama agar terlihat seperti kolom tanda tangan
+            const namaWidth = doc.getTextWidth(namaPembina);
+            doc.setLineWidth(0.1);
+            doc.line(pageWidth - marginRight - namaWidth, sigY + 29, pageWidth - marginRight, sigY + 29);
+        }
+
+        // --- Export PDF Penilaian ---
+        const btnExportNilaiPdf = document.getElementById('btnExportNilaiPdf');
+        if (btnExportNilaiPdf) {
+            btnExportNilaiPdf.addEventListener('click', async () => {
+                if (!currentNamaEkskul) {
+                    alert('Data ekstrakurikuler pembina belum termuat.');
+                    return;
+                }
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('nilaiekskul')
+                        .select('nama_siswa, nisn, kelas, nama_ekskul, nilai, deskripsi')
+                        .eq('nama_ekskul', currentNamaEkskul)
+                        .order('nama_siswa', { ascending: true });
+
+                    if (error) throw error;
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+
+                    let yPos = await tambahKopSekolahPdf(doc, pageWidth);
+
+                    doc.setFontSize(14);
+                    doc.setTextColor(0);
+                    doc.text(`Penilaian Ekstrakurikuler: ${currentNamaEkskul}`, pageWidth / 2, yPos, { align: 'center' });
+                    yPos += 7;
+
+                    const schoolNameNilai = schoolData.nama_sekolah || document.querySelector('.navbar-brand span').textContent || 'SMK Negeri 1 Mentok';
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text(schoolNameNilai, pageWidth / 2, yPos, { align: 'center' });
+                    yPos += 5;
+                    doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, pageWidth / 2, yPos, { align: 'center' });
+                    yPos += 8;
+                    doc.setTextColor(0);
+
+                    const rows = (data || []).map((item, idx) => [
+                        idx + 1,
+                        item.nama_siswa || '-',
+                        item.nisn || '-',
+                        item.kelas || '-',
+                        item.nilai !== null && item.nilai !== undefined ? item.nilai : '-',
+                        item.deskripsi || '-'
+                    ]);
+
+                    doc.autoTable({
+                        startY: yPos,
+                        theme: 'grid',
+                        head: [['No', 'Nama Siswa', 'NISN', 'Kelas', 'Nilai', 'Deskripsi']],
+                        body: rows,
+                        headStyles: { fillColor: [220, 38, 38] }
+                    });
+
+                    const finalYNilai = doc.lastAutoTable ? doc.lastAutoTable.finalY : yPos;
+                    tambahTandaTanganPembinaPdf(doc, finalYNilai, pageWidth, pageHeight);
+
+                    doc.save(`penilaian-${currentNamaEkskul.replace(/\s+/g, '_')}.pdf`);
+                } catch (err) {
+                    console.error('Error exporting PDF penilaian:', err);
+                    alert('Gagal export PDF: ' + err.message);
+                }
+            });
+        }
+
+        // --- Export Excel Penilaian ---
+        const btnExportNilaiExcel = document.getElementById('btnExportNilaiExcel');
+        if (btnExportNilaiExcel) {
+            btnExportNilaiExcel.addEventListener('click', async () => {
+                if (!currentNamaEkskul) {
+                    alert('Data ekstrakurikuler pembina belum termuat.');
+                    return;
+                }
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('nilaiekskul')
+                        .select('nama_siswa, nisn, kelas, nama_ekskul, nilai, deskripsi')
+                        .eq('nama_ekskul', currentNamaEkskul)
+                        .order('nama_siswa', { ascending: true });
+
+                    if (error) throw error;
+
+                    const rows = (data || []).map((item, idx) => ({
+                        'No': idx + 1,
+                        'Nama Siswa': item.nama_siswa || '-',
+                        'NISN': item.nisn || '-',
+                        'Kelas': item.kelas || '-',
+                        'Nama Ekskul': item.nama_ekskul || '-',
+                        'Nilai': item.nilai !== null && item.nilai !== undefined ? item.nilai : '-',
+                        'Deskripsi': item.deskripsi || '-'
+                    }));
+
+                    const worksheet = XLSX.utils.json_to_sheet(rows);
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, worksheet, 'Penilaian');
+                    XLSX.writeFile(workbook, `penilaian-${currentNamaEkskul.replace(/\s+/g, '_')}.xlsx`);
+                } catch (err) {
+                    console.error('Error exporting Excel penilaian:', err);
+                    alert('Gagal export Excel: ' + err.message);
+                }
+            });
+        }
+
+        // --- Export PDF ---
+        const btnExportPdf = document.getElementById('btnExportPdf');
+        if (btnExportPdf) {
+            btnExportPdf.addEventListener('click', async () => {
+                if (!currentNamaEkskul) {
+                    alert('Data ekstrakurikuler pembina belum termuat.');
+                    return;
+                }
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('pesertaekstrakurikuler')
+                        .select('nama_siswa, nisn, kelas, nama_ekskul')
+                        .eq('nama_ekskul', currentNamaEkskul)
+                        .order('nama_siswa', { ascending: true });
+
+                    if (error) throw error;
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+
+                    let yPos = await tambahKopSekolahPdf(doc, pageWidth);
+
+                    doc.setFontSize(14);
+                    doc.setTextColor(0);
+                    doc.text(`Data Siswa Ekstrakurikuler: ${currentNamaEkskul}`, pageWidth / 2, yPos, { align: 'center' });
+                    yPos += 7;
+
+                    const schoolNameSiswa = schoolData.nama_sekolah || document.querySelector('.navbar-brand span').textContent || 'SMK Negeri 1 Mentok';
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text(schoolNameSiswa, pageWidth / 2, yPos, { align: 'center' });
+                    yPos += 5;
+                    doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, pageWidth / 2, yPos, { align: 'center' });
+                    yPos += 8;
+                    doc.setTextColor(0);
+
+                    const rows = (data || []).map((item, idx) => [
+                        idx + 1,
+                        item.nama_siswa || '-',
+                        item.nisn || '-',
+                        item.kelas || '-',
+                        item.nama_ekskul || '-'
+                    ]);
+
+                    doc.autoTable({
+                        startY: yPos,
+                        theme: 'grid',
+                        head: [['No', 'Nama Siswa', 'NISN', 'Kelas', 'Nama Ekstrakurikuler']],
+                        body: rows,
+                        headStyles: { fillColor: [220, 38, 38] }
+                    });
+
+                    const finalYSiswa = doc.lastAutoTable ? doc.lastAutoTable.finalY : yPos;
+                    tambahTandaTanganPembinaPdf(doc, finalYSiswa, pageWidth, pageHeight);
+
+                    doc.save(`data-siswa-${currentNamaEkskul.replace(/\s+/g, '_')}.pdf`);
+                } catch (err) {
+                    console.error('Error exporting PDF:', err);
+                    alert('Gagal export PDF: ' + err.message);
+                }
+            });
+        }
+
+        // --- Cek Sesi Login ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            if (!session) {
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>

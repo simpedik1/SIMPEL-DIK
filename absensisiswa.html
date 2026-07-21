@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPPEDIK-SMKN 1 Mentok</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF & AutoTable for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+            --navbar-bg: #dc2626; /* Warna Merah untuk Navbar */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar (Custom Red) --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--navbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0 !important; /* Full width */
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        /* Overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* --- Tabs Styles (Added) --- */
+        .tabs-container { width: 100%; }
+        .tabs-header { display: flex; overflow-x: auto; border-bottom: 1px solid #374151; margin-bottom: 20px; gap: 10px; scrollbar-width: thin; scrollbar-color: var(--primary-color) #1f2937; padding-bottom: 10px; }
+        .tabs-header::-webkit-scrollbar { height: 6px; }
+        .tabs-header::-webkit-scrollbar-thumb { background-color: var(--primary-color); border-radius: 3px; }
+        .tab-btn { padding: 10px 20px; background: rgba(255, 255, 255, 0.05); border: 1px solid transparent; border-radius: 20px; cursor: pointer; font-weight: 600; color: #9ca3af; white-space: nowrap; transition: all 0.3s ease; font-size: 0.9rem; }
+        .tab-btn:hover { color: #fff; background-color: rgba(255, 255, 255, 0.1); transform: translateY(-2px); }
+        .tab-btn.active { color: #fff; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
+        .tab-pane { display: none; animation: fadeIn 0.4s ease-out; }
+        .tab-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Table Styles */
+        .table-placeholder { width: 100%; border-collapse: collapse; color: #e5e7eb; }
+        .table-placeholder th, .table-placeholder td { padding: 12px; border-bottom: 1px solid #374151; text-align: left; vertical-align: middle; }
+        .table-placeholder th { background-color: #111827; color: #9ca3af; }
+        
+        /* Radio Button Styles (Button/Card Look) */
+        .status-options { display: flex; gap: 8px; flex-wrap: wrap; }
+        
+        .status-btn {
+            position: relative;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .status-btn input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .status-btn span {
+            display: inline-block;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            line-height: 34px;
+            background-color: #374151;
+            color: #9ca3af;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            border: 1px solid #4b5563;
+            text-align: center;
+        }
+
+        .status-btn:hover span {
+            background-color: #4b5563;
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        /* Checked States Colors */
+        .status-btn input[value="Hadir"]:checked + span { background: linear-gradient(135deg, #10b981, #059669); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4); }
+        .status-btn input[value="Sakit"]:checked + span { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4); }
+        .status-btn input[value="Ijin"]:checked + span { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4); }
+        .status-btn input[value="Alpa"]:checked + span { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
+        
+        /* Edit Button Style */
+        .btn-edit-action {
+            height: 36px;
+            padding: 0 15px;
+            background-color: #4b5563;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-edit-action:hover { background-color: #6b7280; transform: translateY(-1px); }
+
+        /* Warning Modal Styles */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: #1f2937; border: 1px solid #374151; color: #fff; width: 90%; max-width: 400px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; animation: slideDown 0.3s ease; }
+        .modal-btn { margin-top: 20px; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .modal-btn:hover { background: #2563eb; }
+
+        /* Pagination Styles */
+        .pagination-btn {
+            padding: 6px 12px;
+            margin: 0 2px;
+            border: 1px solid #4b5563;
+            background-color: #374151;
+            color: #e5e7eb;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        .pagination-btn:hover:not(:disabled) { background-color: #4b5563; color: white; }
+        .pagination-btn.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Export PDF Button Style */
+        #exportRiwayatPdfBtn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background-color: #ffffff;
+            color: #000000;
+            transition: all 0.3s ease;
+        }
+        #exportRiwayatPdfBtn:hover {
+            background-color: #ef4444;
+            color: #ffffff;
+        }
+
+        /* Save Button */
+        .btn-save {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(to right, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-save:hover { opacity: 0.9; }
+
+        @media (max-width: 768px) {
+            .navbar-brand span {
+                font-size: 1rem;
+            }
+
+            .main-content {
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+
+        /* Tombol Kembali Ke Dashboard */
+        .btn-back-dashboard {
+            margin-left: auto;
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        .btn-back-dashboard:hover {
+            background-color: white;
+            color: var(--navbar-bg);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="adminguru.html" class="btn-back-dashboard">Kembali Ke Dashboard</a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+            <div style="background: white; padding: 10px 20px; border-radius: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: #555; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;">
+                <i class="far fa-clock" style="color: var(--navbar-bg);"></i>
+                <span id="liveDateTime"></span>
+            </div>
+        </div>
+
+        <!-- Container Petugas Piket Hari Ini (Sama dengan piketharin.html) -->
+        <div class="dashboard-card" style="background: #1f2937; color: white; border: 1px solid #374151;">
+            <div style="border-bottom: 1px solid #374151; padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="color: white; margin: 0;">Petugas Piket Hari Ini</h2>
+                <span id="todayBadge" style="background: var(--navbar-bg); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;"></span>
+            </div>
+            <div id="piketList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <p style="grid-column: 1/-1; text-align: center; color: #cbd5e1;">Memuat data...</p>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <h2>Absensi Siswa</h2>
+            <p style="color: #666; margin-top: 10px;">Silakan pilih kelas dan isi kehadiran siswa.</p>
+        </div>
+
+        <!-- Container Tabs Kelas -->
+        <div class="dashboard-card" style="background: #1f2937; border: 1px solid #374151; color: #fff;">
+            <div class="tabs-container">
+                <div class="tabs-header" id="tabsHeader">
+                    <div style="padding: 10px; color: #cbd5e1;">Memuat data kelas...</div>
+                </div>
+                <div class="tabs-content" id="tabsContent">
+                    <!-- Konten tab akan dimuat di sini -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Container Riwayat Absensi -->
+        <div class="dashboard-card" style="background: #1f2937; border: 1px solid #374151; color: #fff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0; color: #f3f4f6;">Riwayat Absensi Siswa</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="searchRiwayatInput" placeholder="Cari Absensi..." style="padding: 8px 12px; border: 1px solid #4b5563; border-radius: 6px; font-size: 0.9rem; background: #374151; color: white;">
+                    <button id="exportRiwayatPdfBtn">
+                        <i class="fas fa-file-pdf"></i> Export Pdf
+                    </button>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="table-placeholder" id="riwayatTable">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Kode Absen</th>
+                            <th>Tanggal</th>
+                            <th>Kelas</th>
+                            <th>NISN</th>
+                            <th>Nama Siswa</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="riwayatTableBody">
+                        <tr><td colspan="7" style="text-align: center; padding: 20px; color: #6b7280;">Memuat data riwayat...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination Controls -->
+            <div id="paginationControls" style="display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 20px; flex-wrap: wrap;"></div>
+        </div>
+
+        <!-- Warning Modal -->
+        <div id="warningModal" class="modal">
+            <div class="modal-content">
+                <div style="margin-bottom: 15px;"><i class="fas fa-exclamation-circle" style="font-size: 3rem; color: #f59e0b;"></i></div>
+                <h3 style="margin-bottom: 10px;">Informasi</h3>
+                <p id="warningMessage" style="color: #d1d5db; line-height: 1.5;"></p>
+                <button class="modal-btn" onclick="document.getElementById('warningModal').classList.remove('active')">OK</button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <script>
+        // --- Supabase Integration for Navbar ---
+        const supabaseUrl = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+        
+        // --- Supabase Integration for Mapping Siswa (Data Source) ---
+        const mappingUrl = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const mappingKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+
+        let supabaseClient;
+        let mappingClient;
+        let schoolData = {};
+
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            mappingClient = supabase.createClient(mappingUrl, mappingKey);
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo, kop_sekolah')
+                        .limit(1)
+                        .single();
+                    
+                    if (data) {
+                        schoolData = data;
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading school identity:", err);
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        }
+
+        // --- Load Data Guru dari Sesi Login ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            
+            if (session) {
+            } else {
+                // Jika tidak ada sesi, redirect ke login
+                window.location.href = 'index.html';
+            }
+        });
+
+        // --- Fitur Jam & Tanggal Berjalan ---
+        function updateLiveTime() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('liveDateTime').textContent = `${now.toLocaleDateString('id-ID', dateOptions)} | ${now.toLocaleTimeString('id-ID', timeOptions).replace(/\./g, ':')} WIB`;
+        }
+        setInterval(updateLiveTime, 1000);
+        updateLiveTime();
+
+        // --- Load Data Piket Hari Ini ---
+        async function loadPiketHariIni() {
+            const now = new Date();
+            const hariIni = now.toLocaleDateString('id-ID', { weekday: 'long' }).toUpperCase();
+            
+            const badge = document.getElementById('todayBadge');
+            if(badge) badge.textContent = hariIni;
+
+            // Ambil data guru yang sedang login
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            const namaGuru = session ? session.nama : null;
+
+            if (!namaGuru) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const container = document.getElementById('piketList');
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('gurupiket')
+                    .select('piket1, piket2, piket3')
+                    .eq('hari', hariIni);
+
+                if (error) throw error;
+
+                container.innerHTML = '';
+                currentPiketTeachersList = []; // Reset list
+
+                // Cek apakah guru yang login ada di jadwal hari ini
+                let isScheduled = false;
+                if (data && data.length > 0) {
+                    isScheduled = data.some(piket => 
+                        piket.piket1 === namaGuru || 
+                        piket.piket2 === namaGuru || 
+                        piket.piket3 === namaGuru
+                    );
+                }
+
+                // Jika tidak ada jadwal atau guru tidak terdaftar hari ini
+                if (!data || data.length === 0 || !isScheduled) {
+                    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #cbd5e1; background: #111827; border-radius: 8px;">
+                        <div style="background: rgba(185, 28, 28, 0.2); color: #fca5a5; padding: 20px; border-radius: 8px; border: 1px solid #7f1d1d; display: inline-block; margin-top: 20px;">
+                            <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                            <h3 style="margin: 0 0 5px 0;">Akses Dibatasi</h3>
+                            <p style="margin: 0;">Maaf, Jadwal Piket anda bukan hari ini.</p>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <a href="adminguru.html" class="btn" style="background: #6b7280; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Kembali ke Dashboard</a>
+                        </div>
+                    </div>`;
+                    return;
+                }
+
+                // Ambil Foto Guru dari tabel dataguru
+                const teacherNames = [];
+                data.forEach(p => {
+                    if (p.piket1) teacherNames.push(p.piket1);
+                    if (p.piket2) teacherNames.push(p.piket2);
+                    if (p.piket3) teacherNames.push(p.piket3);
+                });
+
+                let photoMap = {};
+                if (teacherNames.length > 0) {
+                    const { data: guruData } = await supabaseClient
+                        .from('dataguru')
+                        .select('nama_guru, photo')
+                        .in('nama_guru', teacherNames);
+                    
+                    if (guruData) {
+                        guruData.forEach(g => {
+                            if (g.photo) photoMap[g.nama_guru] = g.photo;
+                        });
+                    }
+                }
+
+                // Jika lolos validasi, tampilkan data
+                data.forEach((piket) => {
+                    // Simpan nama guru piket untuk export PDF
+                    if (piket.piket1) currentPiketTeachersList.push(piket.piket1);
+                    if (piket.piket2) currentPiketTeachersList.push(piket.piket2);
+                    if (piket.piket3) currentPiketTeachersList.push(piket.piket3);
+
+                    // Helper untuk card guru
+                    const createGuruCard = (nama, label, iconClass, colorClass) => {
+                        if (!nama) return '';
+                        const photoUrl = photoMap[nama];
+                        const avatarContent = photoUrl 
+                            ? `<img src="${photoUrl}" alt="${nama}" style="width: 100%; height: 100%; object-fit: cover;">` 
+                            : `<i class="${iconClass}"></i>`;
+
+                        return `
+                            <div style="background: #111827; padding: 15px; border-radius: 8px; border-left: 4px solid ${colorClass}; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                                <div style="font-size: 0.8rem; color: #9ca3af; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">${label}</div>
+                                <div style="font-weight: 600; color: #f3f4f6; display: flex; align-items: center; gap: 10px;">
+                                    <div style="width: 40px; height: 40px; background: #374151; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: ${colorClass}; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid ${colorClass}; flex-shrink: 0;">
+                                        ${avatarContent}
+                                    </div>
+                                    <span>${nama}</span>
+                                </div>
+                            </div>
+                        `;
+                    };
+
+                    container.innerHTML += createGuruCard(piket.piket1, 'Guru Piket 1', 'fas fa-user-tie', '#3b82f6');
+                    container.innerHTML += createGuruCard(piket.piket2, 'Guru Piket 2', 'fas fa-user', '#10b981');
+                    container.innerHTML += createGuruCard(piket.piket3, 'Guru Piket 3', 'fas fa-user', '#f59e0b');
+                });
+
+            } catch (err) {
+                console.error('Error loading piket:', err);
+                container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #ef4444;">Gagal memuat data: ${err.message}</p>`;
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadPiketHariIni);
+
+        // --- Cek Status Petugas Piket ---
+        let isPiketToday = false;
+        let currentPiketTeachersList = [];
+
+        async function checkPiketStatus() {
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            if (!session) return;
+
+            const now = new Date();
+            const days = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+            const hariIni = days[now.getDay()];
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('gurupiket')
+                    .select('*')
+                    .eq('hari', hariIni);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const isPetugas = data.some(p => 
+                        p.piket1 === session.nama || 
+                        p.piket2 === session.nama || 
+                        p.piket3 === session.nama
+                    );
+                    if (isPetugas) isPiketToday = true;
+                }
+            } catch (err) {
+                console.error("Error checking piket status:", err);
+            }
+            updatePiketUI();
+        }
+
+        function updatePiketUI() {
+            const btns = document.querySelectorAll('.btn-save, .btn-edit-action');
+            btns.forEach(btn => {
+                if (isPiketToday) {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                    btn.title = '';
+                } else {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                    btn.title = 'Anda bukan petugas piket hari ini';
+                }
+            });
+        }
+
+        // --- Load Tabs Kelas untuk Absensi ---
+        async function loadKelasTabs() {
+            const tabsHeader = document.getElementById('tabsHeader');
+            const tabsContent = document.getElementById('tabsContent');
+            
+            if (!tabsHeader || !tabsContent || !mappingClient) return;
+
+            try {
+                // Ambil data kelas unik dari tabel mappingsiswa
+                const { data, error } = await mappingClient
+                    .from('mappingsiswa')
+                    .select('kelas');
+
+                if (error) throw error;
+
+                // Filter kelas unik dan urutkan
+                const uniqueKelas = [...new Set(data.map(item => item.kelas))].filter(k => k).sort();
+
+                tabsHeader.innerHTML = '';
+                tabsContent.innerHTML = '';
+
+                if (uniqueKelas.length === 0) {
+                    tabsHeader.innerHTML = '<div style="padding:10px; color:#cbd5e1;">Belum ada data kelas di Mapping Siswa.</div>';
+                    return;
+                }
+
+                uniqueKelas.forEach((kelasName, index) => {
+                    // Buat Tombol Tab
+                    const btn = document.createElement('button');
+                    btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+                    btn.textContent = kelasName;
+                    btn.onclick = () => switchTab(index);
+                    tabsHeader.appendChild(btn);
+
+                    // Buat Konten Tab
+                    const pane = document.createElement('div');
+                    pane.className = `tab-pane ${index === 0 ? 'active' : ''}`;
+                    pane.id = `pane-${index}`;
+                    
+                    // Tabel Absensi
+                    const tableDiv = document.createElement('div');
+                    const tbodyId = `tbody-${kelasName.replace(/\s+/g, '-')}`;
+                    const formId = `form-${kelasName.replace(/\s+/g, '-')}`;
+                    
+                    const disabledAttr = isPiketToday ? '' : 'disabled style="opacity:0.5; cursor:not-allowed;" title="Anda bukan petugas piket hari ini"';
+
+                    tableDiv.style.overflowX = 'auto';
+                    tableDiv.innerHTML = `
+                        <form id="${formId}">
+                            <table class="table-placeholder">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">No</th>
+                                        <th>Kode Absen</th>
+                                        <th>Kode Mapping</th>
+                                        <th>Hari</th>
+                                        <th>Tanggal</th>
+                                        <th>Kelas</th>
+                                        <th>NISN</th>
+                                        <th>Nama Siswa</th>
+                                        <th style="width: 300px;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="${tbodyId}"><tr><td colspan="9" style="text-align:center; padding:20px; color:#6b7280;">Memuat data...</td></tr></tbody>
+                            </table>
+                            <button type="button" class="btn-save" onclick="simpanAbsensi('${kelasName}', '${formId}')" ${disabledAttr}>
+                                <i class="fas fa-save"></i> Simpan Absensi ${kelasName}
+                            </button>
+                        </form>
+                    `;
+                    pane.appendChild(tableDiv);
+                    tabsContent.appendChild(pane);
+
+                    // Load data siswa per kelas
+                    loadSiswaForAbsensi(kelasName, tbodyId);
+                });
+
+            } catch (err) {
+                console.error('Error loading tabs:', err);
+                tabsHeader.innerHTML = `<div style="color:red; padding:10px;">Gagal memuat data: ${err.message}</div>`;
+            }
+        }
+
+        async function loadSiswaForAbsensi(kelas, tbodyId) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+
+            try {
+                // 1. Ambil Data Siswa dari Mapping
+                const { data: students, error: studentError } = await mappingClient
+                    .from('mappingsiswa')
+                    .select('*')
+                    .eq('kelas', kelas)
+                    .order('nama_siswa', { ascending: true });
+
+                if (studentError) throw studentError;
+
+                // 2. Ambil Data Absensi Hari Ini (Cek apakah sudah absen)
+                const now = new Date();
+                const tanggalDB = now.toISOString().split('T')[0]; // YYYY-MM-DD
+                
+                const { data: attendance, error: attendanceError } = await mappingClient
+                    .from('absensiswa')
+                    .select('*')
+                    .eq('kelas', kelas)
+                    .eq('tanggal', tanggalDB);
+
+                if (attendanceError) throw attendanceError;
+
+                // Buat Map untuk lookup cepat berdasarkan kode_maping
+                const attendanceMap = {};
+                if (attendance) {
+                    attendance.forEach(rec => {
+                        attendanceMap[rec.kode_maping] = rec;
+                    });
+                }
+
+                tbody.innerHTML = '';
+
+                if (!students || students.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:#6b7280;">Tidak ada siswa di kelas ini.</td></tr>';
+                    return;
+                }
+
+                const hari = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(now);
+                const tanggal = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+                
+                // Format ddmmyy untuk Kode Absen
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yy = String(now.getFullYear()).slice(-2);
+                const dateCode = `${dd}${mm}${yy}`;
+
+                students.forEach((siswa, index) => {
+                    const row = document.createElement('tr');
+                    const radioName = `status_${siswa.kode_maping}`;
+                    
+                    // Cek apakah data absensi sudah ada
+                    const existing = attendanceMap[siswa.kode_maping];
+                    
+                    let kodeAbsenDisplay;
+                    let statusChecked = 'Hadir'; // Default
+
+                    if (existing) {
+                        // Jika sudah ada, gunakan data dari database
+                        kodeAbsenDisplay = existing.kode_absen;
+                        statusChecked = existing.status_kehadiran;
+                    } else {
+                        // Jika belum, generate baru
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+                        const random4 = Array(4).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+                        kodeAbsenDisplay = `ID-${dateCode}-${random4}`;
+                    }
+                    
+                    const disabledAttr = isPiketToday ? '' : 'disabled style="opacity:0.5; cursor:not-allowed;" title="Anda bukan petugas piket hari ini"';
+
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${kodeAbsenDisplay}</td>
+                        <td>${siswa.kode_maping}</td>
+                        <td>${hari}</td>
+                        <td>${tanggal}</td>
+                        <td>${siswa.kelas}</td>
+                        <td>${siswa.nisn || '-'}</td>
+                        <td>${siswa.nama_siswa}</td>
+                        <td>
+                            <div class="status-options">
+                                <label class="status-btn"><input type="radio" name="${radioName}" value="Hadir" ${statusChecked === 'Hadir' ? 'checked' : ''}><span>H</span></label>
+                                <label class="status-btn"><input type="radio" name="${radioName}" value="Sakit" ${statusChecked === 'Sakit' ? 'checked' : ''}><span>S</span></label>
+                                <label class="status-btn"><input type="radio" name="${radioName}" value="Ijin" ${statusChecked === 'Ijin' ? 'checked' : ''}><span>I</span></label>
+                                <label class="status-btn"><input type="radio" name="${radioName}" value="Alpa" ${statusChecked === 'Alpa' ? 'checked' : ''}><span>A</span></label>
+                                <button type="button" class="btn-edit-action" onclick="updateAbsensiPerSiswa(this)" ${disabledAttr}>Edit</button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+            } catch (err) {
+                console.error(`Error loading siswa for ${kelas}:`, err);
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">Gagal memuat data.</td></tr>`;
+            }
+        }
+
+        function switchTab(index) {
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+            document.querySelectorAll('.tab-pane').forEach((pane, i) => {
+                pane.classList.toggle('active', i === index);
+                if (i === index) {
+                    updateKodeAbsen(pane);
+                }
+            });
+        }
+
+        function updateKodeAbsen(pane) {
+            const rows = pane.querySelectorAll('tbody tr');
+            const now = new Date();
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yy = String(now.getFullYear()).slice(-2);
+            const dateCode = `${dd}${mm}${yy}`;
+
+            rows.forEach(row => {
+                if (row.cells.length > 2) {
+                    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+                    const random4 = Array(4).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+                    row.cells[1].textContent = `ID-${dateCode}-${random4}`;
+                }
+            });
+        }
+
+        // Fungsi Simpan Absensi
+        window.simpanAbsensi = async function(kelas, formId) {
+            const form = document.getElementById(formId);
+            if (!form) return;
+
+            const rows = form.querySelectorAll('tbody tr');
+            const absensiData = [];
+            const now = new Date();
+            const tanggalDB = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+            // Cek apakah absensi sudah dilakukan hari ini untuk kelas ini
+            try {
+                const { count, error: checkError } = await mappingClient
+                    .from('absensiswa')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('kelas', kelas)
+                    .eq('tanggal', tanggalDB);
+                
+                if (checkError) throw checkError;
+
+                if (count > 0) {
+                    document.getElementById('warningMessage').textContent = `Anda sudah melakukan absensi hari ini di kelas ${kelas}`;
+                    document.getElementById('warningModal').classList.add('active');
+                    return;
+                }
+            } catch (err) {
+                console.error("Error checking existing attendance:", err);
+                alert("Gagal memvalidasi data absensi: " + err.message);
+                return;
+            }
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 9) return; // Skip loading/empty rows
+
+                const kodeAbsen = cells[1].textContent.trim();
+                const kodeMapping = cells[2].textContent.trim();
+                const hari = cells[3].textContent.trim();
+                // cells[4] adalah tanggal format indo, kita gunakan tanggalDB untuk database
+                // cells[5] adalah Kelas
+                const nisnText = cells[6].textContent.trim();
+                const nisn = (nisnText === '-' || nisnText === '') ? null : nisnText;
+                const namaSiswa = cells[7].textContent.trim();
+                
+                const radioName = `status_${kodeMapping}`;
+                const status = form.querySelector(`input[name="${radioName}"]:checked`)?.value || 'Alpa';
+
+                absensiData.push({
+                    kode_absen: kodeAbsen,
+                    kode_maping: kodeMapping,
+                    hari: hari,
+                    tanggal: tanggalDB,
+                    kelas: kelas,
+                    nisn: nisn,
+                    nama_siswa: namaSiswa,
+                    status_kehadiran: status
+                });
+            });
+
+            if (absensiData.length === 0) {
+                alert('Tidak ada data untuk disimpan.');
+                return;
+            }
+
+            if (!confirm(`Simpan absensi untuk kelas ${kelas} pada tanggal ${tanggalDB}?`)) return;
+
+            try {
+                const { error } = await mappingClient
+                    .from('absensiswa')
+                    .insert(absensiData);
+
+                if (error) throw error;
+
+                alert('Data absensi berhasil disimpan!');
+            } catch (err) {
+                console.error('Error saving absensi:', err);
+                alert('Gagal menyimpan absensi: ' + err.message);
+            }
+        };
+
+        // Fungsi Update Absensi Per Siswa (Tombol Edit)
+        window.updateAbsensiPerSiswa = async function(btn) {
+            const row = btn.closest('tr');
+            const cells = row.querySelectorAll('td');
+            
+            // Ambil data dari baris tabel
+            const kodeAbsen = cells[1].textContent.trim();
+            const kodeMapping = cells[2].textContent.trim();
+            const hari = cells[3].textContent.trim();
+            
+            const now = new Date();
+            const tanggalDB = now.toISOString().split('T')[0]; // YYYY-MM-DD
+            
+            const kelas = cells[5].textContent.trim();
+            const nisnText = cells[6].textContent.trim();
+            const nisn = (nisnText === '-' || nisnText === '') ? null : nisnText;
+            const namaSiswa = cells[7].textContent.trim();
+            
+            const radioName = `status_${kodeMapping}`;
+            const statusInput = row.querySelector(`input[name="${radioName}"]:checked`);
+            
+            if (!statusInput) {
+                alert("Silakan pilih status kehadiran.");
+                return;
+            }
+            const status = statusInput.value;
+
+            if (!confirm(`Update data absensi untuk ${namaSiswa}?\nStatus: ${status}`)) return;
+
+            const originalText = btn.textContent;
+            btn.textContent = '...';
+            btn.disabled = true;
+
+            try {
+                const { error } = await mappingClient
+                    .from('absensiswa')
+                    .upsert({ kode_absen: kodeAbsen, kode_maping: kodeMapping, hari: hari, tanggal: tanggalDB, kelas: kelas, nisn: nisn, nama_siswa: namaSiswa, status_kehadiran: status });
+
+                if (error) throw error;
+                alert('Data berhasil diperbarui.');
+            } catch (err) {
+                console.error('Error updating absensi:', err);
+                alert('Gagal update: ' + err.message);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', loadKelasTabs);
+        document.addEventListener('DOMContentLoaded', checkPiketStatus);
+
+        // --- Logika Riwayat Absensi (Tabel Bawah) ---
+        let riwayatData = [];
+        let currentFilteredData = [];
+        let currentPage = 1;
+        const rowsPerPage = 20;
+
+        async function loadRiwayatAbsensi() {
+            const tbody = document.getElementById('riwayatTableBody');
+            if (!tbody) return;
+
+            try {
+                const { data, error } = await mappingClient
+                    .from('absensiswa')
+                    .select('*')
+                    .order('tanggal', { ascending: false });
+
+                if (error) throw error;
+
+                riwayatData = data || [];
+                currentFilteredData = riwayatData;
+                renderRiwayatTable(riwayatData);
+
+            } catch (err) {
+                console.error('Error loading riwayat:', err);
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderRiwayatTable(data) {
+            currentFilteredData = data; // Update data konteks saat ini
+            const tbody = document.getElementById('riwayatTableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#6b7280;">Belum ada data absensi.</td></tr>';
+                document.getElementById('paginationControls').innerHTML = '';
+                return;
+            }
+
+            // Logika Pagination
+            const totalPages = Math.ceil(data.length / rowsPerPage);
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const pageData = data.slice(startIndex, endIndex);
+
+            pageData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                
+                // Format tanggal
+                let formattedDate = item.tanggal;
+                if (item.tanggal) {
+                    const dateObj = new Date(item.tanggal);
+                    formattedDate = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(dateObj);
+                }
+
+                // Warna Status
+                let statusColor = '#6b7280';
+                if (item.status_kehadiran === 'Hadir') statusColor = '#10b981';
+                else if (item.status_kehadiran === 'Sakit') statusColor = '#3b82f6';
+                else if (item.status_kehadiran === 'Ijin') statusColor = '#f59e0b';
+                else if (item.status_kehadiran === 'Alpa') statusColor = '#ef4444';
+
+                row.innerHTML = `
+                    <td>${startIndex + index + 1}</td>
+                    <td>${item.kode_absen || '-'}</td>
+                    <td>${formattedDate}</td>
+                    <td>${item.kelas || '-'}</td>
+                    <td>${item.nisn || '-'}</td>
+                    <td>${item.nama_siswa || '-'}</td>
+                    <td>
+                        <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; background-color: ${statusColor}; color: white;">
+                            ${item.status_kehadiran}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            renderPagination(totalPages);
+        }
+
+        function renderPagination(totalPages) {
+            const container = document.getElementById('paginationControls');
+            container.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            const createBtn = (text, page, isActive = false, isDisabled = false) => {
+                const btn = document.createElement('button');
+                btn.className = `pagination-btn ${isActive ? 'active' : ''}`;
+                btn.textContent = text;
+                if (isDisabled) btn.disabled = true;
+                btn.onclick = () => {
+                    currentPage = page;
+                    renderRiwayatTable(currentFilteredData);
+                };
+                return btn;
+            };
+
+            // Tombol Prev
+            container.appendChild(createBtn('Prev', currentPage - 1, false, currentPage === 1));
+
+            // Tombol Halaman (Logic: First, Last, Current +/- 2)
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                container.appendChild(createBtn('1', 1, currentPage === 1));
+                if (startPage > 2) {
+                    const span = document.createElement('span');
+                    span.textContent = '...';
+                    span.style.color = '#9ca3af';
+                    span.style.padding = '0 5px';
+                    container.appendChild(span);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                container.appendChild(createBtn(i, i, currentPage === i));
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const span = document.createElement('span');
+                    span.textContent = '...';
+                    span.style.color = '#9ca3af';
+                    span.style.padding = '0 5px';
+                    container.appendChild(span);
+                }
+                container.appendChild(createBtn(totalPages, totalPages, currentPage === totalPages));
+            }
+
+            // Tombol Next
+            container.appendChild(createBtn('Next', currentPage + 1, false, currentPage === totalPages));
+        }
+
+        // Event Listener Pencarian Riwayat
+        document.getElementById('searchRiwayatInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = riwayatData.filter(item => {
+                const nama = item.nama_siswa ? item.nama_siswa.toLowerCase() : '';
+                const kelas = item.kelas ? item.kelas.toLowerCase() : '';
+                const status = item.status_kehadiran ? item.status_kehadiran.toLowerCase() : '';
+                const nisn = item.nisn ? item.nisn.toString() : '';
+                const kode = item.kode_absen ? item.kode_absen.toLowerCase() : '';
+                
+                let tanggalStr = '';
+                let bulanStr = '';
+                if (item.tanggal) {
+                    const d = new Date(item.tanggal);
+                    // Format: "15 februari 2026"
+                    tanggalStr = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(d).toLowerCase();
+                    // Format: "februari"
+                    bulanStr = new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(d).toLowerCase();
+                }
+
+                return nama.includes(term) || kelas.includes(term) || status.includes(term) || 
+                       tanggalStr.includes(term) || bulanStr.includes(term) || 
+                       nisn.includes(term) || kode.includes(term);
+            });
+            currentPage = 1; // Reset ke halaman 1 saat mencari
+            renderRiwayatTable(filtered);
+        });
+
+        // Event Listener Export PDF Riwayat
+        document.getElementById('exportRiwayatPdfBtn').addEventListener('click', async () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 20;
+
+            // Add KOP
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20; 
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                    yPos = 10 + imgHeight + 10;
+                } catch (err) {
+                    console.error("Gagal memuat KOP Sekolah:", err);
+                }
+            }
+
+            // 1. Judul Laporan
+            doc.setFontSize(16);
+            doc.text("Laporan Absensi Siswa", 14, yPos);
+            yPos += 6;
+            
+            // Tanggal Cetak
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            doc.setFontSize(10);
+            doc.text(`Dicetak pada: ${dateStr}`, 14, yPos);
+
+            let finalY = yPos + 10;
+
+            // 2. Preview Absensi Per Kelas (Card/Box)
+            if (currentFilteredData.length > 0) {
+                const stats = {};
+                currentFilteredData.forEach(item => {
+                    const k = item.kelas || 'Lainnya';
+                    if (!stats[k]) stats[k] = { Hadir: 0, Sakit: 0, Ijin: 0, Alpa: 0 };
+                    const status = item.status_kehadiran;
+                    if (stats[k][status] !== undefined) stats[k][status]++;
+                });
+
+                const classes = Object.keys(stats).sort();
+                let xPos = 14;
+                let yPos = finalY;
+                const boxWidth = 40;
+                const boxHeight = 32;
+
+                doc.setFontSize(9);
+                
+                classes.forEach((cls) => {
+                    // Cek apakah cukup lebar
+                    if (xPos + boxWidth > pageWidth - 14) {
+                        xPos = 14;
+                        yPos += boxHeight + 5;
+                    }
+                    
+                    // Cek apakah perlu halaman baru
+                    if (yPos + boxHeight > doc.internal.pageSize.height - 20) {
+                        doc.addPage();
+                        yPos = 20;
+                        xPos = 14;
+                    }
+
+                    // Gambar Kotak
+                    doc.setDrawColor(200);
+                    doc.rect(xPos, yPos, boxWidth, boxHeight);
+                    
+                    // Isi Kotak
+                    doc.setFont(undefined, 'bold');
+                    doc.text(cls, xPos + 2, yPos + 5);
+                    doc.setFont(undefined, 'normal');
+                    
+                    doc.text(`Hadir = ${stats[cls].Hadir}`, xPos + 2, yPos + 11);
+                    doc.text(`Sakit = ${stats[cls].Sakit}`, xPos + 2, yPos + 16);
+                    doc.text(`Ijin = ${stats[cls].Ijin}`, xPos + 2, yPos + 21);
+                    doc.text(`Alpa = ${stats[cls].Alpa}`, xPos + 2, yPos + 26);
+
+                    xPos += boxWidth + 5;
+                });
+                
+                finalY = yPos + boxHeight + 10;
+            }
+
+            // 3. Tabel Data
+            const tableData = currentFilteredData.map((item, index) => [
+                index + 1,
+                item.kode_absen || '-',
+                item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '-',
+                item.kelas || '-',
+                item.nisn || '-',
+                item.nama_siswa || '-',
+                item.status_kehadiran || '-'
+            ]);
+
+            doc.autoTable({
+                head: [['No', 'Kode Absen', 'Tanggal', 'Kelas', 'NISN', 'Nama Siswa', 'Status']],
+                body: tableData,
+                startY: finalY,
+                theme: 'grid',
+                headStyles: { fillColor: [59, 130, 246] },
+                styles: { fontSize: 9 },
+                margin: { top: 20 }
+            });
+
+            // 4. Tanda Tangan Guru Piket
+            let sigY = doc.lastAutoTable.finalY + 20;
+            
+            if (sigY + 40 > doc.internal.pageSize.height) {
+                doc.addPage();
+                sigY = 20;
+            }
+
+            const margin = 14;
+            
+            // Gunakan daftar petugas piket hari ini
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            let signers = currentPiketTeachersList.length > 0 ? currentPiketTeachersList : [session ? session.nama : ".........................."];
+            // Hapus duplikat jika ada
+            signers = [...new Set(signers)];
+            
+            const count = signers.length;
+            const colWidth = (pageWidth - (2 * margin)) / count;
+
+            doc.setFontSize(10);
+            
+            // Tanggal di atas tanda tangan paling kanan
+            const lastSignerX = margin + (colWidth * (count - 1)) + (colWidth / 2);
+            doc.text(`Simpang Teritip, ${dateStr}`, lastSignerX, sigY, { align: 'center' });
+
+            signers.forEach((name, index) => {
+                const x = margin + (colWidth * index) + (colWidth / 2);
+                doc.text("Guru Piket", x, sigY + 5, { align: 'center' });
+                doc.text(`( ${name} )`, x, sigY + 30, { align: 'center' });
+            });
+
+            doc.save('Laporan_Absensi_Siswa.pdf');
+        });
+
+        document.addEventListener('DOMContentLoaded', loadRiwayatAbsensi);
+    </script>
+</body>
+</html>

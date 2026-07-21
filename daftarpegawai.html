@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPPEDIK-SMKN 1 Mentok</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --bg-light: #f4f6f9;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img { height: 40px; width: auto; }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        .btn-dashboard {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .btn-dashboard:hover { opacity: 0.88; transform: translateY(-1px); }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* --- Toolbar --- */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .toolbar h3 {
+            font-size: 1.1rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-tambah {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 7px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(102,126,234,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-tambah:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102,126,234,0.4); }
+
+        /* --- Table --- */
+        .table-responsive { overflow-x: auto; }
+
+        .custom-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+
+        .custom-table th {
+            background-color: #E6F2DD;
+            color: #1a1a1a;
+            font-weight: 600;
+            padding: 12px 14px;
+            text-align: left;
+            border: 1px solid #d4e8c8;
+            white-space: nowrap;
+        }
+
+        .custom-table td {
+            padding: 11px 14px;
+            color: #444;
+            border: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .custom-table tbody tr:hover td { background-color: #f8fdf5; }
+
+        .photo-cell img {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e0e0e0;
+        }
+
+        .photo-placeholder {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e0e0e0, #c8c8c8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 1.1rem;
+        }
+
+        .btn-action {
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: opacity 0.2s;
+        }
+        .btn-action:hover { opacity: 0.82; }
+        .btn-edit { background: #3b82f6; color: white; }
+        .btn-delete { background: #ef4444; color: white; }
+
+        /* --- Modal --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-box {
+            background: white;
+            width: 92%;
+            max-width: 540px;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease;
+            overflow: hidden;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-40px); opacity: 0; }
+            to   { transform: translateY(0);     opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 18px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.35); }
+
+        .modal-body {
+            padding: 22px;
+            overflow-y: auto;
+        }
+
+        .form-group { margin-bottom: 15px; }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 7px;
+            font-size: 0.9rem;
+            color: #333;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+        }
+
+        .form-group textarea { resize: vertical; min-height: 70px; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        /* Photo Upload */
+        .photo-upload-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 16px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            background: #fafafa;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .photo-upload-wrapper:hover { border-color: var(--primary-color); background: #f5f3ff; }
+        .photo-upload-wrapper.dragover { border-color: var(--primary-color); background: #ede9fe; }
+
+        .photo-preview {
+            width: 90px; height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary-color);
+            display: none;
+        }
+
+        .photo-placeholder-icon {
+            width: 90px; height: 90px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e0e0e0, #d0d0d0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            color: #bbb;
+        }
+
+        .photo-upload-hint {
+            font-size: 0.78rem;
+            color: #888;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .photo-upload-hint strong { color: var(--primary-color); }
+
+        .btn-choose-photo {
+            background: white;
+            border: 1.5px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .btn-choose-photo:hover { background: var(--primary-color); color: white; }
+
+        .photo-filename {
+            font-size: 0.75rem;
+            color: #666;
+            background: #f0f0f0;
+            padding: 3px 10px;
+            border-radius: 10px;
+            display: none;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .upload-progress {
+            width: 100%;
+            background: #eee;
+            border-radius: 10px;
+            height: 5px;
+            overflow: hidden;
+            display: none;
+        }
+        .upload-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .modal-footer {
+            padding: 15px 22px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .btn-cancel {
+            padding: 9px 18px;
+            border: 1.5px solid #ddd;
+            background: white;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #555;
+            transition: background 0.2s;
+        }
+        .btn-cancel:hover { background: #f5f5f5; }
+
+        .btn-save {
+            padding: 9px 22px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .btn-save:hover { opacity: 0.88; }
+        .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 28px; right: 28px;
+            background: #1e293b;
+            color: white;
+            padding: 13px 20px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 4px solid #22c55e; }
+        .toast.error   { border-left: 4px solid #ef4444; }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #aaa;
+        }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 10px; }
+        .empty-state p { font-size: 0.9rem; }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand span { font-size: 1rem; }
+            .main-content { padding: 2rem 5px; }
+            .form-row { grid-template-columns: 1fr; }
+
+            /* Modal di mobile: floating dengan padding 10px semua sisi */
+            .modal-overlay {
+                align-items: center;
+                justify-content: center;
+                padding: 10px;
+            }
+            .modal-box {
+                width: 100%;
+                max-width: 100%;
+                max-height: calc(100vh - 20px);
+                border-radius: 12px;
+                animation: slideDown 0.3s ease;
+                margin: 0;
+            }
+            .modal-body {
+                padding: 14px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                flex: 1;
+                min-height: 0;
+            }
+            .modal-header { padding: 12px 14px; }
+            .modal-footer { padding: 10px 14px; }
+            .form-group { margin-bottom: 10px; }
+        }
+
+        /* ID Auto Generate */
+        .id-auto-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .id-auto-input {
+            width: 100%;
+            padding: 9px 12px;
+            padding-right: 70px;
+            border: 1.5px solid #ddd;
+            border-radius: 7px;
+            font-size: 0.9rem;
+            color: #333;
+            background: #f8f8ff;
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: default;
+        }
+        .id-auto-badge {
+            position: absolute;
+            right: 8px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 20px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        /* Custom Datepicker */
+        .datepicker-wrapper { position: relative; }
+        .datepicker-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 7px;
+            font-size: 0.9rem;
+            color: #666;
+            cursor: pointer;
+            background: white;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            user-select: none;
+        }
+        .datepicker-display:hover, .datepicker-display.open {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+        }
+        .datepicker-display.has-value { color: #333; font-weight: 600; }
+        .datepicker-popup {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.22);
+            width: 280px;
+            overflow: hidden;
+            animation: fadeInDown 0.18s ease;
+        }
+        .datepicker-popup.open { display: block; }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .cal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 12px 10px;
+            color: white;
+        }
+        .cal-nav {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem;
+            transition: background 0.2s;
+        }
+        .cal-nav:hover { background: rgba(255,255,255,0.35); }
+        .cal-month-year {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .cal-month-year select {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 6px;
+            padding: 3px 6px;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .cal-month-year select option { color: #333; background: white; }
+        .cal-days-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: #f5f3ff;
+            padding: 6px 8px 4px;
+        }
+        .cal-days-header span {
+            text-align: center;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            padding: 6px 8px 8px;
+        }
+        .cal-day {
+            text-align: center;
+            padding: 6px 2px;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #333;
+            transition: background 0.15s, color 0.15s;
+            border: none;
+            background: transparent;
+        }
+        .cal-day:hover { background: #ede9fe; color: var(--primary-color); }
+        .cal-day.today { font-weight: 700; color: var(--primary-color); border: 1.5px solid var(--primary-color); }
+        .cal-day.selected { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white !important; font-weight: 700; }
+        .cal-day.other-month { color: #ccc; }
+        .cal-day.sunday { color: #ef4444; }
+        .cal-day.selected.sunday { color: white !important; }
+        .cal-footer {
+            display: flex;
+            gap: 6px;
+            padding: 8px 10px;
+            border-top: 1px solid #f0f0f0;
+            background: #fafafa;
+        }
+        .cal-today-btn, .cal-clear-btn {
+            flex: 1;
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: opacity 0.2s;
+        }
+        .cal-today-btn { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; }
+        .cal-clear-btn { background: #f1f1f1; color: #777; }
+        .cal-today-btn:hover, .cal-clear-btn:hover { opacity: 0.82; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display:none;">
+            <span></span>
+        </a>
+        <a href="dasboradmin.html" class="btn-dashboard">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <div class="dashboard-card">
+            <div class="toolbar">
+                <h3>
+                    <i class="fas fa-id-badge" style="color: var(--primary-color);"></i>
+                    Daftar Pegawai Tata Usaha
+                </h3>
+                <button class="btn-tambah" onclick="openModal('add')">
+                    <i class="fas fa-plus"></i> Tambah Pegawai
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table" id="pegawaiTable">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Foto</th>
+                            <th>ID Pegawai</th>
+                            <th>Nama Pegawai</th>
+                            <th>NIP</th>
+                            <th>Tempat, Tgl Lahir</th>
+                            <th>Alamat</th>
+                            <th>Telepon/WA</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pegawaiTableBody">
+                        <tr>
+                            <td colspan="9" style="text-align:center; padding:30px; color:#aaa;">
+                                <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP. CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Tambah / Edit Pegawai -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fas fa-user-plus"></i> Tambah Pegawai</h3>
+                <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-hashtag" style="margin-right:4px;color:var(--primary-color)"></i>ID Pegawai</label>
+                        <div class="id-auto-wrapper">
+                            <input type="text" id="inputIdPegawai" readonly class="id-auto-input">
+                            <span class="id-auto-badge"><i class="fas fa-magic"></i> Auto</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card" style="margin-right:4px;color:var(--primary-color)"></i>NIP <span style="color:#aaa;font-weight:400;font-size:0.75rem;">(opsional)</span></label>
+                        <input type="text" id="inputNip" placeholder="Kosongkan jika tidak ada">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-user" style="margin-right:4px;color:var(--primary-color)"></i>Nama Pegawai</label>
+                    <input type="text" id="inputNama" placeholder="Nama lengkap pegawai">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-map-marker-alt" style="margin-right:4px;color:var(--primary-color)"></i>Tempat Lahir</label>
+                        <input type="text" id="inputTempatLahir" placeholder="Kota tempat lahir">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar" style="margin-right:4px;color:var(--primary-color)"></i>Tanggal Lahir</label>
+                        <div class="datepicker-wrapper" id="datepickerWrapper">
+                            <div class="datepicker-display" id="datepickerDisplay" onclick="toggleCalendar()">
+                                <i class="fas fa-calendar-alt" style="color:var(--primary-color)"></i>
+                                <span id="datepickerText">Pilih tanggal lahir</span>
+                                <i class="fas fa-chevron-down" id="calChevron" style="margin-left:auto;color:#aaa;font-size:0.75rem;transition:transform 0.2s;"></i>
+                            </div>
+                            <input type="hidden" id="inputTanggalLahir">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-home" style="margin-right:4px;color:var(--primary-color)"></i>Alamat</label>
+                    <textarea id="inputAlamat" placeholder="Alamat lengkap"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-phone" style="margin-right:4px;color:var(--primary-color)"></i>Telepon/WA</label>
+                        <input type="text" id="inputTelepon" placeholder="Nomor telepon/WA">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-lock" style="margin-right:4px;color:var(--primary-color)"></i>Password</label>
+                        <input type="password" id="inputPassword" placeholder="Password login">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-camera" style="margin-right:4px;color:var(--primary-color)"></i>Foto Pegawai</label>
+                    <div class="photo-upload-wrapper" id="photoWrapper" onclick="document.getElementById('photoInput').click()">
+                        <div class="photo-placeholder-icon" id="photoPlaceholder">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <img id="photoPreview" class="photo-preview" src="" alt="Preview">
+                        <div class="photo-upload-hint">
+                            <strong>Klik untuk pilih foto</strong><br>
+                            atau seret & lepas file di sini<br>
+                            <span style="color:#bbb;">JPG, PNG, WEBP · maks. 2MB</span>
+                        </div>
+                        <button class="btn-choose-photo" type="button" onclick="event.stopPropagation(); document.getElementById('photoInput').click()">
+                            <i class="fas fa-folder-open"></i> Pilih File
+                        </button>
+                        <span class="photo-filename" id="photoFilename"></span>
+                        <div class="upload-progress" id="uploadProgress">
+                            <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                        </div>
+                    </div>
+                    <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                    <input type="hidden" id="inputPhotoUrl">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal()">Batal</button>
+                <button class="btn-save" id="btnSimpan" onclick="savePegawai()">
+                    <i class="fas fa-save"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // --- Supabase ---
+        const supabaseUrl  = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const supabaseKey  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let pegawaiData = [];
+        let editRowId   = null;
+
+        // --- Load Navbar Identity ---
+        async function loadSchoolIdentity() {
+            try {
+                const { data } = await supabaseClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo')
+                    .limit(1).single();
+                if (data) {
+                    if (data.nama_sekolah) document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // --- Load Data Pegawai ---
+        async function loadPegawai() {
+            const tbody = document.getElementById('pegawaiTableBody');
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:#aaa;"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>`;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('datapegawai')
+                    .select('*')
+                    .order('id', { ascending: true });
+                if (error) throw error;
+                pegawaiData = data || [];
+                renderTable();
+            } catch(err) {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('pegawaiTableBody');
+            if (!pegawaiData.length) {
+                tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><i class="fas fa-users-slash"></i><p>Belum ada data pegawai.</p></div></td></tr>`;
+                return;
+            }
+            tbody.innerHTML = pegawaiData.map((p, i) => {
+                const ttl = `${p.tempat_lahir || '-'}, ${p.tanggal_lahir ? new Date(p.tanggal_lahir).toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'}) : '-'}`;
+                const fotoEl = p.photo
+                    ? `<img src="${p.photo}" alt="foto" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #ddd;">`
+                    : `<div class="photo-placeholder"><i class="fas fa-user-tie"></i></div>`;
+                return `<tr>
+                    <td>${i + 1}</td>
+                    <td class="photo-cell">${fotoEl}</td>
+                    <td>${p.id || '-'}</td>
+                    <td style="font-weight:600;">${p.nama_pegawai || '-'}</td>
+                    <td>${p.nip || '-'}</td>
+                    <td>${ttl}</td>
+                    <td>${p.alamat || '-'}</td>
+                    <td>${p.tlp || '-'}</td>
+                    <td style="white-space:nowrap;">
+                        <button class="btn-action btn-edit" onclick="openModal('edit', '${p.id}')"><i class="fas fa-pen"></i> Edit</button>
+                        <button class="btn-action btn-delete" style="margin-left:4px;" onclick="deletePegawai('${p.id}')"><i class="fas fa-trash"></i> Hapus</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // --- Modal ---
+        function openModal(mode, id = null) {
+            editRowId = null;
+            document.getElementById('inputIdPegawai').value = '';
+            document.getElementById('inputNip').value = '';
+            document.getElementById('inputNama').value = '';
+            document.getElementById('inputTempatLahir').value = '';
+            document.getElementById('inputTanggalLahir').value = '';
+            calSelectedDate = null;
+            document.getElementById('inputAlamat').value = '';
+            document.getElementById('inputTelepon').value = '';
+            document.getElementById('inputPassword').value = '';
+            document.getElementById('inputPhotoUrl').value = '';
+            document.getElementById('photoPreview').style.display = 'none';
+            document.getElementById('photoPlaceholder').style.display = 'flex';
+            document.getElementById('photoFilename').style.display = 'none';
+            document.getElementById('photoFilename').textContent = '';
+
+            if (mode === 'edit' && id) {
+                const p = pegawaiData.find(x => x.id === id);
+                if (!p) return;
+                editRowId = id;
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-pen"></i> Edit Pegawai';
+                document.getElementById('inputIdPegawai').value = p.id || '';
+                document.getElementById('inputNip').value = p.nip || '';
+                document.getElementById('inputNama').value = p.nama_pegawai || '';
+                document.getElementById('inputTempatLahir').value = p.tempat_lahir || '';
+                document.getElementById('inputTanggalLahir').value = p.tanggal_lahir || '';
+                calSelectedDate = p.tanggal_lahir || null;
+                document.getElementById('inputAlamat').value = p.alamat || '';
+                document.getElementById('inputTelepon').value = p.tlp || '';
+                document.getElementById('inputPhotoUrl').value = p.photo || '';
+                if (p.photo) {
+                    document.getElementById('photoPreview').src = p.photo;
+                    document.getElementById('photoPreview').style.display = 'block';
+                    document.getElementById('photoPlaceholder').style.display = 'none';
+                }
+            } else {
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-plus"></i> Tambah Pegawai';
+                // Auto-generate ID Pegawai format IP-XXXX
+                const rand = String(Math.floor(1000 + Math.random() * 9000));
+                document.getElementById('inputIdPegawai').value = 'IP-' + rand;
+            }
+            // Reset calendar display
+            calSelectedDate = document.getElementById('inputTanggalLahir').value || null;
+            updateDatepickerDisplay();
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // --- Save ---
+        async function savePegawai() {
+            const id_pegawai   = document.getElementById('inputIdPegawai').value.trim();
+            const nama         = document.getElementById('inputNama').value.trim();
+            const nip          = document.getElementById('inputNip').value.trim() || '-';
+            const tempat_lahir = document.getElementById('inputTempatLahir').value.trim();
+            const tanggal_lahir = document.getElementById('inputTanggalLahir').value;
+            const alamat       = document.getElementById('inputAlamat').value.trim();
+            const telepon      = document.getElementById('inputTelepon').value.trim();
+            const password     = document.getElementById('inputPassword').value.trim();
+            const photo        = document.getElementById('inputPhotoUrl').value;
+
+            if (!id_pegawai || !nama || !tempat_lahir || !tanggal_lahir || !alamat || !telepon) {
+                showToast('Harap lengkapi semua field wajib.', 'error');
+                return;
+            }
+            if (!editRowId && !password) {
+                showToast('Password wajib diisi untuk pegawai baru.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btnSimpan');
+            const oriText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            try {
+                const payload = {
+                    id: id_pegawai,
+                    nama_pegawai: nama,
+                    nip,
+                    tempat_lahir,
+                    tanggal_lahir,
+                    alamat,
+                    tlp: telepon,
+                    photo
+                };
+                if (password) payload.password = password;
+
+                let error;
+                if (editRowId) {
+                    ({ error } = await supabaseClient.from('datapegawai').update(payload).eq('id', editRowId));
+                } else {
+                    ({ error } = await supabaseClient.from('datapegawai').insert([payload]));
+                }
+                if (error) throw error;
+
+                showToast(editRowId ? 'Data pegawai berhasil diperbarui.' : 'Pegawai berhasil ditambahkan.', 'success');
+                closeModal();
+                loadPegawai();
+            } catch(err) {
+                console.error(err);
+                showToast('Gagal menyimpan: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oriText;
+            }
+        }
+
+        // --- Delete ---
+        async function deletePegawai(id) {
+            if (!confirm('Hapus data pegawai ini?')) return;
+            try {
+                const { error } = await supabaseClient.from('datapegawai').delete().eq('id', id);
+                if (error) throw error;
+                showToast('Data pegawai berhasil dihapus.', 'success');
+                loadPegawai();
+            } catch(err) {
+                showToast('Gagal menghapus: ' + err.message, 'error');
+            }
+        }
+
+        // --- Photo Upload ---
+        document.getElementById('photoInput').addEventListener('change', async function() {
+            const file = this.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('Ukuran file maksimal 2MB.', 'error');
+                return;
+            }
+            document.getElementById('photoFilename').textContent = file.name;
+            document.getElementById('photoFilename').style.display = 'inline-block';
+
+            const progress = document.getElementById('uploadProgress');
+            const bar = document.getElementById('uploadProgressBar');
+            progress.style.display = 'block';
+            bar.style.width = '30%';
+
+            const ext = file.name.split('.').pop();
+            const fileName = `pegawai_${Date.now()}.${ext}`;
+
+            try {
+                bar.style.width = '60%';
+                const { data, error } = await supabaseClient.storage
+                    .from('aset')
+                    .upload(`pegawai/${fileName}`, file, { upsert: true });
+                if (error) throw error;
+
+                bar.style.width = '100%';
+                const { data: urlData } = supabaseClient.storage.from('aset').getPublicUrl(`pegawai/${fileName}`);
+                document.getElementById('inputPhotoUrl').value = urlData.publicUrl;
+
+                const preview = document.getElementById('photoPreview');
+                preview.src = urlData.publicUrl;
+                preview.style.display = 'block';
+                document.getElementById('photoPlaceholder').style.display = 'none';
+
+                setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 600);
+                showToast('Foto berhasil diunggah.', 'success');
+            } catch(err) {
+                progress.style.display = 'none';
+                bar.style.width = '0%';
+                showToast('Gagal upload foto: ' + err.message, 'error');
+            }
+        });
+
+        // Drag & drop
+        const wrapper = document.getElementById('photoWrapper');
+        wrapper.addEventListener('dragover', e => { e.preventDefault(); wrapper.classList.add('dragover'); });
+        wrapper.addEventListener('dragleave', () => wrapper.classList.remove('dragover'));
+        wrapper.addEventListener('drop', e => {
+            e.preventDefault();
+            wrapper.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                document.getElementById('photoInput').files = dt.files;
+                document.getElementById('photoInput').dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Close modal on backdrop click
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // --- Toast ---
+        let toastTimer;
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = '';
+            const icon = document.createElement('i');
+            icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+            t.appendChild(icon);
+            t.appendChild(document.createTextNode(' ' + msg));
+            t.className = `toast ${type} show`;
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+
+        // --- Custom Calendar ---
+        let calSelectedDate = null;
+        let calCurrentMonth = new Date().getMonth();
+        let calCurrentYear = new Date().getFullYear();
+        let calOpen = false;
+
+        const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+        function initCalendarSelects() {
+            const mSel = document.getElementById('calMonthSel');
+            const ySel = document.getElementById('calYearSel');
+            if (!mSel || !ySel) return;
+            mSel.innerHTML = MONTHS_ID.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+            const curY = new Date().getFullYear();
+            ySel.innerHTML = '';
+            for (let y = curY - 80; y <= curY; y++) {
+                ySel.innerHTML += `<option value="${y}">${y}</option>`;
+            }
+        }
+
+        function toggleCalendar() {
+            calOpen = !calOpen;
+            const popup   = document.getElementById('datepickerPopup');
+            const chevron = document.getElementById('calChevron');
+            const display = document.getElementById('datepickerDisplay');
+            if (calOpen) {
+                const ref = calSelectedDate ? new Date(calSelectedDate + 'T00:00:00') : new Date();
+                calCurrentMonth = ref.getMonth();
+                calCurrentYear  = ref.getFullYear();
+                document.getElementById('calMonthSel').value = calCurrentMonth;
+                document.getElementById('calYearSel').value  = calCurrentYear;
+                renderCalendar();
+                popup.classList.add('open');
+                display.classList.add('open');
+                chevron.style.transform = 'rotate(180deg)';
+                // Posisikan popup di tengah horizontal modal, tepat di bawah display field
+                const modalBox = document.querySelector('.modal-box');
+                const modalRect = modalBox ? modalBox.getBoundingClientRect() : null;
+                const dispRect  = display.getBoundingClientRect();
+                const popupW    = 280;
+                // Center horizontally within modal
+                let left = modalRect
+                    ? modalRect.left + (modalRect.width - popupW) / 2
+                    : dispRect.left;
+                // Tepat di bawah field display
+                let top = dispRect.bottom + 6;
+                // Jangan keluar layar bawah
+                const popupH = 320;
+                if (top + popupH > window.innerHeight - 10) {
+                    top = dispRect.top - popupH - 6;
+                }
+                popup.style.left = left + 'px';
+                popup.style.top  = top  + 'px';
+            } else {
+                popup.classList.remove('open');
+                display.classList.remove('open');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function closeCalendar() {
+            calOpen = false;
+            const popup = document.getElementById('datepickerPopup');
+            const chevron = document.getElementById('calChevron');
+            const display = document.getElementById('datepickerDisplay');
+            if (popup) { popup.classList.remove('open'); display.classList.remove('open'); chevron.style.transform = 'rotate(0deg)'; }
+        }
+
+        function renderCalendar() {
+            calCurrentMonth = parseInt(document.getElementById('calMonthSel').value);
+            calCurrentYear  = parseInt(document.getElementById('calYearSel').value);
+            const firstDay = new Date(calCurrentYear, calCurrentMonth, 1).getDay();
+            const daysInMonth = new Date(calCurrentYear, calCurrentMonth + 1, 0).getDate();
+            const daysInPrev  = new Date(calCurrentYear, calCurrentMonth, 0).getDate();
+            const today = new Date(); today.setHours(0,0,0,0);
+            const grid = document.getElementById('calGrid');
+            let html = '';
+            // prev month filler
+            for (let i = firstDay - 1; i >= 0; i--) {
+                html += `<button type="button" class="cal-day other-month" disabled>${daysInPrev - i}</button>`;
+            }
+            for (let d = 1; d <= daysInMonth; d++) {
+                const thisDate = new Date(calCurrentYear, calCurrentMonth, d);
+                const yyyy = calCurrentYear;
+                const mm = String(calCurrentMonth + 1).padStart(2, '0');
+                const dd = String(d).padStart(2, '0');
+                const dateStr = `${yyyy}-${mm}-${dd}`;
+                const isToday = thisDate.getTime() === today.getTime();
+                const isSelected = calSelectedDate === dateStr;
+                const isSunday = thisDate.getDay() === 0;
+                let cls = 'cal-day';
+                if (isToday)    cls += ' today';
+                if (isSelected) cls += ' selected';
+                if (isSunday)   cls += ' sunday';
+                html += `<button type="button" class="${cls}" onclick="selectDate('${dateStr}')">${d}</button>`;
+            }
+            // next month filler
+            const total = firstDay + daysInMonth;
+            const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
+            for (let d = 1; d <= remaining; d++) {
+                html += `<button type="button" class="cal-day other-month" disabled>${d}</button>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        function selectDate(dateStr) {
+            calSelectedDate = dateStr;
+            document.getElementById('inputTanggalLahir').value = dateStr;
+            updateDatepickerDisplay();
+            closeCalendar();
+        }
+
+        function updateDatepickerDisplay() {
+            const display = document.getElementById('datepickerDisplay');
+            const textEl  = document.getElementById('datepickerText');
+            if (!display || !textEl) return;
+            if (calSelectedDate) {
+                const [y, m, d] = calSelectedDate.split('-');
+                textEl.textContent = `${parseInt(d)} ${MONTHS_ID[parseInt(m)-1]} ${y}`;
+                display.classList.add('has-value');
+            } else {
+                textEl.textContent = 'Pilih tanggal lahir';
+                display.classList.remove('has-value');
+            }
+        }
+
+        function calNav(dir) {
+            calCurrentMonth += dir;
+            if (calCurrentMonth > 11) { calCurrentMonth = 0; calCurrentYear++; }
+            if (calCurrentMonth < 0)  { calCurrentMonth = 11; calCurrentYear--; }
+            document.getElementById('calMonthSel').value = calCurrentMonth;
+            document.getElementById('calYearSel').value  = calCurrentYear;
+            renderCalendar();
+        }
+
+        function calGoToday() {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm   = String(today.getMonth() + 1).padStart(2, '0');
+            const dd   = String(today.getDate()).padStart(2, '0');
+            selectDate(`${yyyy}-${mm}-${dd}`);
+        }
+
+        function calClear() {
+            calSelectedDate = null;
+            document.getElementById('inputTanggalLahir').value = '';
+            updateDatepickerDisplay();
+            closeCalendar();
+        }
+
+        // Close calendar when clicking outside
+        document.addEventListener('click', function(e) {
+            const wrapper = document.getElementById('datepickerWrapper');
+            const popup   = document.getElementById('datepickerPopup');
+            const insideWrapper = wrapper && wrapper.contains(e.target);
+            const insidePopup   = popup   && popup.contains(e.target);
+            if (!insideWrapper && !insidePopup) closeCalendar();
+        });
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initCalendarSelects();
+            loadSchoolIdentity();
+            loadPegawai();
+        });
+    </script>
+
+    <!-- Calendar Popup (rendered at body level agar tidak terpotong modal) -->
+    <div class="datepicker-popup" id="datepickerPopup">
+        <div class="cal-header">
+            <button type="button" class="cal-nav" onclick="calNav(-1)"><i class="fas fa-chevron-left"></i></button>
+            <div class="cal-month-year">
+                <select id="calMonthSel" onchange="renderCalendar()"></select>
+                <select id="calYearSel" onchange="renderCalendar()"></select>
+            </div>
+            <button type="button" class="cal-nav" onclick="calNav(1)"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="cal-days-header">
+            <span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div class="cal-footer">
+            <button type="button" class="cal-today-btn" onclick="calGoToday()"><i class="fas fa-crosshairs"></i> Hari Ini</button>
+            <button type="button" class="cal-clear-btn" onclick="calClear()"><i class="fas fa-times"></i> Hapus</button>
+        </div>
+    </div>
+</body>
+</html>

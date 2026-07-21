@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Area Piket Kebersihan - SIMPPEDIK</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+            --navbar-bg: #dc2626; /* Warna Merah untuk Navbar */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar (Custom Red) --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--navbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-header h1 i { color: var(--navbar-bg); }
+
+        .page-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Button Styles */
+        .btn { padding: 9px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; color: white; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-weight: 600; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-secondary { background-color: #e2e8f0; color: #475569; }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+        .btn-dashboard { background-color: var(--sidebar-bg); }
+
+        /* Table Styles */
+        .table-responsive { overflow-x: auto; }
+        .custom-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .custom-table th, .custom-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .custom-table th { background-color: #f8f9fa; color: #555; font-weight: 600; }
+        .custom-table tr:hover { background-color: #f9f9f9; }
+        .empty-state { text-align: center; color: #9ca3af; padding: 30px 0; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 90%; max-width: 420px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; color: #333; font-size: 1.2rem; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: #888; transition: color 0.2s; line-height: 1; }
+        .close-modal:hover { color: #ef4444; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #666; font-size: 0.9rem; font-weight: 500; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; transition: border-color 0.3s; }
+        .form-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .form-group input[readonly] { background-color: #f3f4f6; cursor: not-allowed; color: #6b7280; }
+
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand span { font-size: 1rem; }
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .page-actions { width: 100%; }
+            .page-actions .btn { flex: 1; justify-content: center; }
+            .main-content { padding: 1rem 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1><i class="fas fa-broom"></i> Area Piket Kebersihan</h1>
+            <div class="page-actions">
+                <button class="btn btn-primary" id="addAreaPiketBtn"><i class="fas fa-plus"></i> Area Piket</button>
+                <a href="adminguru.html" class="btn btn-dashboard"><i class="fas fa-th-large"></i> Dashboard</a>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nama Area</th>
+                        </tr>
+                    </thead>
+                    <tbody id="areaPiketTableBody">
+                        <tr>
+                            <td colspan="2" class="empty-state">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            &copy; <span id="currentYear"></span> SIMPPEDIK - SMKN 1 Mentok
+        </footer>
+    </main>
+
+    <!-- Modal Tambah Area Piket -->
+    <div id="areaPiketModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-broom"></i> Tambah Area Piket</h3>
+                <span class="close-modal" id="closeAreaPiketModal">&times;</span>
+            </div>
+            <form id="areaPiketForm">
+                <div class="form-group">
+                    <label for="areaPiketId">ID</label>
+                    <input type="text" id="areaPiketId" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="areaPiketNama">Nama Area</label>
+                    <input type="text" id="areaPiketNama" placeholder="Contoh: Ruang Kelas X TKJ 1" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelAreaPiketBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveAreaPiketBtn"><i class="fas fa-save"></i> Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Integration ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+
+        let supabaseClient;
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        }
+
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // --- Load School Identity for Navbar ---
+        async function loadSchoolIdentity() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo, kop_sekolah')
+                    .limit(1)
+                    .single();
+
+                if (data) {
+                    if (data.nama_sekolah) {
+                        document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    }
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading school identity:", err);
+            }
+        }
+
+        // --- Load Data Area Piket ---
+        const areaPiketTableBody = document.getElementById('areaPiketTableBody');
+
+        async function loadAreaPiket() {
+            areaPiketTableBody.innerHTML = '<tr><td colspan="2" class="empty-state">Memuat data...</td></tr>';
+            try {
+                const { data, error } = await supabaseClient
+                    .from('areapiketumum')
+                    .select('id, nama_area')
+                    .order('id', { ascending: true });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    areaPiketTableBody.innerHTML = '<tr><td colspan="2" class="empty-state">Belum ada data Area Piket Kebersihan.</td></tr>';
+                    return;
+                }
+
+                areaPiketTableBody.innerHTML = data.map(row => `
+                    <tr>
+                        <td>${row.id}</td>
+                        <td>${row.nama_area ?? '-'}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error("Error loading area piket:", err);
+                areaPiketTableBody.innerHTML = '<tr><td colspan="2" class="empty-state">Gagal memuat data.</td></tr>';
+            }
+        }
+
+        // --- Generate ID Otomatis ---
+        async function generateNextAreaPiketId() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('areapiketumum')
+                    .select('id')
+                    .order('id', { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+
+                let nextNumber = 1;
+                if (data && data.length > 0) {
+                    const lastId = String(data[0].id);
+                    const match = lastId.match(/(\d+)$/);
+                    if (match) {
+                        nextNumber = parseInt(match[1], 10) + 1;
+                    }
+                }
+                return 'AP' + String(nextNumber).padStart(3, '0');
+            } catch (err) {
+                console.error("Error generating ID:", err);
+                return 'AP' + Date.now();
+            }
+        }
+
+        // --- Modal Logic ---
+        const areaPiketModal = document.getElementById('areaPiketModal');
+        const addAreaPiketBtn = document.getElementById('addAreaPiketBtn');
+        const closeAreaPiketModal = document.getElementById('closeAreaPiketModal');
+        const cancelAreaPiketBtn = document.getElementById('cancelAreaPiketBtn');
+        const areaPiketForm = document.getElementById('areaPiketForm');
+        const areaPiketIdInput = document.getElementById('areaPiketId');
+        const areaPiketNamaInput = document.getElementById('areaPiketNama');
+        const saveAreaPiketBtn = document.getElementById('saveAreaPiketBtn');
+
+        async function openAreaPiketModal() {
+            areaPiketForm.reset();
+            areaPiketIdInput.value = 'Memuat...';
+            areaPiketModal.classList.add('active');
+            areaPiketIdInput.value = await generateNextAreaPiketId();
+        }
+
+        function closeAreaPiketModalFn() {
+            areaPiketModal.classList.remove('active');
+        }
+
+        addAreaPiketBtn.addEventListener('click', openAreaPiketModal);
+        closeAreaPiketModal.addEventListener('click', closeAreaPiketModalFn);
+        cancelAreaPiketBtn.addEventListener('click', closeAreaPiketModalFn);
+        areaPiketModal.addEventListener('click', (e) => {
+            if (e.target === areaPiketModal) closeAreaPiketModalFn();
+        });
+
+        areaPiketForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const newId = areaPiketIdInput.value.trim();
+            const namaArea = areaPiketNamaInput.value.trim();
+
+            if (!namaArea) {
+                alert('Nama Area wajib diisi.');
+                return;
+            }
+
+            const originalText = saveAreaPiketBtn.innerHTML;
+            saveAreaPiketBtn.disabled = true;
+            saveAreaPiketBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            try {
+                const { error } = await supabaseClient
+                    .from('areapiketumum')
+                    .insert([{ id: newId, nama_area: namaArea }]);
+
+                if (error) throw error;
+
+                closeAreaPiketModalFn();
+                await loadAreaPiket();
+            } catch (err) {
+                console.error("Error saving area piket:", err);
+                alert('Gagal menyimpan data: ' + err.message);
+            } finally {
+                saveAreaPiketBtn.disabled = false;
+                saveAreaPiketBtn.innerHTML = originalText;
+            }
+        });
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSchoolIdentity();
+            loadAreaPiket();
+        });
+    </script>
+</body>
+</html>

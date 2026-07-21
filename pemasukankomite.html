@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pemasukan Sumbangan Komite</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --bg-light: #f0fdf4;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Navbar (identitas halaman - tetap seperti sebelumnya) */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img { height: 40px; width: auto; border-radius: 50%; object-fit: cover; }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        .navbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 7px 16px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s, transform 0.2s;
+            box-shadow: 0 3px 8px rgba(102,126,234,0.3);
+        }
+        .btn-back:hover { opacity: 0.88; transform: translateY(-1px); }
+
+        /* Main Content */
+        .main-content {
+            margin-top: calc(var(--header-height) + 1.5rem);
+            padding: 0 1rem 2rem;
+            flex: 1;
+            width: 100%;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+        }
+
+        .page-title h2 {
+            font-size: 1.2rem;
+            color: #064e3b;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .page-title p {
+            font-size: 0.82rem;
+            color: #64748b;
+            margin-top: 3px;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 1.2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 16px 18px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 4px solid transparent;
+        }
+        .stat-card.c-green  { border-color: #10b981; }
+        .stat-card.c-blue   { border-color: #2563eb; }
+        .stat-card.c-amber  { border-color: #f59e0b; }
+        .stat-card.c-purple { border-color: #8b5cf6; }
+
+        .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .si-green  { background: linear-gradient(135deg, #10b981, #059669); }
+        .si-blue   { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .si-amber  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .si-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .stat-info h3 { font-size: 1.4rem; font-weight: 800; color: #1e293b; line-height: 1; }
+        .stat-info p  { font-size: 0.76rem; color: #64748b; margin-top: 3px; }
+
+        .stat-breakdown {
+            margin-top: 7px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .stat-breakdown span {
+            font-size: 0.68rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .stat-breakdown strong { color: #334155; font-weight: 700; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .dot-green  { background: #10b981; }
+        .dot-purple { background: #8b5cf6; }
+
+        /* Dashboard Card */
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 1.2rem;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #064e3b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0fdf4;
+            flex-wrap: wrap;
+        }
+        .card-title-left {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .card-title i { color: #10b981; }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px 8px 36px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            color: #333;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+        }
+        .search-box i {
+            position: absolute;
+            left: 11px; top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            color: #333;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .filter-select:focus { outline: none; border-color: #10b981; }
+
+        .btn-export-pdf {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(220,38,38,0.3);
+            transition: opacity 0.2s, transform 0.2s;
+            white-space: nowrap;
+        }
+        .btn-export-pdf:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-export-pdf:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* Tabs */
+        .modal-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 18px;
+            border-bottom: 1.5px solid #e5e7eb;
+        }
+        .tab-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 12px;
+            background: transparent;
+            border: none;
+            border-bottom: 2.5px solid transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .tab-btn:hover { color: #10b981; }
+        .tab-btn.active { color: #059669; border-bottom-color: #10b981; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.86rem;
+        }
+
+        thead th {
+            background: linear-gradient(135deg, #065f46, #059669);
+            color: white;
+            padding: 11px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+
+        tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #f0fdf4; }
+
+        tbody td { padding: 10px 14px; color: #374151; vertical-align: middle; }
+
+        .badge-kelas {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.76rem;
+            font-weight: 600;
+        }
+        .badge-bulan {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.76rem;
+            font-weight: 600;
+        }
+        .badge-tahun {
+            display: inline-block;
+            background: #f3e8ff;
+            color: #6b21a8;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.76rem;
+            font-weight: 600;
+        }
+
+        .nominal-text { font-weight: 700; color: #059669; }
+
+        /* Empty / Loading State */
+        .empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; }
+        .empty-state i { font-size: 3rem; margin-bottom: 12px; display: block; color: #cbd5e1; }
+        .empty-state p { font-size: 0.9rem; }
+
+        .loading-row td {
+            text-align: center;
+            padding: 30px;
+            color: #94a3b8;
+            font-size: 0.88rem;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 14px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .pagination-info { font-size: 0.82rem; color: #64748b; }
+        .pagination-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+        .btn-page {
+            padding: 5px 12px;
+            border: 1.5px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-page:hover { border-color: #10b981; color: #10b981; }
+        .btn-page.active { background: #10b981; color: white; border-color: #10b981; }
+        .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            z-index: 9999;
+            transform: translateY(60px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            max-width: 340px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 4px solid #22c55e; }
+        .toast.error   { border-left: 4px solid #ef4444; }
+        .toast.info    { border-left: 4px solid #667eea; }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 14px;
+            color: #94a3b8;
+            font-size: 0.78rem;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content { padding: 0 0.5rem 2rem; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .search-box { min-width: unset; width: 100%; }
+            .filter-select { width: 100%; }
+            .btn-export-pdf { width: 100%; justify-content: center; }
+            .navbar-brand span { font-size: 0.95rem; }
+        }
+
+        /* ===== Modal Export PDF ===== */
+        .modal-pdf-overlay {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        .modal-pdf-overlay.active { display: flex; }
+
+        .pdf-box {
+            background: white;
+            width: 100%;
+            max-width: 760px;
+            border-radius: 14px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+            animation: slideDown 0.3s ease;
+            overflow: hidden;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-30px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
+        }
+
+        .pdf-header-bar {
+            background: linear-gradient(135deg, #065f46, #10b981);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+        }
+        .pdf-header-bar h3 { font-size: 0.92rem; display: flex; align-items: center; gap: 8px; }
+        .pdf-header-bar .pdf-actions { display: flex; gap: 8px; align-items: center; }
+        .btn-print-pdf {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.22);
+            color: white;
+            border: 1.5px solid rgba(255,255,255,0.4);
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-print-pdf:hover { background: rgba(255,255,255,0.38); }
+        .btn-close-pdf {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .btn-close-pdf:hover { background: rgba(255,255,255,0.4); }
+
+        .pdf-body { padding: 24px 28px 20px; max-height: 80vh; overflow-y: auto; }
+
+        .struk-kop {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border-bottom: 2.5px solid #065f46;
+            padding-bottom: 14px;
+        }
+        .struk-kop-logo {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #065f46;
+            flex-shrink: 0;
+            display: none;
+        }
+        .struk-kop-logo.show { display: block; }
+        .struk-kop-logo-komite {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #065f46;
+            flex-shrink: 0;
+        }
+        .struk-kop-center { flex: 1; text-align: center; }
+        .struk-kop h2 {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #065f46;
+            line-height: 1.35;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .struk-sub-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 2px 12px;
+            margin-bottom: 12px;
+            border-bottom: 1px dashed #cbd5e1;
+            font-size: 0.75rem;
+            color: #475569;
+        }
+        .struk-sub-info .sub-badge {
+            display: inline-block;
+            background: #065f46;
+            color: white;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 9px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .struk-sub-info .sub-right { text-align: right; line-height: 1.5; }
+
+        .pdf-tabel {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.77rem;
+            margin-top: 14px;
+            border: 1.5px solid #065f46;
+        }
+        .pdf-tabel thead th {
+            background: #065f46;
+            color: white;
+            padding: 7px 9px;
+            text-align: left;
+            font-size: 0.73rem;
+            font-weight: 700;
+        }
+        .pdf-tabel tbody td {
+            padding: 6px 9px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .pdf-tabel tbody tr:last-child td { border-bottom: none; }
+        .pdf-tabel tbody tr:nth-child(even) td { background: #f0fdf4; }
+
+        .pdf-summary {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #374151;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .pdf-summary-box {
+            border: 1.5px solid #065f46;
+            border-radius: 6px;
+            padding: 8px 16px;
+            text-align: right;
+        }
+        .pdf-summary-box .total-label { font-weight: 600; color: #064e3b; }
+        .pdf-summary-box .total-val { font-weight: 800; color: #059669; font-size: 0.9rem; }
+
+        @media print {
+            html, body { display: block !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+            body > *:not(#modalPdf) { display: none !important; }
+            #modalPdf { display: block !important; position: static !important;
+                background: transparent !important; padding: 0 !important;
+                width: auto !important; height: auto !important; }
+            #modalPdf:not(.active) { display: none !important; }
+            .pdf-box { box-shadow: none !important; border-radius: 0 !important;
+                max-width: 100% !important; width: 100% !important;
+                overflow: visible !important; height: auto !important; }
+            .pdf-header-bar { display: none !important; }
+            .pdf-body { padding: 0 !important; max-height: none !important; overflow: visible !important; height: auto !important; }
+            .pdf-tabel { border: 1.5px solid #000 !important; }
+            .pdf-tabel thead th { background: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .pdf-tabel tbody tr:nth-child(even) td { background: #f0fdf4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .pdf-summary-box { border: 1.5px solid #000 !important; }
+            .struk-kop { border-bottom: 2px solid #000 !important; }
+            .struk-kop h2 { color: #000 !important; }
+            .struk-sub-info .sub-badge { background: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" id="navLogo" style="display:none;">
+            <span id="navSchoolName">SMKN 1 Simpang Teritip</span>
+        </a>
+        <div class="navbar-right">
+            <a href="dasboradmin.html" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title">
+                <h2><i class="fas fa-cash-register"></i> Pemasukan Sumbangan Komite</h2>
+                <p>Lihat dan ekspor data pemasukan/transaksi pembayaran sumbangan komite</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card c-green">
+                <div class="stat-icon si-green"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info">
+                    <h3 id="statTotal">—</h3>
+                    <p>Total Transaksi</p>
+                </div>
+            </div>
+            <div class="stat-card c-blue">
+                <div class="stat-icon si-blue"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="stat-info">
+                    <h3 id="statTotalNominal">—</h3>
+                    <p>Total Terkumpul</p>
+                    <div class="stat-breakdown">
+                        <span><span class="dot dot-green"></span> Tahun Berjalan: <strong id="statNominalBerjalan">Rp 0</strong></span>
+                        <span><span class="dot dot-purple"></span> Tahun Sebelumnya: <strong id="statNominalSebelumnya">Rp 0</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card c-amber">
+                <div class="stat-icon si-amber"><i class="fas fa-users"></i></div>
+                <div class="stat-info"><h3 id="statSiswa">—</h3><p>Siswa Bayar</p></div>
+            </div>
+            <div class="stat-card c-purple">
+                <div class="stat-icon si-purple"><i class="fas fa-calendar-check"></i></div>
+                <div class="stat-info"><h3 id="statBulan">—</h3><p>Bulan Dibayar</p></div>
+            </div>
+        </div>
+
+        <!-- Tabel Data Pemasukan -->
+        <div class="dashboard-card">
+            <div class="card-title">
+                <div class="card-title-left">
+                    <i class="fas fa-list-ul"></i>
+                    <span>Data Pemasukan Sumbangan Komite</span>
+                </div>
+                <button class="btn-export-pdf" id="btnExportPdf" onclick="exportPdf()">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+            </div>
+
+            <!-- Table Tabs -->
+            <div class="modal-tabs" id="tableTabs">
+                <button type="button" class="tab-btn active" id="tableTabBtnBerjalan" onclick="switchTableTab('berjalan')">
+                    <i class="fas fa-calendar-check"></i> Pembayaran Tahun Berjalan
+                </button>
+                <button type="button" class="tab-btn" id="tableTabBtnSebelumnya" onclick="switchTableTab('sebelumnya')">
+                    <i class="fas fa-history"></i> Pembayaran Tahun Sebelumnya
+                </button>
+            </div>
+
+            <!-- TAB 1: Pembayaran Tahun Berjalan -->
+            <div class="tab-pane active" id="tablePaneBerjalan">
+
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Cari nama siswa atau NISN..." oninput="filterData()">
+                    </div>
+                    <select class="filter-select" id="filterKelas" onchange="filterData()">
+                        <option value="">Semua Kelas</option>
+                    </select>
+                    <select class="filter-select" id="filterBulan" onchange="filterData()">
+                        <option value="">Semua Bulan</option>
+                    </select>
+                    <select class="filter-select" id="filterTahun" onchange="filterData()">
+                        <option value="">Semua Tahun</option>
+                    </select>
+                </div>
+
+                <!-- Table -->
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:44px;">No</th>
+                                <th>Nama Siswa</th>
+                                <th>NISN</th>
+                                <th>Kelas</th>
+                                <th>Tahun Pelajaran</th>
+                                <th>Bulan Bayar</th>
+                                <th>Tgl Bayar</th>
+                                <th>Nominal</th>
+                                <th>Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr class="loading-row">
+                                <td colspan="9"><i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Memuat data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <span class="pagination-info" id="paginationInfo"></span>
+                    <div class="pagination-btns" id="paginationBtns"></div>
+                </div>
+
+            </div>
+            <!-- END TAB 1 -->
+
+            <!-- TAB 2: Pembayaran Tahun Sebelumnya -->
+            <div class="tab-pane" id="tablePaneSebelumnya">
+
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInputTS" placeholder="Cari nama / NISN..." oninput="filterDataTS()">
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:44px;">No</th>
+                                <th>ID Pembayaran</th>
+                                <th>Tanggal Bayar</th>
+                                <th>Nama Siswa</th>
+                                <th>NISN</th>
+                                <th>Nominal/Bulan</th>
+                                <th>Jumlah Bulan</th>
+                                <th>Untuk Bulan</th>
+                                <th>Total Pembayaran</th>
+                                <th>Bendahara</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBodyTS">
+                            <tr class="loading-row">
+                                <td colspan="10"><i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Memuat data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <span class="pagination-info" id="paginationInfoTS"></span>
+                    <div class="pagination-btns" id="paginationBtnsTS"></div>
+                </div>
+
+            </div>
+            <!-- END TAB 2 -->
+        </div>
+
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Modal Export PDF -->
+    <div class="modal-pdf-overlay" id="modalPdf">
+        <div class="pdf-box">
+            <div class="pdf-header-bar">
+                <h3><i class="fas fa-file-pdf"></i> Export Data Pemasukan</h3>
+                <div class="pdf-actions">
+                    <button class="btn-print-pdf" onclick="printPdf()">
+                        <i class="fas fa-print"></i> Cetak / Simpan PDF
+                    </button>
+                    <button class="btn-close-pdf" onclick="closePdf()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="pdf-body" id="pdfContent">
+                <!-- diisi dinamis -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================================
+    // SUPABASE CONFIG
+    // ============================================================
+    const SUPABASE_URL_IDENTITY = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+    const SUPABASE_KEY_IDENTITY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+
+    const SUPABASE_URL_OPS = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+    const SUPABASE_KEY_OPS  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+
+    const identityDb = supabase.createClient(SUPABASE_URL_IDENTITY, SUPABASE_KEY_IDENTITY);
+    const db         = supabase.createClient(SUPABASE_URL_OPS, SUPABASE_KEY_OPS);
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let allData      = [];      // tabel: sumbangankomite (Tahun Berjalan)
+    let filteredData  = [];
+    let currentPage   = 1;
+    const PAGE_SIZE   = 20;
+
+    let currentTableTab = 'berjalan';
+    let allDataTS       = [];   // tabel: ipptahunsebelumnya (Tahun Sebelumnya)
+    let filteredDataTS  = [];
+    let currentPageTS   = 1;
+    let tsLoaded         = false;
+
+    let schoolName = 'SMKN 1 Simpang Teritip';
+    let schoolLogo = '';
+
+    const BULAN_ORDER = ['Juli','Agustus','September','Oktober','November','Desember',
+                         'Januari','Februari','Maret','April','Mei','Juni'];
+
+    // ============================================================
+    // LOAD SCHOOL IDENTITY (navbar)
+    // ============================================================
+    async function loadSchoolIdentity() {
+        try {
+            const { data } = await identityDb.from('identitassekolah').select('nama_sekolah, logo').limit(1).single();
+            if (data) {
+                if (data.nama_sekolah) {
+                    schoolName = data.nama_sekolah;
+                    document.getElementById('navSchoolName').textContent = data.nama_sekolah;
+                }
+                if (data.logo) {
+                    schoolLogo = data.logo;
+                    const img = document.getElementById('navLogo');
+                    img.src = data.logo;
+                    img.style.display = 'block';
+                }
+            }
+        } catch(e) { /* silent */ }
+    }
+
+    // ============================================================
+    // LOAD DATA - Tahun Berjalan (tabel: sumbangankomite)
+    // ============================================================
+    async function loadData() {
+        document.getElementById('tableBody').innerHTML = `
+            <tr class="loading-row">
+                <td colspan="9"><i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Memuat data...</td>
+            </tr>`;
+
+        try {
+            const { data, error } = await db
+                .from('sumbangankomite')
+                .select('*')
+                .order('tanggal_bayar', { ascending: false });
+
+            if (error) throw error;
+
+            allData = data || [];
+            buildFilters();
+            updateStats();
+            filterData();
+        } catch(err) {
+            document.getElementById('tableBody').innerHTML = `
+                <tr class="loading-row"><td colspan="9" style="color:#ef4444;"><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>Gagal memuat data: ${escHtml(err.message)}</td></tr>`;
+            showToast('Gagal memuat data: ' + err.message, 'error');
+        }
+    }
+
+    // ============================================================
+    // BUILD FILTER OPTIONS
+    // ============================================================
+    function buildFilters() {
+        const kelasList = [...new Set(allData.map(d => d.kelas).filter(Boolean))].sort();
+        const tahunList = [...new Set(allData.map(d => d.tahun_pelajaran).filter(Boolean))].sort().reverse();
+        const bulanList = BULAN_ORDER.filter(b => allData.some(d => d.bulan_bayar === b));
+
+        document.getElementById('filterKelas').innerHTML = '<option value="">Semua Kelas</option>' +
+            kelasList.map(k => `<option value="${escHtml(k)}">${escHtml(k)}</option>`).join('');
+        document.getElementById('filterBulan').innerHTML = '<option value="">Semua Bulan</option>' +
+            bulanList.map(b => `<option value="${escHtml(b)}">${escHtml(b)}</option>`).join('');
+        document.getElementById('filterTahun').innerHTML = '<option value="">Semua Tahun</option>' +
+            tahunList.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
+    }
+
+    // ============================================================
+    // UPDATE STATS (gabungan tabel sumbangankomite + ipptahunsebelumnya)
+    // ============================================================
+    function updateStats() {
+        const total = allData.length + allDataTS.length;
+
+        const totalNominalBerjalan = allData.reduce((s, d) => s + (parseFloat(d.nominal) || 0), 0);
+        const totalNominalSebelumnya = allDataTS.reduce((s, d) => {
+            const nominalBulan = parseFloat(d.nominal_bulan) || 0;
+            const jumlahBulan  = parseFloat(d.jumlah_bulan) || 0;
+            return s + (nominalBulan * jumlahBulan);
+        }, 0);
+        const totalNominal = totalNominalBerjalan + totalNominalSebelumnya;
+
+        const siswaSet = new Set();
+        allData.forEach(d => { if (d.nisn) siswaSet.add(d.nisn); });
+        allDataTS.forEach(d => { if (d.nisn) siswaSet.add(d.nisn); });
+
+        const bulanSet = new Set();
+        allData.forEach(d => { if (d.bulan_bayar) bulanSet.add(d.bulan_bayar); });
+        allDataTS.forEach(d => { if (d.bulan_bayar) bulanSet.add(d.bulan_bayar); });
+
+        document.getElementById('statTotal').textContent        = total.toLocaleString('id-ID');
+        document.getElementById('statTotalNominal').textContent = 'Rp ' + totalNominal.toLocaleString('id-ID');
+        document.getElementById('statNominalBerjalan').textContent   = 'Rp ' + totalNominalBerjalan.toLocaleString('id-ID');
+        document.getElementById('statNominalSebelumnya').textContent = 'Rp ' + totalNominalSebelumnya.toLocaleString('id-ID');
+        document.getElementById('statSiswa').textContent = siswaSet.size.toLocaleString('id-ID');
+        document.getElementById('statBulan').textContent = bulanSet.size.toLocaleString('id-ID');
+    }
+
+    // ============================================================
+    // FILTER & RENDER - Tahun Berjalan
+    // ============================================================
+    function filterData() {
+        const q     = document.getElementById('searchInput').value.trim().toLowerCase();
+        const kelas = document.getElementById('filterKelas').value;
+        const bulan = document.getElementById('filterBulan').value;
+        const tahun = document.getElementById('filterTahun').value;
+
+        filteredData = allData.filter(d => {
+            const matchSearch = !q ||
+                (d.nama_siswa || '').toLowerCase().includes(q) ||
+                (d.nisn || '').toLowerCase().includes(q);
+            const matchKelas = !kelas || d.kelas === kelas;
+            const matchBulan = !bulan || d.bulan_bayar === bulan;
+            const matchTahun = !tahun || d.tahun_pelajaran === tahun;
+            return matchSearch && matchKelas && matchBulan && matchTahun;
+        });
+
+        currentPage = 1;
+        renderTable();
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        const total = filteredData.length;
+
+        if (total === 0) {
+            tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><i class="fas fa-inbox"></i><p>Tidak ada data ditemukan.</p></div></td></tr>`;
+            document.getElementById('paginationInfo').textContent = 'Tidak ada data';
+            document.getElementById('paginationBtns').innerHTML  = '';
+            return;
+        }
+
+        const totalPages = Math.ceil(total / PAGE_SIZE);
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const slice = filteredData.slice(start, start + PAGE_SIZE);
+
+        tbody.innerHTML = slice.map((d, i) => `
+            <tr>
+                <td style="color:#94a3b8;font-size:0.8rem;">${start + i + 1}</td>
+                <td><strong>${escHtml(d.nama_siswa || '-')}</strong></td>
+                <td style="font-family:monospace;color:#475569;font-size:0.82rem;">${escHtml(d.nisn || '-')}</td>
+                <td><span class="badge-kelas">${escHtml(d.kelas || '-')}</span></td>
+                <td><span class="badge-tahun">${escHtml(d.tahun_pelajaran || '-')}</span></td>
+                <td><span class="badge-bulan">${escHtml(d.bulan_bayar || '-')}</span></td>
+                <td style="font-size:0.82rem;color:#475569;">${d.tanggal_bayar ? fmtDate(d.tanggal_bayar) : '-'}</td>
+                <td class="nominal-text">Rp ${(parseFloat(d.nominal) || 0).toLocaleString('id-ID')}</td>
+                <td style="font-size:0.82rem;color:#64748b;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escHtml(d.keterangan || '')}">${escHtml(d.keterangan || '-')}</td>
+            </tr>
+        `).join('');
+
+        document.getElementById('paginationInfo').textContent =
+            `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, total)} dari ${total} transaksi`;
+
+        const btnsEl = document.getElementById('paginationBtns');
+        let html = `<button class="btn-page" onclick="goPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+        for (let p = 1; p <= totalPages; p++) {
+            if (totalPages <= 7 || Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages) {
+                html += `<button class="btn-page ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`;
+            } else if (Math.abs(p - currentPage) === 3) {
+                html += `<span style="padding:4px;color:#94a3b8;">…</span>`;
+            }
+        }
+        html += `<button class="btn-page" onclick="goPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+        btnsEl.innerHTML = html;
+    }
+
+    function goPage(p) {
+        const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+        if (p < 1 || p > totalPages) return;
+        currentPage = p;
+        renderTable();
+    }
+
+    // ============================================================
+    // TABLE TABS
+    // ============================================================
+    function switchTableTab(tab) {
+        currentTableTab = tab;
+        document.getElementById('tableTabBtnBerjalan').classList.toggle('active', tab === 'berjalan');
+        document.getElementById('tableTabBtnSebelumnya').classList.toggle('active', tab === 'sebelumnya');
+        document.getElementById('tablePaneBerjalan').classList.toggle('active', tab === 'berjalan');
+        document.getElementById('tablePaneSebelumnya').classList.toggle('active', tab === 'sebelumnya');
+
+        if (tab === 'sebelumnya' && !tsLoaded) {
+            loadDataTS();
+        }
+    }
+
+    // ============================================================
+    // LOAD DATA - Tahun Sebelumnya (tabel: ipptahunsebelumnya)
+    // ============================================================
+    async function loadDataTS() {
+        document.getElementById('tableBodyTS').innerHTML = `
+            <tr class="loading-row">
+                <td colspan="10"><i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Memuat data...</td>
+            </tr>`;
+        try {
+            const { data, error } = await db
+                .from('ipptahunsebelumnya')
+                .select('*')
+                .order('tanggal_bayar', { ascending: false });
+
+            if (error) throw error;
+            allDataTS = data || [];
+            tsLoaded = true;
+            updateStats();
+            filterDataTS();
+        } catch(err) {
+            document.getElementById('tableBodyTS').innerHTML =
+                `<tr class="loading-row"><td colspan="10" style="color:#ef4444;"><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>Gagal memuat data: ${escHtml(err.message)}</td></tr>`;
+            showToast('Gagal memuat data: ' + err.message, 'error');
+        }
+    }
+
+    function filterDataTS() {
+        const q = document.getElementById('searchInputTS').value.trim().toLowerCase();
+        filteredDataTS = allDataTS.filter(d => {
+            return !q ||
+                (d.nama_siswa || '').toLowerCase().includes(q) ||
+                (d.nisn || '').toLowerCase().includes(q);
+        });
+        currentPageTS = 1;
+        renderTableTS();
+    }
+
+    function renderTableTS() {
+        const tbody = document.getElementById('tableBodyTS');
+        const total = filteredDataTS.length;
+
+        if (total === 0) {
+            tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><i class="fas fa-inbox"></i><p>Tidak ada data pembayaran tahun sebelumnya.</p></div></td></tr>`;
+            document.getElementById('paginationInfoTS').textContent = 'Tidak ada data';
+            document.getElementById('paginationBtnsTS').innerHTML  = '';
+            return;
+        }
+
+        const totalPages = Math.ceil(total / PAGE_SIZE);
+        if (currentPageTS > totalPages) currentPageTS = totalPages;
+        const start = (currentPageTS - 1) * PAGE_SIZE;
+        const slice = filteredDataTS.slice(start, start + PAGE_SIZE);
+
+        tbody.innerHTML = slice.map((d, i) => `
+            <tr>
+                <td style="color:#94a3b8;font-size:0.8rem;">${start + i + 1}</td>
+                <td style="font-family:monospace;color:#475569;font-size:0.8rem;">${escHtml(d.id || '-')}</td>
+                <td style="font-size:0.82rem;color:#475569;">${d.tanggal_bayar ? fmtDate(d.tanggal_bayar) : '-'}</td>
+                <td><strong>${escHtml(d.nama_siswa || '-')}</strong></td>
+                <td style="font-family:monospace;color:#475569;font-size:0.82rem;">${escHtml(d.nisn || '-')}</td>
+                <td class="nominal-text">Rp ${(parseFloat(d.nominal_bulan) || 0).toLocaleString('id-ID')}</td>
+                <td style="text-align:center;">${escHtml(d.jumlah_bulan || '-')}</td>
+                <td><span class="badge-bulan">${escHtml(d.bulan_bayar || '-')}</span></td>
+                <td class="nominal-text">${escHtml(d.total_bayar || '-')}</td>
+                <td style="font-size:0.82rem;color:#475569;">${escHtml(d.bendahara || '-')}</td>
+            </tr>
+        `).join('');
+
+        document.getElementById('paginationInfoTS').textContent =
+            `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, total)} dari ${total} transaksi`;
+
+        const btnsEl = document.getElementById('paginationBtnsTS');
+        let html = `<button class="btn-page" onclick="goPageTS(${currentPageTS - 1})" ${currentPageTS <= 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+        for (let p = 1; p <= totalPages; p++) {
+            if (totalPages <= 7 || Math.abs(p - currentPageTS) <= 2 || p === 1 || p === totalPages) {
+                html += `<button class="btn-page ${p === currentPageTS ? 'active' : ''}" onclick="goPageTS(${p})">${p}</button>`;
+            } else if (Math.abs(p - currentPageTS) === 3) {
+                html += `<span style="padding:4px;color:#94a3b8;">…</span>`;
+            }
+        }
+        html += `<button class="btn-page" onclick="goPageTS(${currentPageTS + 1})" ${currentPageTS >= totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+        btnsEl.innerHTML = html;
+    }
+
+    function goPageTS(p) {
+        const totalPages = Math.ceil(filteredDataTS.length / PAGE_SIZE);
+        if (p < 1 || p > totalPages) return;
+        currentPageTS = p;
+        renderTableTS();
+    }
+
+    // ============================================================
+    // EXPORT PDF (mengikuti tab yang sedang aktif)
+    // ============================================================
+    async function exportPdf() {
+        if (currentTableTab === 'sebelumnya' && !tsLoaded) {
+            await loadDataTS();
+        }
+
+        const now = new Date();
+        const tglCetak = now.toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' });
+        const jamCetak = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+
+        let rowsHtml, totalNominal, headHtml, colCount, judulTab;
+
+        if (currentTableTab === 'berjalan') {
+            const data = filteredData;
+            judulTab = 'Pembayaran Tahun Berjalan';
+            colCount = 9;
+            headHtml = `<tr>
+                <th style="width:28px;text-align:center;">No</th>
+                <th>Nama Siswa</th><th>NISN</th><th>Kelas</th><th>Tahun</th>
+                <th>Bulan</th><th>Tgl Bayar</th><th>Nominal</th><th>Keterangan</th>
+            </tr>`;
+            rowsHtml = data.map((d, i) => `
+                <tr>
+                    <td style="text-align:center;color:#94a3b8;font-size:0.72rem;">${i + 1}</td>
+                    <td><strong>${escHtml(d.nama_siswa || '-')}</strong></td>
+                    <td style="font-family:monospace;font-size:0.71rem;color:#475569;">${escHtml(d.nisn || '-')}</td>
+                    <td>${escHtml(d.kelas || '-')}</td>
+                    <td style="font-size:0.71rem;">${escHtml(d.tahun_pelajaran || '-')}</td>
+                    <td><strong>${escHtml(d.bulan_bayar || '-')}</strong></td>
+                    <td style="font-size:0.72rem;color:#475569;">${d.tanggal_bayar ? fmtDate(d.tanggal_bayar) : '-'}</td>
+                    <td style="font-weight:700;color:#059669;">Rp ${(parseFloat(d.nominal)||0).toLocaleString('id-ID')}</td>
+                    <td style="font-size:0.72rem;color:#64748b;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(d.keterangan || '-')}</td>
+                </tr>
+            `).join('');
+            totalNominal = data.reduce((s, d) => s + (parseFloat(d.nominal)||0), 0);
+        } else {
+            const data = filteredDataTS;
+            judulTab = 'Pembayaran Tahun Sebelumnya';
+            colCount = 8;
+            headHtml = `<tr>
+                <th style="width:28px;text-align:center;">No</th>
+                <th>Tgl Bayar</th><th>Nama Siswa</th><th>NISN</th>
+                <th>Nominal/Bulan</th><th>Jml Bulan</th><th>Untuk Bulan</th><th>Bendahara</th>
+            </tr>`;
+            rowsHtml = data.map((d, i) => `
+                <tr>
+                    <td style="text-align:center;color:#94a3b8;font-size:0.72rem;">${i + 1}</td>
+                    <td style="font-size:0.72rem;color:#475569;">${d.tanggal_bayar ? fmtDate(d.tanggal_bayar) : '-'}</td>
+                    <td><strong>${escHtml(d.nama_siswa || '-')}</strong></td>
+                    <td style="font-family:monospace;font-size:0.71rem;color:#475569;">${escHtml(d.nisn || '-')}</td>
+                    <td style="font-weight:700;color:#059669;">Rp ${(parseFloat(d.nominal_bulan)||0).toLocaleString('id-ID')}</td>
+                    <td style="text-align:center;">${escHtml(d.jumlah_bulan || '-')}</td>
+                    <td>${escHtml(d.bulan_bayar || '-')}</td>
+                    <td style="font-size:0.72rem;color:#475569;">${escHtml(d.bendahara || '-')}</td>
+                </tr>
+            `).join('');
+            totalNominal = data.reduce((s, d) => s + ((parseFloat(d.nominal_bulan)||0) * (parseFloat(d.jumlah_bulan)||0)), 0);
+        }
+
+        document.getElementById('pdfContent').innerHTML = `
+            <div class="struk-kop">
+                <img src="${schoolLogo || ''}" class="struk-kop-logo${schoolLogo ? ' show' : ''}" alt="Logo Sekolah" onerror="this.style.display='none'">
+                <div class="struk-kop-center">
+                    <h2>Data Pemasukan Sumbangan Komite<br>${escHtml(schoolName)}</h2>
+                </div>
+                <img src="logo komite.png" class="struk-kop-logo-komite" alt="Logo Komite" onerror="this.style.display='none'">
+            </div>
+            <div class="struk-sub-info">
+                <span class="sub-badge">${escHtml(judulTab)}</span>
+                <div class="sub-right">Dicetak: ${tglCetak} &nbsp; ${jamCetak} WIB</div>
+            </div>
+            <div style="overflow-x:auto;border-radius:6px;border:1.5px solid #065f46;">
+                <table class="pdf-tabel">
+                    <thead>${headHtml}</thead>
+                    <tbody>
+                        ${rowsHtml.length ? rowsHtml : `<tr><td colspan="${colCount}" style="text-align:center;padding:20px;color:#94a3b8;">Tidak ada data</td></tr>`}
+                    </tbody>
+                </table>
+            </div>
+            <div class="pdf-summary">
+                <div class="pdf-summary-box">
+                    <div class="total-label">Total Terkumpul</div>
+                    <div class="total-val">Rp ${totalNominal.toLocaleString('id-ID')}</div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('modalPdf').classList.add('active');
+    }
+
+    function closePdf() {
+        document.getElementById('modalPdf').classList.remove('active');
+    }
+
+    function printPdf() {
+        const judulAsli = document.title;
+        const pdfContent = document.getElementById('pdfContent');
+        waitForImages(pdfContent).then(() => {
+            document.title = 'Data Pemasukan Sumbangan Komite';
+            window.print();
+            document.title = judulAsli;
+        });
+    }
+
+    function waitForImages(container) {
+        const imgs = Array.from(container.querySelectorAll('img'));
+        if (imgs.length === 0) return Promise.resolve();
+        return Promise.all(imgs.map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+                img.addEventListener('load', resolve, { once: true });
+                img.addEventListener('error', resolve, { once: true });
+            });
+        }));
+    }
+
+    // ============================================================
+    // TOAST
+    // ============================================================
+    let toastTimer;
+    function showToast(msg, type = 'info') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `toast ${type} show`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    // ============================================================
+    // UTILS
+    // ============================================================
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    function fmtDate(d) {
+        if (!d) return '-';
+        const dt = new Date(d);
+        return dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    // ============================================================
+    // Modal close saat klik backdrop
+    // ============================================================
+    document.getElementById('modalPdf').addEventListener('click', function(e) {
+        if (e.target === this) closePdf();
+    });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSchoolIdentity();
+        loadData();
+    });
+    </script>
+</body>
+</html>

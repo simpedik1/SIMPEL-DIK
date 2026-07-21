@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPEL-DIK</title>
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --input-bg: #334155;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: #475569;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --header-height: 60px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.8)), url('bg1.png');
+            background-size: cover;
+            background-position: center;
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 0; /* Padding dipindah ke main-content */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Mencegah scroll ganda */
+        }
+
+        /* --- Navbar (dari dasboradmin.html) --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .btn-dashboard {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--primary);
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .btn-dashboard:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #764ba2; /* Warna secondary dari dasboradmin */
+        }
+
+
+        /* --- Main Content Layout --- */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 2rem 8px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        
+        header p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .form-section {
+            margin-bottom: 25px;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .form-section h2 {
+            font-size: 1.1rem;
+            color: #60a5fa;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px 12px; /* Ukuran input lebih ringkas */
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: white;
+            transition: all 0.2s;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            background-color: #475569;
+        }
+        
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .form-group .hint {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #f87171;
+        }
+        
+        .file-upload {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-upload:hover {
+            border-color: var(--primary);
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .file-upload.dragover {
+            border-color: var(--primary);
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .file-upload i {
+            font-size: 2rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+        
+        .file-upload p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 0;
+        }
+        
+        .file-info {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #93c5fd;
+        }
+        
+        .file-info.hidden {
+            display: none;
+        }
+        
+        .file-info span {
+            font-weight: 600;
+            color: white;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .button-group button {
+            padding: 12px 20px;
+            border: 1px solid var(--text-muted);
+            background-color: transparent;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        #submitBtn {
+            /* Default style handled by .button-group button */
+        }
+        
+        #submitBtn:hover:not(:disabled) {
+            background-color: #10b981; /* Hijau */
+            color: white;
+            border-color: #10b981;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        #refreshBtn {
+            /* Default style handled by .button-group button */
+        }
+        
+        #refreshBtn:hover {
+            background-color: #3b82f6; /* Biru */
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        #resetBtn {
+            /* Default style handled by .button-group button */
+        }
+        
+        #resetBtn:hover {
+            background-color: #ef4444; /* Merah */
+            color: white;
+            border-color: #ef4444;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 0.9rem;
+        }
+        
+        .message.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        
+        .message.error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 0;
+            background-color: rgba(0,0,0,0.2);
+        }
+
+        /* Override ikon mata agar terlihat di dark mode */
+        #togglePassword {
+            color: #94a3b8 !important;
+            top: 35px !important; /* Sesuaikan posisi vertikal karena input lebih pendek */
+        }
+        
+        @media (max-width: 768px) {
+            header {
+                padding: 5px;
+            }
+
+            .content {
+                padding: 5px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .content button {
+                width: 100%;
+            }
+            
+            .navbar-brand span {
+                font-size: 1rem;
+            }
+        }
+
+    </style>
+    <!-- Font Awesome untuk ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="dasboradmin.html" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="dasboradmin.html" class="btn-dashboard">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+        <header>
+            <h1><i class="fas fa-school"></i> Input Data Identitas Sekolah</h1>
+            <p>Masukkan data sekolah untuk disimpan ke database Supabase</p>
+        </header>
+        
+        <div class="content">
+            <div id="message" class="message"></div>
+            
+            <form id="schoolForm">
+                <div class="form-section">
+                    <h2>Identitas Sekolah</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="npsn" class="required">NPSN</label>
+                            <input type="number" id="npsn" name="npsn" required min="10000000" max="99999999">
+                            <div class="hint">8 digit angka (Primary Key)</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nama_sekolah" class="required">Nama Sekolah</label>
+                            <input type="text" id="nama_sekolah" name="nama_sekolah" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="status" class="required">Status</label>
+                            <select id="status" name="status" required>
+                                <option value="">Pilih Status</option>
+                                <option value="Negeri">Negeri</option>
+                                <option value="Swasta">Swasta</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="tahun_pelajaran" class="required">Tahun Pelajaran</label>
+                            <input type="text" id="tahun_pelajaran" name="tahun_pelajaran" required placeholder="Contoh: 2023/2024">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h2>Kepala Sekolah</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="nama_kepsek" class="required">Nama Kepala Sekolah</label>
+                            <input type="text" id="nama_kepsek" name="nama_kepsek" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nip_kepsek" class="required">NIP Kepala Sekolah</label>
+                            <input type="number" id="nip_kepsek" name="nip_kepsek" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="jabatan" class="required">Jabatan</label>
+                            <input type="text" id="jabatan" name="jabatan" required value="Kepala Sekolah">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h2>Kontak dan Alamat</h2>
+                    <div class="form-grid">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="alamat" class="required">Alamat</label>
+                            <textarea id="alamat" name="alamat" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="tlp" class="required">Nomor Telepon</label>
+                            <input type="number" id="tlp" name="tlp" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email" class="required">Email</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="slogan">Slogan/Motto Sekolah</label>
+                            <input type="text" id="slogan" name="slogan" placeholder="Contoh: Unggul dalam Prestasi, Santun dalam Perilaku">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h2>Akun Login</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="username" class="required">Username</label>
+                            <input type="text" id="username" name="username" required>
+                        </div>
+                        
+                        <div class="form-group" style="position: relative;">
+                            <label for="password" class="required">Password</label>
+                            <input type="password" id="password" name="password" required>
+                            <i class="fas fa-eye" id="togglePassword" style="position: absolute; right: 15px; top: 42px; cursor: pointer; color: #6b7280;"></i>
+                            <div class="hint">Minimal 8 karakter</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h2>Logo Sekolah</h2>
+                    <div class="form-group">
+                        <label for="logo" class="required">Upload Logo</label>
+                        <div class="file-upload" id="fileUploadArea">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p><strong>Klik untuk memilih file</strong> atau drag & drop</p>
+                            <p>Format yang didukung: JPG, PNG, SVG (Maks. 5MB)</p>
+                        </div>
+                        <input type="file" id="logo" name="logo" accept=".jpg,.jpeg,.png,.svg,.gif" style="display: none;">
+                        <div id="fileInfo" class="file-info hidden">
+                            File terpilih: <span id="fileName"></span> (<span id="fileSize"></span>)
+                        </div>
+                        <div id="savedLogoContainer" style="display: none; margin-top: 15px; text-align: center;">
+                            <p style="color: var(--text-muted); margin-bottom: 5px; font-size: 0.9rem;">Logo Tersimpan:</p>
+                            <img id="savedLogo" src="" alt="Logo Sekolah" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid var(--border-color); padding: 5px; background: rgba(255,255,255,0.05);">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h2>KOP Sekolah</h2>
+                    <div class="form-group">
+                        <label for="kop_sekolah" class="required">Upload KOP Sekolah</label>
+                        <div class="file-upload" id="kopUploadArea">
+                            <i class="fas fa-image"></i>
+                            <p><strong>Klik untuk memilih file</strong> atau drag & drop</p>
+                            <p>Format yang didukung: JPG, PNG, SVG (Maks. 5MB)</p>
+                        </div>
+                        <input type="file" id="kop_sekolah" name="kop_sekolah" accept=".jpg,.jpeg,.png,.svg,.gif" style="display: none;">
+                        <div id="kopFileInfo" class="file-info hidden">
+                            File terpilih: <span id="kopFileName"></span> (<span id="kopFileSize"></span>)
+                        </div>
+                        <div id="savedKopContainer" style="display: none; margin-top: 15px; text-align: center;">
+                            <p style="color: var(--text-muted); margin-bottom: 5px; font-size: 0.9rem;">KOP Tersimpan:</p>
+                            <img id="savedKop" src="" alt="KOP Sekolah" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid var(--border-color); padding: 5px; background: rgba(255,255,255,0.05);">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh Data</button>
+                    <button type="button" id="resetBtn"><i class="fas fa-trash"></i> Reset</button>
+                    <button type="submit" id="submitBtn">
+                        <span id="submitText">Simpan Data</span>
+                        <span id="submitLoading" style="display: none;">
+                            <span class="loading"></span> Menyimpan...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        </div>
+    </main>
+
+    <script>
+        // Inisialisasi Supabase
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // DOM Elements
+        const schoolForm = document.getElementById('schoolForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const messageDiv = document.getElementById('message');
+        const fileInput = document.getElementById('logo');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const submitText = document.getElementById('submitText');
+        const submitLoading = document.getElementById('submitLoading');
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        const savedLogoContainer = document.getElementById('savedLogoContainer');
+        const savedLogo = document.getElementById('savedLogo');
+        let currentLogoUrl = ''; // Menyimpan URL logo yang ada di database
+        
+        // DOM Elements for KOP
+        const kopInput = document.getElementById('kop_sekolah');
+        const kopUploadArea = document.getElementById('kopUploadArea');
+        const kopFileInfo = document.getElementById('kopFileInfo');
+        const kopFileName = document.getElementById('kopFileName');
+        const kopFileSize = document.getElementById('kopFileSize');
+        const savedKopContainer = document.getElementById('savedKopContainer');
+        const savedKop = document.getElementById('savedKop');
+        let currentKopUrl = ''; // Menyimpan URL KOP yang ada di database
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // File upload area click
+            fileUploadArea.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // File input change
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // Drag and drop untuk file upload
+            fileUploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                fileUploadArea.classList.add('dragover');
+            });
+            
+            fileUploadArea.addEventListener('dragleave', function() {
+                fileUploadArea.classList.remove('dragover');
+            });
+            
+            fileUploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                fileUploadArea.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect();
+                }
+            });
+
+            // KOP upload area click
+            kopUploadArea.addEventListener('click', function() {
+                kopInput.click();
+            });
+            kopInput.addEventListener('change', handleKopSelect);
+            kopUploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                kopUploadArea.classList.add('dragover');
+            });
+            kopUploadArea.addEventListener('dragleave', function() {
+                kopUploadArea.classList.remove('dragover');
+            });
+            kopUploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                kopUploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    kopInput.files = e.dataTransfer.files;
+                    handleKopSelect();
+                }
+            });
+            
+            // Form submit
+            schoolForm.addEventListener('submit', handleFormSubmit);
+            
+            // Refresh button
+            refreshBtn.addEventListener('click', () => loadData(true));
+            
+            // Reset (Delete) button
+            resetBtn.addEventListener('click', deleteData);
+
+            // Toggle Password
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+
+            // Load Data saat halaman dibuka
+            loadData();
+        });
+        
+        // Fungsi untuk menangani pemilihan file
+        function handleFileSelect() {
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                
+                // Validasi ukuran file (maks 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    showMessage('Ukuran file terlalu besar. Maksimal 5MB.', 'error');
+                    fileInput.value = '';
+                    fileInfo.classList.add('hidden');
+                    return;
+                }
+                
+                // Validasi tipe file
+                const validTypes = ['image/jpeg', 'image/png', 'image/svg+xml', 'image/gif'];
+                if (!validTypes.includes(file.type)) {
+                    showMessage('Format file tidak didukung. Gunakan JPG, PNG, atau SVG.', 'error');
+                    fileInput.value = '';
+                    fileInfo.classList.add('hidden');
+                    return;
+                }
+                
+                // Tampilkan info file
+                fileName.textContent = file.name;
+                fileSize.textContent = `${fileSizeMB} MB`;
+                fileInfo.classList.remove('hidden');
+
+                // Preview Image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    savedLogo.src = e.target.result;
+                    savedLogoContainer.style.display = 'block';
+                    const label = savedLogoContainer.querySelector('p');
+                    if(label) label.textContent = "Preview Logo:";
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Fungsi untuk menangani pemilihan file KOP
+        function handleKopSelect() {
+            if (kopInput.files.length > 0) {
+                const file = kopInput.files[0];
+                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                
+                if (file.size > 5 * 1024 * 1024) {
+                    showMessage('Ukuran file KOP terlalu besar. Maksimal 5MB.', 'error');
+                    kopInput.value = '';
+                    kopFileInfo.classList.add('hidden');
+                    return;
+                }
+                
+                const validTypes = ['image/jpeg', 'image/png', 'image/svg+xml', 'image/gif'];
+                if (!validTypes.includes(file.type)) {
+                    showMessage('Format file KOP tidak didukung. Gunakan JPG, PNG, atau SVG.', 'error');
+                    kopInput.value = '';
+                    kopFileInfo.classList.add('hidden');
+                    return;
+                }
+                
+                kopFileName.textContent = file.name;
+                kopFileSize.textContent = `${fileSizeMB} MB`;
+                kopFileInfo.classList.remove('hidden');
+
+                // Preview Image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    savedKop.src = e.target.result;
+                    savedKopContainer.style.display = 'block';
+                    const label = savedKopContainer.querySelector('p');
+                    if(label) label.textContent = "Preview KOP:";
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Fungsi untuk menangani submit form
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            // Validasi form
+            if (!validateForm()) {
+                return;
+            }
+            
+            // Tampilkan loading
+            submitText.style.display = 'none';
+            submitLoading.style.display = 'inline';
+            submitBtn.disabled = true;
+            
+            try {
+                // 1. Upload file logo ke bucket 'aset' di Supabase
+                let logoUrl = currentLogoUrl; // Gunakan logo lama secara default
+                
+                // Jika ada file baru dipilih, upload file tersebut
+                if (fileInput.files.length > 0) {
+                    logoUrl = await uploadLogo();
+                }
+                
+                if (!logoUrl) {
+                    throw new Error('Logo belum tersedia. Harap upload logo.');
+                }
+                
+                // Upload file KOP
+                let kopUrl = currentKopUrl;
+                if (kopInput.files.length > 0) {
+                    kopUrl = await uploadKop();
+                }
+                
+                if (!kopUrl) {
+                    throw new Error('KOP belum tersedia. Harap upload KOP.');
+                }
+                
+                // 2. Simpan data ke tabel 'identitassekolah'
+                const formData = getFormData(logoUrl, kopUrl);
+                const { data, error } = await supabaseClient
+                    .from('identitassekolah')
+                    .upsert([formData]);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                // 3. Tampilkan pesan sukses
+                showMessage('Data identitas sekolah anda berhasil disimpan', 'success');
+                // resetForm(); // Dihapus agar data tetap tampil di halaman
+                
+                // Update tampilan logo tersimpan
+                if (logoUrl) {
+                    currentLogoUrl = logoUrl;
+                    savedLogo.src = logoUrl;
+                    savedLogoContainer.style.display = 'block';
+                }
+
+                if (kopUrl) {
+                    currentKopUrl = kopUrl;
+                    savedKop.src = kopUrl;
+                    savedKopContainer.style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(`Gagal menyimpan data: ${error.message}`, 'error');
+            } finally {
+                // Sembunyikan loading
+                submitText.style.display = 'inline';
+                submitLoading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Fungsi untuk memuat data dari database
+        async function loadData(isManual = false) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('identitassekolah')
+                    .select('*, nip_kepsek::text, tlp::text') // Cast ke text agar presisi angka terjaga
+                    .limit(1)
+                    .single();
+                
+                if (data) {
+                    document.getElementById('npsn').value = data.npsn;
+                    document.getElementById('nama_sekolah').value = data.nama_sekolah;
+                    document.getElementById('status').value = data.status;
+                    document.getElementById('nama_kepsek').value = data.nama_kepsek;
+                    document.getElementById('nip_kepsek').value = data.nip_kepsek;
+                    document.getElementById('jabatan').value = data.jabatan;
+                    document.getElementById('alamat').value = data.alamat;
+                    document.getElementById('tlp').value = data.tlp;
+                    document.getElementById('email').value = data.email;
+                    document.getElementById('slogan').value = data.slogan || '';
+                    document.getElementById('tahun_pelajaran').value = data.tahun_pelajaran;
+                    document.getElementById('username').value = data.username;
+                    document.getElementById('password').value = data.password;
+                    
+                    // Simpan URL logo dan update UI
+                    if (data.logo) {
+                        currentLogoUrl = data.logo;
+                        fileName.textContent = "Logo sudah tersimpan (Upload baru untuk mengganti)";
+                        fileInfo.classList.remove('hidden');
+                        // Tampilkan gambar logo
+                        savedLogo.src = data.logo;
+                        savedLogoContainer.style.display = 'block';
+                        const label = savedLogoContainer.querySelector('p');
+                        if(label) label.textContent = "Logo Tersimpan:";
+                    }
+                    
+                    // Simpan URL KOP dan update UI
+                    if (data.kop_sekolah) {
+                        currentKopUrl = data.kop_sekolah;
+                        kopFileName.textContent = "KOP sudah tersimpan (Upload baru untuk mengganti)";
+                        kopFileInfo.classList.remove('hidden');
+                        savedKop.src = data.kop_sekolah;
+                        savedKopContainer.style.display = 'block';
+                        const label = savedKopContainer.querySelector('p');
+                        if(label) label.textContent = "KOP Tersimpan:";
+                    }
+
+                    // Update Navbar Identity (Nama Sekolah & Logo)
+                    if (data.nama_sekolah) {
+                        document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    }
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                    
+                    if (isManual) {
+                        showMessage('Data berhasil diperbarui dari database.', 'success');
+                    }
+                }
+            } catch (err) {
+                console.log("Belum ada data tersimpan atau error:", err);
+                if (isManual) {
+                    showMessage('Gagal menarik data: ' + err.message, 'error');
+                }
+            }
+        }
+        
+        // Fungsi untuk upload logo ke bucket Supabase
+        async function uploadLogo() {
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                throw new Error('File logo tidak ditemukan');
+            }
+            
+            // Buat nama file unik berdasarkan NPSN dan timestamp
+            const npsn = document.getElementById('npsn').value;
+            const timestamp = Date.now();
+            const fileExt = file.name.split('.').pop();
+            const fileName = `logo_${npsn}_${timestamp}.${fileExt}`;
+            
+            // Upload file ke bucket 'aset'
+            const { data, error } = await supabaseClient.storage
+                .from('aset')
+                .upload(fileName, file);
+            
+            if (error) {
+                throw error;
+            }
+            
+            // Dapatkan URL publik untuk file yang diupload
+            const { data: { publicUrl } } = supabaseClient.storage
+                .from('aset')
+                .getPublicUrl(fileName);
+            
+            return publicUrl;
+        }
+        
+        // Fungsi untuk upload KOP
+        async function uploadKop() {
+            const file = kopInput.files[0];
+            if (!file) throw new Error('File KOP tidak ditemukan');
+            
+            const npsn = document.getElementById('npsn').value;
+            const timestamp = Date.now();
+            const fileExt = file.name.split('.').pop();
+            const fileName = `kop_${npsn}_${timestamp}.${fileExt}`;
+            
+            const { data, error } = await supabaseClient.storage
+                .from('aset')
+                .upload(fileName, file);
+            
+            if (error) throw error;
+            
+            const { data: { publicUrl } } = supabaseClient.storage
+                .from('aset')
+                .getPublicUrl(fileName);
+            
+            return publicUrl;
+        }
+
+        // Fungsi untuk menghapus data (Reset)
+        async function deleteData() {
+            const npsn = document.getElementById('npsn').value;
+            
+            if (!npsn) {
+                showMessage('Tidak ada data NPSN untuk dihapus.', 'error');
+                return;
+            }
+            
+            if (confirm('Apakah Anda yakin ingin MENGHAPUS data sekolah ini dari database? Tindakan ini tidak dapat dibatalkan.')) {
+                try {
+                    // 1. Hapus Logo dari Storage jika ada
+                    if (currentLogoUrl) {
+                        try {
+                            // Ambil nama file dari URL (setelah nama bucket 'aset/')
+                            const path = currentLogoUrl.split('/aset/')[1];
+                            if (path) {
+                                const fileName = decodeURIComponent(path);
+                                const { error: storageError } = await supabaseClient.storage
+                                    .from('aset')
+                                    .remove([fileName]);
+                                
+                                if (storageError) console.warn('Gagal menghapus file logo dari storage:', storageError);
+                            }
+                        } catch (storageErr) {
+                            console.warn('Error parsing logo URL:', storageErr);
+                        }
+                    }
+                    
+                    // Hapus KOP dari Storage jika ada
+                    if (currentKopUrl) {
+                        try {
+                            const path = currentKopUrl.split('/aset/')[1];
+                            if (path) {
+                                const fileName = decodeURIComponent(path);
+                                const { error: storageError } = await supabaseClient.storage
+                                    .from('aset')
+                                    .remove([fileName]);
+                                if (storageError) console.warn('Gagal menghapus file KOP dari storage:', storageError);
+                            }
+                        } catch (storageErr) {
+                            console.warn('Error parsing KOP URL:', storageErr);
+                        }
+                    }
+
+                    // 2. Hapus data dari tabel
+                    const { error } = await supabaseClient
+                        .from('identitassekolah')
+                        .delete()
+                        .eq('npsn', npsn);
+                    
+                    if (error) throw error;
+                    
+                    showMessage('Data berhasil dihapus dari database.', 'success');
+                    currentLogoUrl = ''; // Reset variabel logo
+                    currentKopUrl = ''; // Reset variabel kop
+                    resetForm(); // Bersihkan form setelah dihapus
+                } catch (error) {
+                    console.error('Error deleting data:', error);
+                    showMessage('Gagal menghapus data: ' + error.message, 'error');
+                }
+            }
+        }
+        
+        // Fungsi untuk mendapatkan data dari form
+        function getFormData(logoUrl, kopUrl) {
+            return {
+                npsn: document.getElementById('npsn').value,
+                nama_sekolah: document.getElementById('nama_sekolah').value,
+                status: document.getElementById('status').value,
+                nama_kepsek: document.getElementById('nama_kepsek').value,
+                nip_kepsek: document.getElementById('nip_kepsek').value, // Jangan parseInt untuk NIP
+                jabatan: document.getElementById('jabatan').value,
+                alamat: document.getElementById('alamat').value,
+                tlp: document.getElementById('tlp').value, // Jangan parseInt untuk No HP
+                email: document.getElementById('email').value,
+                slogan: document.getElementById('slogan').value,
+                tahun_pelajaran: document.getElementById('tahun_pelajaran').value,
+                logo: logoUrl,
+                kop_sekolah: kopUrl,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
+        }
+        
+        // Fungsi untuk validasi form
+        function validateForm() {
+            // Validasi NPSN (8 digit)
+            const npsn = document.getElementById('npsn').value;
+            if (npsn.length !== 8) {
+                showMessage('NPSN harus 8 digit angka', 'error');
+                document.getElementById('npsn').focus();
+                return false;
+            }
+            
+            // Validasi password minimal 8 karakter
+            const password = document.getElementById('password').value;
+            if (password.length < 8) {
+                showMessage('Password minimal 8 karakter', 'error');
+                document.getElementById('password').focus();
+                return false;
+            }
+            
+            // Validasi file
+            if (!fileInput.files.length && !currentLogoUrl) {
+                showMessage('Harap pilih file logo', 'error');
+                fileUploadArea.focus();
+                return false;
+            }
+
+            if (!kopInput.files.length && !currentKopUrl) {
+                showMessage('Harap pilih file KOP', 'error');
+                document.getElementById('kopUploadArea').focus();
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Fungsi untuk menampilkan pesan
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block'; // Paksa tampilkan elemen
+            
+            // Scroll ke atas agar pesan terlihat
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Auto hide pesan setelah 5 detik
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Fungsi untuk reset form
+        function resetForm() {
+            schoolForm.reset();
+            fileInfo.classList.add('hidden');
+            messageDiv.style.display = 'none';
+            savedLogoContainer.style.display = 'none';
+            document.getElementById('kopFileInfo').classList.add('hidden');
+            document.getElementById('savedKopContainer').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPPEDIK-SMKN 1 Mentok</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Mencegah scroll ganda pada body */
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('bg2.jpg') no-repeat center center;
+            background-size: cover;
+            filter: blur(5px);
+            transform: scale(1.05);
+            z-index: -1;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        .navbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-dashboard {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(102,126,234,0.35);
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .btn-dashboard:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        .navbar-date {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0;
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: visible;
+        }
+
+        .card-header { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .card-header h3 { font-size: 1.1rem; color: #444; }
+
+        /* --- Form --- */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            align-items: start;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #444;
+        }
+
+        .form-group label small {
+            font-weight: 400;
+            color: #999;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dfe3e8;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: #333;
+            background-color: #fff;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 44px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+        }
+
+        .form-control:disabled {
+            background-color: #f4f6f9;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+
+        .btn:hover { opacity: 0.9; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-primary { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: #fff; }
+        .btn-secondary { background-color: #eef0f3; color: #555; }
+        .btn-danger { background-color: #fdecea; color: #e74c3c; }
+        .btn-sm { padding: 6px 12px; font-size: 0.78rem; border-radius: 5px; }
+
+        /* --- Table --- */
+        .table-responsive { overflow-x: auto; }
+        .custom-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .custom-table th, .custom-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #f1f1f1; vertical-align: middle; }
+        .custom-table th { background-color: #f8f9fa; color: #555; font-weight: 600; }
+        .custom-table tr:hover { background-color: #f9f9f9; }
+
+        .id-badge {
+            display: inline-block;
+            background-color: #eef0ff;
+            color: var(--secondary-color);
+            font-weight: 700;
+            font-size: 0.78rem;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+
+        .action-cell { display: flex; gap: 8px; }
+
+        .status-msg {
+            font-size: 0.85rem;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-top: 14px;
+            display: none;
+        }
+
+        .status-msg.show { display: block; }
+        .status-msg.success { background-color: #eafaf1; color: #1e8449; }
+        .status-msg.error { background-color: #fdecea; color: #c0392b; }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 0 0.75rem; }
+            .navbar-brand img { height: 32px; }
+            .navbar-brand span {
+                font-size: 0.95rem;
+                max-width: 130px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .navbar-right { gap: 8px; }
+            .navbar-date { display: none !important; }
+            .btn-dashboard { padding: 8px 10px; }
+            .btn-dashboard span.btn-label { display: none; }
+
+            .main-content { padding: 1rem; }
+            .dashboard-card { padding: 16px; }
+
+            .form-grid { grid-template-columns: 1fr; gap: 16px; }
+
+            .form-actions { flex-direction: column; }
+            .form-actions .btn { width: 100%; justify-content: center; }
+
+            .custom-table th, .custom-table td { padding: 10px 8px; font-size: 0.8rem; }
+            .action-cell { flex-direction: column; gap: 6px; }
+            .action-cell .btn { width: 100%; justify-content: center; }
+        }
+
+        @media (max-width: 480px) {
+            .main-content { padding: 0.75rem; }
+            .dashboard-card { padding: 14px; border-radius: 10px; }
+            .dashboard-card h2 { font-size: 1.05rem; }
+            .id-badge { font-size: 0.72rem; padding: 3px 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="dasboradmin.html" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <div class="navbar-right">
+            <a href="dasboradmin.html" class="btn-dashboard">
+                <i class="fas fa-th-large"></i>
+                <span class="btn-label">Dashboard</span>
+            </a>
+            <div class="navbar-date">
+                <i class="far fa-calendar-alt" style="color: var(--primary-color);"></i>
+                <span id="navbarDate"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+        <div class="dashboard-card">
+            <h2><i class="fa fa-building" style="color: var(--primary-color);"></i> Data DUDI</h2>
+            <p style="color: #666; margin-top: 10px;">Kelola data Dunia Usaha dan Dunia Industri (DUDI) sebagai tempat pelaksanaan PKL siswa.</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3 id="formTitle"><i class="fas fa-plus" style="color: var(--primary-color);"></i> Tambah Data DUDI</h3>
+            </div>
+
+            <form id="dudiForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>ID <small>(Otomatis)</small></label>
+                        <input type="text" id="formId" class="form-control" disabled placeholder="Akan dibuat otomatis oleh sistem">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formNamaPerusahaan">Nama Perusahaan</label>
+                        <input type="text" id="formNamaPerusahaan" class="form-control" placeholder="Contoh: PT Maju Bersama" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formAlamat">Alamat</label>
+                        <textarea id="formAlamat" class="form-control" rows="2" placeholder="Contoh: Jl. Industri No. 10, Simpang Teritip" required></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-save"></i> Simpan
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="display:none;">
+                        <i class="fas fa-times"></i> Batal Edit
+                    </button>
+                </div>
+
+                <div class="status-msg" id="statusMsg"></div>
+            </form>
+        </div>
+
+        <!-- Table Card -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="fas fa-list" style="color: var(--primary-color);"></i> Daftar Data DUDI</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>ID</th>
+                            <th>Nama Perusahaan</th>
+                            <th>Alamat</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dudiTableBody">
+                        <tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <script>
+        // --- Supabase Integration ---
+        // Menggunakan 1 project Supabase untuk semua kebutuhan
+        const supabaseUrl = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+
+        const dudiSupabaseUrl = supabaseUrl;
+        const dudiSupabaseKey = supabaseKey;
+
+        const TABLE_NAME = 'datadudi';
+
+        let supabaseClient = null;
+        let dudiClient = null;
+        let editingId = null;
+        let dudiCache = [];
+
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            dudiClient = supabase.createClient(dudiSupabaseUrl, dudiSupabaseKey);
+        }
+
+        // --- Navbar: Identitas Sekolah ---
+        async function loadSchoolIdentity() {
+            if (!supabaseClient) return;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo')
+                    .limit(1)
+                    .single();
+
+                if (data) {
+                    if (data.nama_sekolah) {
+                        document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    }
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading school identity:', err);
+            }
+        }
+
+        // --- Navbar: Tanggal ---
+        function updateNavbarDate() {
+            const now = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            document.getElementById('navbarDate').textContent = now.toLocaleDateString('id-ID', options);
+        }
+
+        // --- Status Message Helper ---
+        function showStatus(message, type) {
+            const el = document.getElementById('statusMsg');
+            el.textContent = message;
+            el.className = 'status-msg show ' + type;
+            setTimeout(() => { el.classList.remove('show'); }, 4000);
+        }
+
+        // --- Load Daftar Data DUDI ---
+        async function loadDudiList() {
+            const tbody = document.getElementById('dudiTableBody');
+            if (!dudiClient) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#e74c3c;">Supabase belum termuat.</td></tr>';
+                return;
+            }
+
+            try {
+                const { data, error } = await dudiClient
+                    .from(TABLE_NAME)
+                    .select('*');
+
+                if (error) throw error;
+
+                dudiCache = (data || []).slice().sort((a, b) => {
+                    const numA = parseInt(a.id, 10);
+                    const numB = parseInt(b.id, 10);
+                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+
+                tbody.innerHTML = '';
+
+                if (dudiCache.length > 0) {
+                    dudiCache.forEach((item, index) => {
+                        const row = `<tr>
+                            <td>${index + 1}</td>
+                            <td><span class="id-badge">#${item.id}</span></td>
+                            <td>${item.nama_perusahaan || '-'}</td>
+                            <td>${item.alamat || '-'}</td>
+                            <td class="action-cell">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="editDudi('${item.id}')">
+                                    <i class="fas fa-pen"></i> Edit
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteDudi('${item.id}')">
+                                    <i class="fas fa-trash"></i> Hapus
+                                </button>
+                            </td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Belum ada data DUDI.</td></tr>';
+                }
+            } catch (err) {
+                console.error('Error loading data DUDI:', err);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#e74c3c;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- Generate ID Otomatis (id bertipe text di database) ---
+        function generateNextId() {
+            const numericIds = dudiCache
+                .map(item => parseInt(item.id, 10))
+                .filter(n => !isNaN(n));
+            const maxId = numericIds.length > 0 ? Math.max(...numericIds) : 0;
+            return String(maxId + 1);
+        }
+
+        // --- Simpan (Tambah / Update via Upsert berdasarkan ID) ---
+        document.getElementById('dudiForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const namaPerusahaan = document.getElementById('formNamaPerusahaan').value.trim();
+            const alamat = document.getElementById('formAlamat').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!namaPerusahaan || !alamat) {
+                showStatus('Nama Perusahaan dan Alamat wajib diisi.', 'error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            try {
+                // Jika sedang edit, gunakan ID yang sudah ada (akan diUPDATE).
+                // Jika data baru, buat ID otomatis (akan ditambahkan/INSERT).
+                const idToUse = editingId || generateNextId();
+
+                const { error } = await dudiClient
+                    .from(TABLE_NAME)
+                    .upsert({ id: idToUse, nama_perusahaan: namaPerusahaan, alamat: alamat }, { onConflict: 'id' });
+
+                if (error) throw error;
+
+                showStatus(
+                    editingId ? 'Data DUDI berhasil diperbarui.' : 'Data DUDI berhasil ditambahkan.',
+                    'success'
+                );
+
+                resetForm();
+                loadDudiList();
+            } catch (err) {
+                console.error('Error saving data DUDI:', err);
+                showStatus('Gagal menyimpan data: ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = editingId
+                    ? '<i class="fas fa-save"></i> Update'
+                    : '<i class="fas fa-save"></i> Simpan';
+            }
+        });
+
+        // --- Edit ---
+        function editDudi(id) {
+            const item = dudiCache.find(d => String(d.id) === String(id));
+            if (!item) return;
+
+            editingId = item.id;
+
+            document.getElementById('formId').value = item.id;
+            document.getElementById('formNamaPerusahaan').value = item.nama_perusahaan || '';
+            document.getElementById('formAlamat').value = item.alamat || '';
+
+            document.getElementById('formTitle').innerHTML = '<i class="fas fa-pen" style="color: var(--primary-color);"></i> Edit Data DUDI';
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Update';
+            document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- Batal Edit ---
+        document.getElementById('cancelEditBtn').addEventListener('click', resetForm);
+
+        function resetForm() {
+            editingId = null;
+
+            document.getElementById('dudiForm').reset();
+            document.getElementById('formId').value = '';
+            document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus" style="color: var(--primary-color);"></i> Tambah Data DUDI';
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Simpan';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+        }
+
+        // --- Hapus ---
+        async function deleteDudi(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus data DUDI ini?')) return;
+
+            try {
+                const { error } = await dudiClient
+                    .from(TABLE_NAME)
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                showStatus('Data DUDI berhasil dihapus.', 'success');
+                loadDudiList();
+            } catch (err) {
+                console.error('Error deleting data DUDI:', err);
+                showStatus('Gagal menghapus data: ' + err.message, 'error');
+            }
+        }
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateNavbarDate();
+            loadSchoolIdentity();
+            loadDudiList();
+        });
+    </script>
+</body>
+</html>
