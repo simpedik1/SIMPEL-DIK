@@ -1,7 +1,7 @@
 {
-  "name": "SIMPPedik",
-  "short_name": "SIMPEDIK",
-  "start_url": "https://simpedik1.github.io/SIMPEL-DIK-SMPN2SIMTER/",
+  "name": "SIMPEL-DIK",
+  "short_name": "SIMPEL-DIK",
+  "start_url": "https://simpedik1.github.io/SIMPEL-DIK/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#667eea",
