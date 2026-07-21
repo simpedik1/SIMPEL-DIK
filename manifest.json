@@ -1,7 +1,9 @@
 {
+  "id": "/SIMPEL-DIK/",
   "name": "SIMPEL-DIK",
   "short_name": "SIMPEL-DIK",
   "start_url": "https://simpedik1.github.io/SIMPEL-DIK/",
+  "scope": "https://simpedik1.github.io/SIMPEL-DIK/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#667eea",
@@ -9,12 +11,26 @@
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
