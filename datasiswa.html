@@ -696,6 +696,8 @@
 
         // Kolom yang valid sesuai tabel 'datasiswa' di database
         const KOLOM_VALID = ['nisn', 'nama_siswa', 'tempat_lahir', 'tanggal_lahir', 'nama_ayah', 'nama_ibu', 'alamat'];
+        // Kolom yang WAJIB diisi (NOT NULL) sesuai constraint di database
+        const KOLOM_WAJIB = ['nisn', 'nama_siswa', 'alamat'];
 
         importBtn.addEventListener('click', () => {
             importFile.click();
@@ -756,7 +758,23 @@
                 // buang baris yang seluruh kolomnya kosong
                 .filter(row => Object.values(row).some(v => v !== null && v !== undefined && v !== ''));
 
-            return { rows, kolomAsingDitemukan };
+            // Validasi kolom wajib (NOT NULL di database) untuk setiap baris
+            const rowsValid = [];
+            const rowsInvalid = [];
+            rows.forEach((row, idx) => {
+                const kolomKosong = KOLOM_WAJIB.filter(k => row[k] === null || row[k] === undefined || row[k] === '');
+                if (kolomKosong.length > 0) {
+                    rowsInvalid.push({
+                        baris: idx + 2, // +2: baris 1 = header, data mulai baris 2 di file
+                        nisn: row.nisn || '(kosong)',
+                        kolomKosong
+                    });
+                } else {
+                    rowsValid.push(row);
+                }
+            });
+
+            return { rows: rowsValid, rowsInvalid, kolomAsingDitemukan };
         }
 
         // Fungsi untuk memproses data hasil parsing (dari CSV maupun Excel)
@@ -767,10 +785,25 @@
                 return;
             }
 
-            const { rows, kolomAsingDitemukan } = bersihkanData(rawRows);
+            const { rows, rowsInvalid, kolomAsingDitemukan } = bersihkanData(rawRows);
 
-            if (rows.length === 0) {
+            if (rows.length === 0 && rowsInvalid.length === 0) {
                 alert('Tidak ada data valid yang bisa diimport. Pastikan header kolom sesuai: nisn, nama_siswa, tempat_lahir, tanggal_lahir, nama_ayah, nama_ibu, alamat');
+                importFile.value = '';
+                return;
+            }
+
+            // Jika ada baris yang kolom wajibnya (nisn, nama_siswa, alamat) kosong, hentikan import
+            // dan beritahu persis baris mana yang bermasalah, supaya user bisa perbaiki filenya dulu.
+            if (rowsInvalid.length > 0) {
+                const daftarMasalah = rowsInvalid
+                    .slice(0, 10) // tampilkan maksimal 10 baris pertama agar alert tidak kepanjangan
+                    .map(r => `Baris ${r.baris} (NISN: ${r.nisn}): kolom ${r.kolomKosong.join(', ')} kosong`)
+                    .join('\n');
+                const sisa = rowsInvalid.length > 10 ? `\n...dan ${rowsInvalid.length - 10} baris lainnya bermasalah.` : '';
+                alert(
+                    `Import dibatalkan. Ada ${rowsInvalid.length} baris dengan kolom wajib (nisn, nama_siswa, alamat) yang kosong:\n\n${daftarMasalah}${sisa}\n\nPerbaiki file lalu import ulang.`
+                );
                 importFile.value = '';
                 return;
             }
