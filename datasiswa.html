@@ -335,7 +335,7 @@
                 </div>
                 <div class="form-group">
                     <label for="alamat">Alamat</label>
-                    <textarea id="alamat" name="alamat" placeholder="Alamat Lengkap" required></textarea>
+                    <textarea id="alamat" name="alamat" placeholder="Alamat Lengkap"></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
@@ -696,8 +696,8 @@
 
         // Kolom yang valid sesuai tabel 'datasiswa' di database
         const KOLOM_VALID = ['nisn', 'nama_siswa', 'tempat_lahir', 'tanggal_lahir', 'nama_ayah', 'nama_ibu', 'alamat'];
-        // Kolom yang WAJIB diisi (NOT NULL) sesuai constraint di database
-        const KOLOM_WAJIB = ['nisn', 'nama_siswa', 'alamat'];
+        // Kolom yang WAJIB diisi - hanya nisn dan nama_siswa
+        const KOLOM_WAJIB = ['nisn', 'nama_siswa'];
 
         importBtn.addEventListener('click', () => {
             importFile.click();
