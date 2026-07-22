@@ -814,10 +814,26 @@
 
             // Cocokkan dengan data yang sudah ada di database (nisn + nama_siswa) supaya
             // data yang sudah pernah diinput sebelumnya tidak diinput ulang / ditimpa.
+            // PENTING: ambil langsung dari database (bukan dari variabel allSiswaData yang bisa basi)
+            // supaya pengecekan selalu akurat, terutama kalau import dilakukan berkali-kali berturut-turut.
+            let dataTerbaru;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('datasiswa')
+                    .select('nisn, nama_siswa');
+                if (error) throw error;
+                dataTerbaru = data || [];
+            } catch (err) {
+                console.error('Gagal mengambil data existing sebelum import:', err);
+                alert('Gagal memeriksa data yang sudah ada di database: ' + err.message + '\n\nImport dibatalkan demi keamanan data.');
+                importFile.value = '';
+                return;
+            }
+
             const existingNisnNama = new Set(
-                allSiswaData.map(s => `${String(s.nisn)}||${(s.nama_siswa || '').toLowerCase().trim()}`)
+                dataTerbaru.map(s => `${String(s.nisn)}||${(s.nama_siswa || '').toLowerCase().trim()}`)
             );
-            const existingNisn = new Set(allSiswaData.map(s => String(s.nisn)));
+            const existingNisn = new Set(dataTerbaru.map(s => String(s.nisn)));
 
             const rowsBaru = [];
             const rowsSudahAda = [];      // nisn+nama persis sama dengan yang sudah ada di database
@@ -895,7 +911,11 @@
             } catch (err) {
                 console.error('Import error:', err);
                 const detailPesan = [err.message, err.details, err.hint].filter(Boolean).join(' | ');
-                alert('Gagal import data: ' + detailPesan + '\n\nPastikan header sesuai: nisn, nama_siswa, tempat_lahir, tanggal_lahir, nama_ayah, nama_ibu, alamat');
+                if (err.code === '23505') {
+                    alert('Gagal import: ada NISN di file yang sudah ada di database tapi tidak terdeteksi oleh pengecekan awal (kemungkinan ada proses lain yang mengubah data di saat bersamaan). Silakan coba import ulang.\n\nDetail: ' + detailPesan);
+                } else {
+                    alert('Gagal import data: ' + detailPesan + '\n\nPastikan header sesuai: nisn, nama_siswa, tempat_lahir, tanggal_lahir, nama_ayah, nama_ibu, alamat');
+                }
             } finally {
                 // Reset input file agar bisa pilih file yang sama lagi jika perlu
                 importFile.value = '';
