@@ -793,7 +793,7 @@
                 return;
             }
 
-            // Jika ada baris yang kolom wajibnya (nisn, nama_siswa, alamat) kosong, hentikan import
+            // Jika ada baris yang kolom wajibnya (nisn, nama_siswa) kosong, hentikan import
             // dan beritahu persis baris mana yang bermasalah, supaya user bisa perbaiki filenya dulu.
             if (rowsInvalid.length > 0) {
                 const daftarMasalah = rowsInvalid
@@ -802,7 +802,7 @@
                     .join('\n');
                 const sisa = rowsInvalid.length > 10 ? `\n...dan ${rowsInvalid.length - 10} baris lainnya bermasalah.` : '';
                 alert(
-                    `Import dibatalkan. Ada ${rowsInvalid.length} baris dengan kolom wajib (nisn, nama_siswa, alamat) yang kosong:\n\n${daftarMasalah}${sisa}\n\nPerbaiki file lalu import ulang.`
+                    `Import dibatalkan. Ada ${rowsInvalid.length} baris dengan kolom wajib (nisn, nama_siswa) yang kosong:\n\n${daftarMasalah}${sisa}\n\nPerbaiki file lalu import ulang.`
                 );
                 importFile.value = '';
                 return;
@@ -812,15 +812,81 @@
                 console.warn('Kolom diabaikan karena tidak dikenali:', Array.from(kolomAsingDitemukan).join(', '));
             }
 
+            // Cocokkan dengan data yang sudah ada di database (nisn + nama_siswa) supaya
+            // data yang sudah pernah diinput sebelumnya tidak diinput ulang / ditimpa.
+            const existingNisnNama = new Set(
+                allSiswaData.map(s => `${String(s.nisn)}||${(s.nama_siswa || '').toLowerCase().trim()}`)
+            );
+            const existingNisn = new Set(allSiswaData.map(s => String(s.nisn)));
+
+            const rowsBaru = [];
+            const rowsSudahAda = [];      // nisn+nama persis sama dengan yang sudah ada di database
+            const rowsDuplikatFile = [];  // nisn+nama sama, muncul lebih dari sekali dalam file yang sama
+            const rowsKonflikNisn = [];   // nisn sama tapi nama beda (dengan database ATAU dengan baris lain di file)
+            const nisnDalamBatchIni = new Map(); // nisn -> nama_siswa (baris pertama yg sudah lolos dalam file ini)
+
+            rows.forEach(row => {
+                const namaBersih = (row.nama_siswa || '').toLowerCase().trim();
+                const key = `${row.nisn}||${namaBersih}`;
+
+                if (existingNisnNama.has(key)) {
+                    rowsSudahAda.push(row);
+                    return;
+                }
+
+                if (nisnDalamBatchIni.has(row.nisn)) {
+                    if (nisnDalamBatchIni.get(row.nisn) === namaBersih) {
+                        rowsDuplikatFile.push(row);
+                    } else {
+                        rowsKonflikNisn.push(row); // NISN sama tapi nama beda dgn baris lain di file
+                    }
+                    return;
+                }
+
+                if (existingNisn.has(row.nisn)) {
+                    rowsKonflikNisn.push(row); // NISN sudah dipakai siswa lain di database, nama tidak cocok
+                    return;
+                }
+
+                nisnDalamBatchIni.set(row.nisn, namaBersih);
+                rowsBaru.push(row);
+            });
+
+            if (rowsBaru.length === 0 && rowsKonflikNisn.length === 0) {
+                alert(`Tidak ada data baru untuk diimport. Seluruh ${rowsSudahAda.length + rowsDuplikatFile.length} baris di file sudah pernah diinput sebelumnya.`);
+                importFile.value = '';
+                loadSiswaData();
+                return;
+            }
+
             try {
-                // Insert data ke Supabase (Upsert untuk update jika NISN sudah ada)
-                const { error } = await supabaseClient
-                    .from('datasiswa')
-                    .upsert(rows);
+                let pesan = '';
+                if (rowsBaru.length > 0) {
+                    // Insert HANYA data baru - tidak menimpa data yang sudah ada
+                    const { error } = await supabaseClient
+                        .from('datasiswa')
+                        .insert(rowsBaru);
 
-                if (error) throw error;
+                    if (error) throw error;
+                    pesan += `Berhasil mengimport ${rowsBaru.length} data siswa baru!`;
+                } else {
+                    pesan += 'Tidak ada data baru yang diimport.';
+                }
 
-                let pesan = `Berhasil mengimport ${rows.length} data siswa!`;
+                if (rowsSudahAda.length > 0) {
+                    pesan += `\n\nDilewati (sudah pernah diinput sebelumnya): ${rowsSudahAda.length} baris.`;
+                }
+                if (rowsDuplikatFile.length > 0) {
+                    pesan += `\n\nDilewati (duplikat di dalam file, baris pertama yang dipakai): ${rowsDuplikatFile.length} baris.`;
+                }
+                if (rowsKonflikNisn.length > 0) {
+                    const daftarKonflik = rowsKonflikNisn
+                        .slice(0, 10)
+                        .map(r => `NISN ${r.nisn} - ${r.nama_siswa}`)
+                        .join('\n');
+                    const sisaKonflik = rowsKonflikNisn.length > 10 ? `\n...dan ${rowsKonflikNisn.length - 10} lainnya.` : '';
+                    pesan += `\n\n⚠️ TIDAK diimport karena NISN sama tapi nama beda (kemungkinan salah ketik NISN, cek manual):\n${daftarKonflik}${sisaKonflik}`;
+                }
                 if (kolomAsingDitemukan.size > 0) {
                     pesan += `\n\nKolom berikut diabaikan karena tidak dikenali: ${Array.from(kolomAsingDitemukan).join(', ')}`;
                 }
@@ -829,7 +895,7 @@
             } catch (err) {
                 console.error('Import error:', err);
                 const detailPesan = [err.message, err.details, err.hint].filter(Boolean).join(' | ');
-                alert('Gagal import data: ' + detailPesan + '\n\nPastikan header sesuai: nisn, nama_siswa, tempat_lahir, tanggal_lahir, nama_ayah, nama_ibu, alamat\n\nFormat tanggal_lahir yang didukung: YYYY-MM-DD');
+                alert('Gagal import data: ' + detailPesan + '\n\nPastikan header sesuai: nisn, nama_siswa, tempat_lahir, tanggal_lahir, nama_ayah, nama_ibu, alamat');
             } finally {
                 // Reset input file agar bisa pilih file yang sama lagi jika perlu
                 importFile.value = '';
