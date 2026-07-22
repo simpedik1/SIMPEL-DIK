@@ -911,8 +911,42 @@
             } catch (err) {
                 console.error('Import error:', err);
                 const detailPesan = [err.message, err.details, err.hint].filter(Boolean).join(' | ');
+
                 if (err.code === '23505') {
-                    alert('Gagal import: ada NISN di file yang sudah ada di database tapi tidak terdeteksi oleh pengecekan awal (kemungkinan ada proses lain yang mengubah data di saat bersamaan). Silakan coba import ulang.\n\nDetail: ' + detailPesan);
+                    // Cari tahu persis NISN mana yang bentrok dengan query ulang ke database.
+                    // Pakai perbandingan angka (bukan string) karena kalau kolom nisn masih
+                    // bertipe numeric, angka 0 di depan akan hilang saat tersimpan
+                    // (mis. "0146898066" tersimpan jadi 146898066), sehingga bentrok dengan
+                    // versi tanpa angka 0 meskipun teksnya beda.
+                    let pesanBentrok = 'Gagal import: ada NISN yang bentrok dengan data di database.\n\n';
+                    try {
+                        const nisnListBaru = rowsBaru.map(r => r.nisn);
+                        const { data: cekBentrok, error: errCek } = await supabaseClient
+                            .from('datasiswa')
+                            .select('nisn, nama_siswa')
+                            .in('nisn', nisnListBaru);
+
+                        if (errCek) throw errCek;
+
+                        const bentrokList = [];
+                        rowsBaru.forEach(rowFile => {
+                            const cocok = (cekBentrok || []).find(dbRow => Number(dbRow.nisn) === Number(rowFile.nisn));
+                            if (cocok) {
+                                bentrokList.push(`NISN di file: ${rowFile.nisn} (${rowFile.nama_siswa})  ⟷  NISN di database: ${cocok.nisn} (${cocok.nama_siswa})`);
+                            }
+                        });
+
+                        if (bentrokList.length > 0) {
+                            pesanBentrok += 'Data yang bentrok:\n' + bentrokList.join('\n');
+                            pesanBentrok += '\n\nKemungkinan besar kolom "nisn" di database masih bertipe numeric, sehingga angka 0 di depan NISN hilang saat tersimpan. Cek dan ubah tipe kolom "nisn" menjadi text di Supabase, lalu perbaiki data NISN yang sudah kadung salah simpan.';
+                        } else {
+                            pesanBentrok += 'Tidak ditemukan kecocokan spesifik lewat pengecekan tambahan.\n\nDetail asli: ' + detailPesan;
+                        }
+                    } catch (errCekBentrok) {
+                        console.error('Gagal mengecek data bentrok:', errCekBentrok);
+                        pesanBentrok += 'Detail asli: ' + detailPesan;
+                    }
+                    alert(pesanBentrok);
                 } else {
                     alert('Gagal import data: ' + detailPesan + '\n\nPastikan header sesuai: nisn, nama_siswa, tempat_lahir, tanggal_lahir, nama_ayah, nama_ibu, alamat');
                 }
