@@ -12,6 +12,9 @@
     <link rel="apple-touch-icon" href="icon-192.png">
 
     
+    <!-- Font Awesome (untuk ikon) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
     <!-- Supabase JS SDK -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -374,6 +377,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            gap: 12px;
             box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
             z-index: 1000;
         }
@@ -394,6 +398,79 @@
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+
+        /* Tombol Informasi (icon telepon) */
+        .btn-info-footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 12px 20px;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-info-footer i {
+            font-size: 1.1rem;
+        }
+        .btn-info-footer:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+
+        /* Modal Informasi (gambar, tidak terpotong) */
+        #infoModal {
+            padding: 10px;
+        }
+        #infoModal .modal-content {
+            width: auto;
+            height: auto;
+            max-width: 90vw;
+            max-height: 90vh;
+            padding: 20px;
+            margin: 0;
+            border-radius: 10px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
+            animation: slideDown 0.3s ease;
+        }
+        #infoModal .modal-content img {
+            max-width: 100%;
+            max-height: calc(90vh - 40px);
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 8px;
+            display: block;
+        }
+        #infoModal .close-modal {
+            position: absolute;
+            top: -14px;
+            right: -14px;
+            font-size: 1.6rem;
+            color: #fff;
+            background: #667eea;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            float: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
 
         .btn-cancel {
@@ -1088,6 +1165,15 @@
     <!-- Sticky Footer -->
     <div class="sticky-footer">
         <button class="btn-login-footer" id="openLoginModal">Login</button>
+        <button class="btn-info-footer" id="openInfoModal"><i class="fas fa-phone"></i> Informasi</button>
+    </div>
+
+    <!-- Modal Informasi (Gambar Konsultasi) -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeInfoModal">&times;</span>
+            <img src="konsultasi.jpeg" alt="Informasi Konsultasi">
+        </div>
     </div>
 
     <!-- Modal Selamat Datang -->
@@ -1794,6 +1880,24 @@
             cancelLoginBtn.addEventListener('click', closeLoginModal);
             window.addEventListener('click', (e) => {
                 if (e.target === loginModal) closeLoginModal();
+            });
+
+            // --- Logic Modal Informasi (Gambar Konsultasi) ---
+            const openInfoBtn = document.getElementById('openInfoModal');
+            const infoModal = document.getElementById('infoModal');
+            const closeInfoModal = document.getElementById('closeInfoModal');
+
+            openInfoBtn.addEventListener('click', () => {
+                infoModal.classList.add('active');
+            });
+
+            function closeInfoModalFn() {
+                infoModal.classList.remove('active');
+            }
+
+            closeInfoModal.addEventListener('click', closeInfoModalFn);
+            window.addEventListener('click', (e) => {
+                if (e.target === infoModal) closeInfoModalFn();
             });
 
 
