@@ -1,0 +1,13 @@
+/* fix.css */
+.glass {
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* fallback jika tidak support */
+@supports not (backdrop-filter: blur(10px)) {
+  .glass {
+    background: rgba(255,255,255,0.8);
+  }
+}

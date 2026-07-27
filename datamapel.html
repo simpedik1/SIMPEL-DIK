@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPEL-DIK</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Mencegah scroll ganda pada body */
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar {
+            justify-content: space-between;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        /* --- Navbar Dashboard Button --- */
+        .navbar-dashboard-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .navbar-dashboard-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0; /* Default: Full width */
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Tables */
+        .table-responsive { overflow-x: auto; }
+        .custom-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .custom-table th, .custom-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #f1f1f1; }
+        .custom-table th { background-color: #f8f9fa; color: #555; font-weight: 600; }
+        .custom-table tr:hover { background-color: #f9f9f9; }
+        
+        /* Buttons */
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; color: white; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-danger { background-color: #ef4444; }
+        .btn-warning { background-color: #f59e0b; }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); animation: fadeIn 0.3s; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #333; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: #888; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            .navbar-brand span {
+                font-size: 1rem; /* Sedikit lebih kecil di HP */
+            }
+
+            .main-content {
+                padding: 2rem 5px;
+            }
+
+            .dashboard-card {
+                padding: 15px;
+            }
+
+            .modal-content {
+                width: calc(100% - 10px);
+                margin: 0 5px;
+                padding: 15px;
+            }
+
+            .modal-footer {
+                flex-wrap: wrap;
+            }
+
+            .modal-footer .btn {
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+
+            .mapel-toolbar #btnTambahMapel,
+            .mapel-search {
+                width: 100%;
+            }
+
+            .mapel-search input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="dasboradmin.html" class="navbar-dashboard-btn">
+            <i class="fas fa-th-large"></i> Dashboard
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Data Mata Pelajaran</h2>
+            <p style="color: #666; margin-top: 10px;">Kelola data mata pelajaran sekolah di sini.</p>
+        </div>
+        
+        <!-- Container Tabel Data Mapel -->
+        <div class="dashboard-card">
+            <div class="mapel-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <button class="btn btn-primary" id="btnTambahMapel"><i class="fas fa-plus"></i> Tambah Mapel</button>
+                <div class="mapel-search" style="display: flex; gap: 10px;">
+                    <input type="text" placeholder="Cari Mapel..." style="padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Id Mapel</th>
+                            <th>Kode Mapel</th>
+                            <th>Nama Mapel</th>
+                            <th>Guru Pengajar</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 20px; color: #666;">Belum ada data mata pelajaran.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Tambah Mapel -->
+    <div id="modalMapel" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Mata Pelajaran</h3>
+                <span class="close-modal" onclick="toggleModal('modalMapel')">&times;</span>
+            </div>
+            <form id="formMapel">
+                <div class="form-group">
+                    <label for="idMapel">Id</label>
+                    <input type="text" id="idMapel" readonly placeholder="Otomatis terisi (IDM-...)">
+                </div>
+                <div class="form-group">
+                    <label for="kodeMapel">Kode Mapel</label>
+                    <input type="text" id="kodeMapel" required placeholder="Contoh: MTK">
+                </div>
+                <div class="form-group">
+                    <label for="namaMapel">Nama Mapel</label>
+                    <input type="text" id="namaMapel" required placeholder="Contoh: Matematika">
+                </div>
+                <div class="form-group">
+                    <label for="guruMapel">Guru Yang Mengajar</label>
+                    <select id="guruMapel" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"><option value="">Pilih Guru</option></select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="toggleModal('modalMapel')">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Integration for Navbar ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        
+        // --- Supabase Integration for Absensi (Mata Pelajaran) ---
+        const absensiUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const absensiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        
+        if (typeof supabase !== 'undefined') {
+            const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            const absensiClient = supabase.createClient(absensiUrl, absensiKey);
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo')
+                        .limit(1)
+                        .single();
+                    
+                    if (data) {
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading school identity:", err);
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+            document.addEventListener('DOMContentLoaded', loadMapelData);
+            document.addEventListener('DOMContentLoaded', loadGuruOptions);
+
+            // --- Load Data Mapel ---
+            async function loadMapelData() {
+                const tableBody = document.querySelector('.custom-table tbody');
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr>';
+
+                const { data, error } = await absensiClient
+                    .from('matapelajaran')
+                    .select('*')
+                    .order('nama_mapel', { ascending: true });
+
+                if (error) {
+                    console.error(error);
+                    tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Gagal memuat data: ${error.message}</td></tr>`;
+                    return;
+                }
+
+                tableBody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Belum ada data mata pelajaran.</td></tr>';
+                    return;
+                }
+
+                data.forEach((item, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.id}</td>
+                        <td>${item.kode_mapel}</td>
+                        <td>${item.nama_mapel}</td>
+                        <td>${item.nama_guru || '-'}</td>
+                        <td>
+                            <button onclick="editMapel('${item.id}')" style="background:none; border:none; color:#60a5fa; cursor:pointer; margin-right:10px;" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteMapel('${item.id}')" style="background:none; border:none; color:#f87171; cursor:pointer;" title="Hapus"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            // --- Load Data Guru for Dropdown ---
+            async function loadGuruOptions() {
+                const select = document.getElementById('guruMapel');
+                const { data, error } = await supabaseClient
+                    .from('dataguru')
+                    .select('nama_guru')
+                    .order('nama_guru');
+                
+                if (data) {
+                    select.innerHTML = '<option value="">Pilih Guru</option>';
+                    data.forEach(guru => {
+                        const option = document.createElement('option');
+                        option.value = guru.nama_guru;
+                        option.textContent = guru.nama_guru;
+                        select.appendChild(option);
+                    });
+                }
+            }
+
+            // --- Save Data Mapel ---
+            document.getElementById('formMapel').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('idMapel').value;
+                const kode = document.getElementById('kodeMapel').value;
+                const nama = document.getElementById('namaMapel').value;
+                const guru = document.getElementById('guruMapel').value;
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                
+                submitBtn.textContent = 'Menyimpan...';
+                submitBtn.disabled = true;
+
+                const { error } = await absensiClient
+                    .from('matapelajaran')
+                    .upsert({ id: id, kode_mapel: kode, nama_mapel: nama, nama_guru: guru });
+
+                submitBtn.textContent = 'Simpan';
+                submitBtn.disabled = false;
+
+                if (error) {
+                    alert('Gagal menyimpan: ' + error.message);
+                } else {
+                    alert('Data berhasil disimpan!');
+                    toggleModal('modalMapel');
+                    document.getElementById('formMapel').reset();
+                    loadMapelData();
+                }
+            });
+
+            // --- Delete Data Mapel ---
+            window.deleteMapel = async (id) => {
+                if(confirm('Hapus mata pelajaran ini?')) {
+                    const { error } = await absensiClient.from('matapelajaran').delete().eq('id', id);
+                    if(error) alert('Gagal hapus: ' + error.message);
+                    else loadMapelData();
+                }
+            };
+
+            // --- Edit Data Mapel ---
+            window.editMapel = async (id) => {
+                const { data, error } = await absensiClient.from('matapelajaran').select('*').eq('id', id).single();
+                if(data) {
+                    document.getElementById('idMapel').value = data.id;
+                    document.getElementById('kodeMapel').value = data.kode_mapel;
+                    document.getElementById('namaMapel').value = data.nama_mapel;
+                    document.getElementById('guruMapel').value = data.nama_guru || '';
+                    document.getElementById('modalMapel').classList.add('active');
+                }
+            };
+        }
+
+        // --- Modal Logic ---
+        const btnTambahMapel = document.getElementById('btnTambahMapel');
+        const modalMapel = document.getElementById('modalMapel');
+        const inputKode = document.getElementById('kodeMapel');
+        const inputId = document.getElementById('idMapel');
+
+        function toggleModal(modalId) {
+            document.getElementById(modalId).classList.toggle('active');
+        }
+
+        btnTambahMapel.addEventListener('click', () => toggleModal('modalMapel'));
+
+        // Auto-fill ID Logic
+        inputKode.addEventListener('input', function() {
+            inputId.value = 'IDM-' + this.value.toUpperCase();
+        });
+    </script>
+</body>
+</html>

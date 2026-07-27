@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPPEDIK-SMKN 1 Mentok</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF & AutoTable for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <!-- SheetJS (xlsx) untuk Import Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        .navbar-dashboard-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .navbar-dashboard-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 2rem;
+            flex: 1;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand span { font-size: 1rem; }
+
+            .main-content {
+                padding: 2rem 5px;
+            }
+
+            .dashboard-card {
+                padding: 15px;
+            }
+
+            .tab-actions {
+                justify-content: center;
+            }
+
+            .tab-actions .btn {
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+
+            .stat-box {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .modal-content {
+                width: calc(100% - 10px);
+                margin: 0 5px;
+                padding: 15px;
+            }
+
+            .modal-footer {
+                flex-wrap: wrap;
+            }
+
+            .modal-footer .btn {
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+        }
+
+        /* --- Modal & Form Styles (Dark Mode) --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: #1f2937; color: #fff; width: 90%; max-width: 600px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; max-height: 90vh; overflow-y: auto; border: 1px solid #374151; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #374151; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; font-size: 1.2rem; color: #f3f4f6; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: #9ca3af; transition: color 0.2s; }
+        .close-modal:hover { color: #ef4444; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #cbd5e1; font-size: 0.9rem; font-weight: 500; }
+        .form-group input { width: 100%; padding: 10px; background: #374151; border: 1px solid #4b5563; border-radius: 6px; font-size: 0.95rem; color: #fff; transition: border-color 0.3s; }
+        .form-group input:focus { outline: none; border-color: var(--primary-color); }
+        .form-group input[readonly] { background-color: #111827; cursor: not-allowed; }
+
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; color: white; display: inline-flex; align-items: center; gap: 5px; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background: linear-gradient(to right, var(--primary-color), var(--secondary-color)); }
+        .btn-secondary { background-color: #4b5563; }
+        .btn-danger { background-color: #ef4444; }
+        .btn-warning { background-color: #f59e0b; }
+        .btn-success { background-color: #10b981; }
+
+        /* Searchable Dropdown */
+        .searchable-dropdown { position: relative; }
+        .dropdown-options { position: absolute; top: 100%; left: 0; right: 0; background: #374151; border: 1px solid #4b5563; border-radius: 0 0 6px 6px; max-height: 200px; overflow-y: auto; z-index: 10; display: none; }
+        .dropdown-options.show { display: block; }
+        .dropdown-option { padding: 10px; cursor: pointer; border-bottom: 1px solid #4b5563; font-size: 0.95rem; color: #e5e7eb; }
+        .dropdown-option:hover { background-color: #4b5563; }
+        .no-results { padding: 10px; color: #9ca3af; text-align: center; }
+
+        /* Action Bar */
+        .tab-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #374151;
+        }
+
+        /* Table */
+        .table-placeholder {
+            width: 100%;
+            border-collapse: collapse;
+            color: #e5e7eb;
+        }
+        .table-placeholder th, .table-placeholder td {
+            padding: 12px;
+            border-bottom: 1px solid #374151;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .table-placeholder th {
+            background-color: #111827;
+            color: #9ca3af;
+        }
+
+        .stat-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #111827;
+            padding: 10px 18px;
+            border-radius: 8px;
+            color: #e5e7eb;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+        .stat-box i { color: var(--primary-color); }
+
+        #importFileInput { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="dasboradmin.html" class="navbar-dashboard-btn">
+            <i class="fas fa-th-large"></i> Dashboard
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Data Alumni</h2>
+            <p style="color: #666; margin-top: 10px;">Halaman ini digunakan untuk mengelola data alumni, baik input manual satu per satu maupun import melalui file Excel.</p>
+        </div>
+
+        <!-- Container Data Alumni -->
+        <div class="dashboard-card" style="background: #1f2937; border: 1px solid #374151; color: #fff;">
+            <div class="stat-box">
+                <i class="fas fa-user-graduate"></i>
+                <span>Total Alumni: <strong id="totalAlumni">0</strong></span>
+            </div>
+
+            <div class="tab-actions">
+                <button class="btn btn-primary" onclick="openAlumniModal()"><i class="fas fa-plus"></i> Tambah Alumni</button>
+                <button class="btn btn-success" onclick="document.getElementById('importFileInput').click()"><i class="fas fa-file-excel"></i> Import Excel</button>
+                <button class="btn btn-secondary" onclick="downloadTemplateExcel()"><i class="fas fa-download"></i> Download Template</button>
+                <button class="btn btn-danger" onclick="exportAlumniPdf()"><i class="fas fa-file-pdf"></i> Export Pdf</button>
+                <input type="file" id="importFileInput" accept=".xlsx, .xls" onchange="handleImportExcel(event)">
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="table-placeholder">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Kode Mapping</th>
+                            <th>NISN</th>
+                            <th>Nama Siswa</th>
+                            <th>Alamat</th>
+                            <th>Tempat Lahir</th>
+                            <th>Tanggal Lahir</th>
+                            <th>Nama Ayah</th>
+                            <th>Nama Ibu</th>
+                            <th>Tahun Lulus</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alumniTbody">
+                        <tr><td colspan="11" style="text-align:center; padding:20px; color:#6b7280;">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2024 SMK Negeri 1 Simpang Teritip. All rights reserved.</p>
+            <p>Dikembangkan oleh Tim IT Sekolah.</p>
+        </footer>
+
+        <!-- Modal Tambah Alumni -->
+        <div id="alumniModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Tambah Data Alumni</h3>
+                    <span class="close-modal" title="Tutup" aria-label="Close">&times;</span>
+                </div>
+                <form id="alumniForm">
+                    <div class="form-group">
+                        <label>Kode Mapping</label>
+                        <input type="text" id="kodeMapping" name="kodeMapping" placeholder="Masukkan Kode Mapping" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Siswa</label>
+                        <div class="searchable-dropdown">
+                            <input type="text" id="namaSiswaSearch" placeholder="Cari Siswa..." autocomplete="off" required>
+                            <input type="hidden" id="namaSiswa" name="namaSiswa">
+                            <div id="siswaDropdown" class="dropdown-options"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>NISN</label>
+                        <input type="text" id="nisn" name="nisn" placeholder="Otomatis terisi / dapat diubah">
+                    </div>
+                    <div class="form-group">
+                        <label>Alamat</label>
+                        <input type="text" id="alamat" name="alamat">
+                    </div>
+                    <div class="form-group">
+                        <label>Tempat Lahir</label>
+                        <input type="text" id="tempatLahir" name="tempatLahir">
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal Lahir</label>
+                        <input type="date" id="tanggalLahir" name="tanggalLahir">
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Ayah</label>
+                        <input type="text" id="namaAyah" name="namaAyah">
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Ibu</label>
+                        <input type="text" id="namaIbu" name="namaIbu">
+                    </div>
+                    <div class="form-group">
+                        <label>Tahun Lulus</label>
+                        <input type="text" id="tahunLulus" name="tahunLulus" placeholder="Contoh: 2024/2025" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- Supabase Integration (Data Operasional: Alumni, Mapping Siswa) ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+
+        // --- Supabase Integration for SIMPPedik (Data Master: Siswa, Guru, Sekolah) ---
+        const simpedikUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const simpedikKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+
+        let supabaseClient;
+        let simpedikClient;
+        let schoolData = {};
+        let siswaCache = []; // Cache data siswa (dari mappingsiswa) untuk autocomplete
+        let alumniCache = []; // Cache data alumni untuk render & export
+
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            simpedikClient = supabase.createClient(simpedikUrl, simpedikKey);
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await simpedikClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo, kop_sekolah')
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (data) {
+                        schoolData = data;
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.log("Info: Gagal memuat identitas sekolah (mungkin tabel belum ada).");
+                }
+            }
+            document.addEventListener('DOMContentLoaded', () => {
+                loadSchoolIdentity();
+                loadSiswaCache();
+                loadAlumniData();
+            });
+        }
+
+        // --- Load Cache Siswa untuk Autocomplete (dari tabel mappingsiswa) ---
+        async function loadSiswaCache() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('mappingsiswa')
+                    .select('*')
+                    .order('nama_siswa', { ascending: true });
+                if (error) throw error;
+                siswaCache = data || [];
+            } catch (err) {
+                console.error('Gagal memuat cache siswa:', err);
+            }
+        }
+
+        // --- Load Data Alumni dari Supabase ---
+        async function loadAlumniData() {
+            const tbody = document.getElementById('alumniTbody');
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:20px; color:#6b7280;">Memuat data...</td></tr>';
+            try {
+                const { data, error } = await supabaseClient
+                    .from('alumni')
+                    .select('*')
+                    .order('nama_siswa', { ascending: true });
+
+                if (error) throw error;
+
+                alumniCache = data || [];
+                document.getElementById('totalAlumni').textContent = alumniCache.length;
+
+                if (alumniCache.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:20px; color:#6b7280;">Belum ada data alumni.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = alumniCache.map((item, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.kode_maping || '-'}</td>
+                        <td>${item.nisn || '-'}</td>
+                        <td>${item.nama_siswa || '-'}</td>
+                        <td>${item.alamat || '-'}</td>
+                        <td>${item.tempat_lahir || '-'}</td>
+                        <td>${item.tanggal_lahir || '-'}</td>
+                        <td>${item.nama_ayah || '-'}</td>
+                        <td>${item.nama_ibu || '-'}</td>
+                        <td>${item.tahun_lulus || '-'}</td>
+                        <td>
+                            <button class="btn btn-danger" style="padding: 5px 10px;" onclick="deleteAlumni('${item.kode_maping}')" title="Hapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (err) {
+                console.error('Error loading alumni:', err);
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:20px; color:#ef4444;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- Modal Handling ---
+        const modal = document.getElementById('alumniModal');
+        const alumniForm = document.getElementById('alumniForm');
+        const closeSpan = modal.querySelector('.close-modal');
+        const cancelBtn = modal.querySelector('.cancel-btn');
+        const namaSiswaSearch = document.getElementById('namaSiswaSearch');
+        const namaSiswaHidden = document.getElementById('namaSiswa');
+        const siswaDropdown = document.getElementById('siswaDropdown');
+
+        window.openAlumniModal = function() {
+            alumniForm.reset();
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            alumniForm.reset();
+            siswaDropdown.classList.remove('show');
+        }
+
+        closeSpan.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // --- Dropdown Search Logic ---
+        namaSiswaSearch.addEventListener('input', function() {
+            const filter = this.value.toLowerCase();
+            const filtered = siswaCache.filter(s => (s.nama_siswa || '').toLowerCase().includes(filter));
+            renderDropdown(filtered);
+        });
+
+        namaSiswaSearch.addEventListener('focus', function() {
+            const filter = this.value.toLowerCase();
+            const filtered = filter ? siswaCache.filter(s => (s.nama_siswa || '').toLowerCase().includes(filter)) : siswaCache;
+            renderDropdown(filtered);
+        });
+
+        function renderDropdown(data) {
+            siswaDropdown.innerHTML = '';
+            if (data.length === 0) {
+                siswaDropdown.innerHTML = '<div class="no-results">Tidak ditemukan</div>';
+            } else {
+                data.forEach(siswa => {
+                    const div = document.createElement('div');
+                    div.className = 'dropdown-option';
+                    div.textContent = siswa.nama_siswa;
+                    div.onclick = () => selectSiswa(siswa);
+                    siswaDropdown.appendChild(div);
+                });
+            }
+            siswaDropdown.classList.add('show');
+        }
+
+        function selectSiswa(siswa) {
+            namaSiswaSearch.value = siswa.nama_siswa;
+            namaSiswaHidden.value = siswa.nama_siswa;
+
+            document.getElementById('nisn').value = siswa.nisn || '';
+            document.getElementById('alamat').value = siswa.alamat || '';
+            document.getElementById('tempatLahir').value = siswa.tempat_lahir || '';
+            document.getElementById('tanggalLahir').value = siswa.tanggal_lahir || '';
+            document.getElementById('namaAyah').value = siswa.nama_ayah || '';
+            document.getElementById('namaIbu').value = siswa.nama_ibu || '';
+
+            if (siswa.kode_maping) {
+                document.getElementById('kodeMapping').value = siswa.kode_maping;
+            }
+
+            siswaDropdown.classList.remove('show');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!namaSiswaSearch.contains(e.target) && !siswaDropdown.contains(e.target)) {
+                siswaDropdown.classList.remove('show');
+            }
+        });
+
+        // --- Handle Form Submit (Input Manual) ---
+        alumniForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = alumniForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Menyimpan...';
+            submitBtn.disabled = true;
+
+            const formData = {
+                kode_maping: document.getElementById('kodeMapping').value,
+                nama_siswa: namaSiswaHidden.value || namaSiswaSearch.value,
+                nisn: document.getElementById('nisn').value,
+                alamat: document.getElementById('alamat').value,
+                tempat_lahir: document.getElementById('tempatLahir').value,
+                tanggal_lahir: document.getElementById('tanggalLahir').value || null,
+                nama_ayah: document.getElementById('namaAyah').value,
+                nama_ibu: document.getElementById('namaIbu').value,
+                tahun_lulus: document.getElementById('tahunLulus').value
+            };
+
+            try {
+                const { error } = await supabaseClient
+                    .from('alumni')
+                    .insert([formData]);
+
+                if (error) throw error;
+
+                alert('Data Alumni Berhasil Disimpan!');
+                closeModal();
+                loadAlumniData();
+
+            } catch (err) {
+                console.error('Error saving alumni:', err);
+                alert('Gagal menyimpan data: ' + err.message);
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // --- Hapus Data Alumni ---
+        window.deleteAlumni = async function(kodeMaping) {
+            if (confirm('Apakah Anda yakin ingin menghapus data alumni ini?')) {
+                const { error } = await supabaseClient.from('alumni').delete().eq('kode_maping', kodeMaping);
+                if (error) {
+                    alert('Gagal menghapus: ' + error.message);
+                } else {
+                    loadAlumniData();
+                }
+            }
+        }
+
+        // --- Download Template Excel ---
+        window.downloadTemplateExcel = function() {
+            const headers = [
+                'kode_maping', 'nisn', 'nama_siswa', 'alamat', 'tempat_lahir',
+                'tanggal_lahir', 'nama_ayah', 'nama_ibu', 'tahun_lulus'
+            ];
+            const contohBaris = [
+                'ID.X TKJ-1234567890', '1234567890', 'Contoh Nama Siswa', 'Jl. Contoh Alamat',
+                'Simpang Teritip', '2007-05-10', 'Nama Ayah', 'Nama Ibu', '2024/2025'
+            ];
+            const ws = XLSX.utils.aoa_to_sheet([headers, contohBaris]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Template Alumni');
+            XLSX.writeFile(wb, 'Template_Import_Alumni.xlsx');
+        }
+
+        // --- Import Excel ---
+        window.handleImportExcel = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[firstSheetName];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+                    if (!rows || rows.length === 0) {
+                        alert('File Excel kosong atau format tidak sesuai.');
+                        return;
+                    }
+
+                    // Normalisasi nama kolom (case-insensitive, spasi -> underscore)
+                    const normalizeKey = (key) => key.toString().trim().toLowerCase().replace(/\s+/g, '_');
+
+                    const alumniRows = rows.map(row => {
+                        const normalizedRow = {};
+                        Object.keys(row).forEach(k => {
+                            normalizedRow[normalizeKey(k)] = row[k];
+                        });
+
+                        let tanggalLahir = normalizedRow['tanggal_lahir'] || null;
+                        // Jika Excel mengirim serial number tanggal, konversi ke format YYYY-MM-DD
+                        if (tanggalLahir && typeof tanggalLahir === 'number') {
+                            const parsedDate = XLSX.SSF.parse_date_code(tanggalLahir);
+                            if (parsedDate) {
+                                const mm = String(parsedDate.m).padStart(2, '0');
+                                const dd = String(parsedDate.d).padStart(2, '0');
+                                tanggalLahir = `${parsedDate.y}-${mm}-${dd}`;
+                            }
+                        }
+
+                        return {
+                            kode_maping: (normalizedRow['kode_maping'] || normalizedRow['kode_mapping'] || '').toString().trim(),
+                            nisn: (normalizedRow['nisn'] || '').toString().trim(),
+                            nama_siswa: (normalizedRow['nama_siswa'] || '').toString().trim(),
+                            alamat: (normalizedRow['alamat'] || '').toString().trim(),
+                            tempat_lahir: (normalizedRow['tempat_lahir'] || '').toString().trim(),
+                            tanggal_lahir: tanggalLahir || null,
+                            nama_ayah: (normalizedRow['nama_ayah'] || '').toString().trim(),
+                            nama_ibu: (normalizedRow['nama_ibu'] || '').toString().trim(),
+                            tahun_lulus: (normalizedRow['tahun_lulus'] || '').toString().trim()
+                        };
+                    }).filter(item => item.nama_siswa); // Lewati baris tanpa nama siswa
+
+                    if (alumniRows.length === 0) {
+                        alert('Tidak ada baris valid (Nama Siswa kosong) pada file Excel.');
+                        event.target.value = '';
+                        return;
+                    }
+
+                    if (!confirm(`Ditemukan ${alumniRows.length} baris data. Lanjutkan import ke Data Alumni?`)) {
+                        event.target.value = '';
+                        return;
+                    }
+
+                    const { error } = await supabaseClient
+                        .from('alumni')
+                        .insert(alumniRows);
+
+                    if (error) throw error;
+
+                    alert(`Berhasil import ${alumniRows.length} data alumni!`);
+                    loadAlumniData();
+
+                } catch (err) {
+                    console.error('Import error:', err);
+                    alert('Gagal import data: ' + err.message);
+                } finally {
+                    event.target.value = ''; // Reset input file
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // --- Export PDF Function ---
+        window.exportAlumniPdf = async function() {
+            if (!alumniCache || alumniCache.length === 0) {
+                alert('Tidak ada data untuk diexport.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 20;
+
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20;
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                    doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                    yPos = 10 + imgHeight + 10;
+                } catch (err) {
+                    console.error("Gagal memuat KOP Sekolah:", err);
+                }
+            }
+
+            doc.setFontSize(18);
+            doc.text('Data Alumni', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 8;
+
+            const schoolName = schoolData.nama_sekolah || document.querySelector('.navbar-brand span')?.textContent || 'SMK Negeri 1 Simpang Teritip';
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+            yPos += 10;
+
+            const tableData = alumniCache.map((item, index) => [
+                index + 1,
+                item.kode_maping || '-',
+                item.nisn || '-',
+                item.nama_siswa || '-',
+                item.alamat || '-',
+                item.tempat_lahir || '-',
+                item.tanggal_lahir || '-',
+                item.nama_ayah || '-',
+                item.nama_ibu || '-',
+                item.tahun_lulus || '-'
+            ]);
+
+            doc.autoTable({
+                head: [['No', 'Kode', 'NISN', 'Nama Siswa', 'Alamat', 'Tempat Lahir', 'Tgl Lahir', 'Ayah', 'Ibu', 'Tahun Lulus']],
+                body: tableData,
+                startY: yPos,
+                theme: 'grid',
+                styles: { fontSize: 9 },
+                headStyles: { fillColor: [102, 126, 234] }
+            });
+
+            doc.save('Data_Alumni.pdf');
+        }
+    </script>
+</body>
+</html>

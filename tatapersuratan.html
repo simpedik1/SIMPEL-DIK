@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tata Persuratan - SMKN 1 Simpang Teritip</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --bg-light: #f4f6f9;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar (sama dengan daftarpegawai.html) --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img { height: 40px; width: auto; }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        .btn-dashboard {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .btn-dashboard:hover { opacity: 0.88; transform: translateY(-1px); }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* --- Toolbar --- */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .toolbar h3 {
+            font-size: 1.1rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+            max-width: 320px;
+        }
+
+        .search-wrap i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .search-wrap input {
+            width: 100%;
+            padding: 9px 12px 9px 34px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 0.86rem;
+            color: #334155;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #f8fafc;
+        }
+        .search-wrap input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+            background: white;
+        }
+
+        /* --- Table --- */
+        .table-responsive { overflow-x: auto; }
+
+        .custom-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+
+        .custom-table th {
+            background-color: #E6F2DD;
+            color: #1a1a1a;
+            font-weight: 600;
+            padding: 12px 14px;
+            text-align: left;
+            border: 1px solid #d4e8c8;
+            white-space: nowrap;
+        }
+
+        .custom-table td {
+            padding: 11px 14px;
+            color: #444;
+            border: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .custom-table tbody tr:hover td { background-color: #f8fdf5; }
+
+        .badge-kategori {
+            display: inline-block;
+            background: #ede9fe;
+            color: #7c3aed;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-tahun {
+            background: #f0f7ff;
+            color: #0369a1;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .badge-pdf {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .badge-pdf:hover { background: #fecaca; }
+
+        .badge-pdf-download {
+            background: #dbeafe;
+            color: #2563eb;
+            border: none;
+            cursor: pointer;
+        }
+        .badge-pdf-download:hover { background: #bfdbfe; }
+
+        .badge-nopdf {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #f1f5f9;
+            color: #94a3b8;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #94a3b8;
+        }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 12px; display: block; }
+        .empty-state p { font-size: 0.9rem; }
+
+        /* --- Footer --- */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        /* --- Toast --- */
+        .toast {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transform: translateY(60px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 4px solid #22c55e; }
+        .toast.error   { border-left: 4px solid #ef4444; }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .navbar-brand span { font-size: 1rem; }
+
+            .main-content {
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-wrap {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display:none;">
+            <span></span>
+        </a>
+        <a href="dasboradmin.html" class="btn-dashboard">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <div class="dashboard-card">
+            <div class="toolbar">
+                <h3>
+                    <i class="fas fa-folder-open" style="color: var(--primary-color);"></i>
+                    Daftar Arsip Sekolah
+                </h3>
+                <div class="search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Cari arsip..." oninput="filterTable()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table" id="arsipTable">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Kode Arsip</th>
+                            <th>Judul Arsip</th>
+                            <th>Kategori</th>
+                            <th>Tgl Input</th>
+                            <th>Tahun</th>
+                            <th>Lokasi Simpan</th>
+                            <th>File PDF</th>
+                        </tr>
+                    </thead>
+                    <tbody id="arsipTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align:center; padding:30px; color:#aaa;">
+                                <i class="fas fa-spinner fa-spin"></i> Memuat data...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+        </footer>
+    </main>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // --- Supabase ---
+        const supabaseUrl  = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const supabaseKey  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let arsipData = [];
+
+        // --- Load Navbar Identity (sama dengan daftarpegawai.html) ---
+        async function loadSchoolIdentity() {
+            try {
+                const { data } = await supabaseClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo')
+                    .limit(1).single();
+                if (data) {
+                    if (data.nama_sekolah) document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // --- Load Data Arsip Sekolah ---
+        async function loadArsip() {
+            const tbody = document.getElementById('arsipTableBody');
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#aaa;"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>`;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('arsipsekolah')
+                    .select('id, kode_arsip, judul_arsip, kategori, tanggal_input, tahun, lokasi_simpan, file_arsip')
+                    .order('tanggal_input', { ascending: false });
+
+                if (error) throw error;
+                arsipData = data || [];
+                renderTable(arsipData);
+            } catch (err) {
+                console.error('[loadArsip] Error:', err.message);
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#ef4444;padding:30px;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('arsipTableBody');
+
+            if (!data.length) {
+                tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="fas fa-folder-open"></i><p>Belum ada data arsip.</p></div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map((a, i) => {
+                const safeUrl = (a.file_arsip || '').replace(/'/g, "\\'");
+                const safeFilename = ((a.judul_arsip || 'arsip') + '.pdf').replace(/'/g, "\\'");
+                const pdfCell = a.file_arsip
+                    ? `<div style="display:flex;gap:5px;flex-wrap:wrap;">
+                        <a href="${toViewUrl(a.file_arsip)}" target="_blank" class="badge-pdf" title="Buka PDF"><i class="fas fa-eye"></i> Lihat</a>
+                        <button onclick="downloadPdf('${safeUrl}','${safeFilename}')" class="badge-pdf badge-pdf-download" title="Download PDF"><i class="fas fa-download"></i> Unduh</button>
+                       </div>`
+                    : `<span class="badge-nopdf"><i class="fas fa-minus"></i> Tidak ada</span>`;
+
+                const tahunLabel = a.tahun ? new Date(a.tahun).getFullYear() : '-';
+
+                return `<tr>
+                    <td style="color:#94a3b8;font-weight:600;">${i + 1}</td>
+                    <td style="font-weight:600;color:#0369a1;">${a.kode_arsip || '-'}</td>
+                    <td style="font-weight:600;max-width:200px;">${a.judul_arsip || '-'}</td>
+                    <td>${a.kategori ? `<span class="badge-kategori"><i class="fas fa-tag" style="font-size:0.7rem;margin-right:3px;"></i>${a.kategori}</span>` : '<span style="color:#aaa;font-size:0.8rem;">-</span>'}</td>
+                    <td style="font-size:0.82rem;color:#475569;white-space:nowrap;">${formatTanggal(a.tanggal_input)}</td>
+                    <td><span class="badge-tahun">${tahunLabel}</span></td>
+                    <td>${a.lokasi_simpan || '-'}</td>
+                    <td>${pdfCell}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // --- Filter Pencarian ---
+        function filterTable() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = arsipData.filter(a =>
+                (a.judul_arsip    || '').toLowerCase().includes(q) ||
+                (a.kode_arsip     || '').toLowerCase().includes(q) ||
+                (a.kategori       || '').toLowerCase().includes(q) ||
+                (a.lokasi_simpan  || '').toLowerCase().includes(q) ||
+                (a.tahun          || '').toString().includes(q)
+            );
+            renderTable(filtered);
+        }
+
+        // --- Helper: Format Tanggal ---
+        function formatTanggal(isoStr) {
+            if (!isoStr) return '-';
+            const d = new Date(isoStr);
+            return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+        }
+
+        // --- Helper: Normalisasi URL file (mis. Cloudinary) agar bisa dibuka/diunduh ---
+        function toViewUrl(url) {
+            if (!url) return '#';
+            return url
+                .replace('/image/upload/', '/raw/upload/')
+                .replace('/auto/upload/',  '/raw/upload/')
+                .replace('/video/upload/', '/raw/upload/');
+        }
+
+        // --- Download PDF via fetch + blob ---
+        async function downloadPdf(url, filename) {
+            if (!url) return;
+            try {
+                showToast('Mengunduh file...', 'success');
+                const rawUrl = toViewUrl(url);
+                const resp = await fetch(rawUrl);
+                if (!resp.ok) throw new Error('Gagal mengambil file dari server.');
+                const blob = await resp.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename || 'arsip.pdf';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { URL.revokeObjectURL(blobUrl); a.remove(); }, 1000);
+                showToast('File berhasil diunduh!', 'success');
+            } catch (err) {
+                console.error('[downloadPdf] Error:', err.message);
+                showToast('Gagal mengunduh file.', 'error');
+            }
+        }
+
+        // --- Toast ---
+        let toastTimer;
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${msg}`;
+            t.className = `toast ${type} show`;
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSchoolIdentity();
+            loadArsip();
+        });
+    </script>
+</body>
+</html>

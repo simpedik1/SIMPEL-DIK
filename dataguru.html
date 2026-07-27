@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPEL-DIK</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF & AutoTable for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img { height: 40px; width: auto; }
+        .navbar-brand span { font-weight: 700; font-size: 1.1rem; color: var(--secondary-color); }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0;
+            padding: 2rem 5px;
+            flex: 1;
+            overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand span { font-size: 1rem; }
+        }
+
+        /* --- Styles Tambahan untuk Tabel dan Tombol --- */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            color: white;
+        }
+        .btn-primary { background: linear-gradient(to right, var(--primary-color), var(--secondary-color)); }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-danger { background-color: #ef4444; }
+        .btn-danger:hover { background-color: #dc2626; }
+
+        .table-responsive { overflow-x: auto; }
+        .custom-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .custom-table th, .custom-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .custom-table th { background-color: #f8f9fa; color: #555; font-weight: 600; }
+        .custom-table tr:hover { background-color: #f9f9f9; }
+        .guru-photo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd; }
+
+        /* --- Modal Styles --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; max-height: 90vh; overflow-y: auto; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; color: #333; font-size: 1.2rem; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: #888; transition: color 0.2s; }
+        .close-modal:hover { color: #ef4444; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #666; font-size: 0.9rem; font-weight: 500; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; transition: border-color 0.3s; }
+        .form-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+        .btn-secondary { background-color: #e2e8f0; color: #475569; }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+
+        /* Custom File Upload Style */
+        .file-upload-label {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px; border: 2px dashed #cbd5e1; border-radius: 8px;
+            background-color: #f8fafc; cursor: pointer; transition: all 0.3s; text-align: center;
+        }
+        .file-upload-label:hover { border-color: var(--primary-color); background-color: #eff6ff; }
+        .file-upload-label i { font-size: 2rem; color: var(--primary-color); margin-bottom: 10px; }
+        .file-upload-label span { font-weight: 600; color: #475569; }
+        .file-upload-label small { color: #94a3b8; font-size: 0.8rem; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="dasboradmin.html" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="dasboradmin.html" class="btn btn-primary" style="margin-left: auto; padding: 8px 18px; font-size: 0.9rem; text-decoration: none;">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Data Guru</h2>
+            <p style="color: #666; margin-top: 10px;">Halaman untuk mengelola data guru.</p>
+        </div>
+        
+        <!-- Container Tabel Data Guru -->
+        <div class="dashboard-card">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-primary" id="addGuruBtn"><i class="fas fa-plus"></i> Tambah Guru</button>
+                <button class="btn btn-danger" id="exportPdfBtn"><i class="fas fa-file-pdf"></i> Export Pdf</button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Id Guru</th>
+                            <th>Nama Guru</th>
+                            <th>NIP</th>
+                            <th>Mata Pelajaran</th>
+                            <th>Nomor Telepon</th>
+                            <th>Photo</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #888; padding: 20px;">Belum ada data guru.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Tambah Guru -->
+    <div id="guruModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Guru Baru</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <form id="guruForm">
+                <!-- Hidden Input untuk Mode Edit -->
+                <input type="hidden" id="isEditMode" value="false">
+                <div class="form-group">
+                    <label for="idGuru">ID Guru</label>
+                    <input type="text" id="idGuru" name="idGuru" placeholder="Masukkan ID Guru" required>
+                </div>
+                <div class="form-group">
+                    <label for="namaGuru">Nama Guru</label>
+                    <input type="text" id="namaGuru" name="namaGuru" placeholder="Nama Lengkap" required>
+                </div>
+                <div class="form-group">
+                    <label for="nip">NIP</label>
+                    <input type="number" id="nip" name="nip" placeholder="Nomor Induk Pegawai">
+                </div>
+                <div class="form-group">
+                    <label for="mapel">Mata Pelajaran</label>
+                    <input type="text" id="mapel" name="mapel" placeholder="Contoh: Matematika">
+                </div>
+                <div class="form-group">
+                    <label for="telepon">Nomor Tlp/Wa</label>
+                    <input type="tel" id="telepon" name="telepon" placeholder="08xxxxxxxxxx">
+                </div>
+                
+                <div class="form-group">
+                    <label>Upload Photo</label>
+                    <input type="file" id="photoGuru" name="photoGuru" accept="image/*" hidden>
+                    <label for="photoGuru" class="file-upload-label">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Pilih Foto atau Tarik ke Sini</span>
+                        <small>Format: JPG, PNG (Max 2MB)</small>
+                    </label>
+                    <div id="fileNameDisplay" style="margin-top: 8px; font-size: 0.85rem; color: #666; display: none;"></div>
+                    <div id="imagePreviewContainer" style="margin-top: 10px; display: none; text-align: center;">
+                        <img id="imagePreview" src="" alt="Preview Foto" style="max-width: 150px; max-height: 150px; border-radius: 8px; border: 1px solid #ddd; padding: 5px;">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary cancel-btn">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Error -->
+    <div id="errorModal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center; padding-top: 30px;">
+            <div style="margin-bottom: 20px;">
+                <i class="fas fa-exclamation-circle" style="font-size: 4rem; color: #ef4444;"></i>
+            </div>
+            <h3 style="color: #333; margin-bottom: 10px; font-size: 1.4rem;">Terjadi Kesalahan</h3>
+            <p id="errorMessage" style="color: #666; margin-bottom: 25px; line-height: 1.5;"></p>
+            <div style="display: flex; justify-content: center;">
+                <button type="button" class="btn btn-danger" onclick="closeErrorModal()" style="width: 100%;">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Integration for Navbar Identity ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let schoolData = {}; // Menyimpan data sekolah untuk keperluan export
+
+        async function loadSchoolIdentity() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo, kop_sekolah, tahun_pelajaran')
+                    .limit(1)
+                    .single();
+                
+                if (data) {
+                    schoolData = data; // Simpan data ke variabel global
+                    if (data.nama_sekolah) {
+                        document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    }
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading school identity:", err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        document.addEventListener('DOMContentLoaded', loadGuruData);
+
+        // --- Modal Logic ---
+        const modal = document.getElementById('guruModal');
+        const addBtn = document.getElementById('addGuruBtn');
+        const closeSpan = document.querySelector('.close-modal');
+        const cancelBtn = document.querySelector('.cancel-btn');
+        const guruForm = document.getElementById('guruForm');
+        const photoInput = document.getElementById('photoGuru');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const nipInput = document.getElementById('nip');
+        const idGuruInput = document.getElementById('idGuru');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const isEditModeInput = document.getElementById('isEditMode');
+
+        // Buka Modal
+        addBtn.addEventListener('click', () => {
+            // Reset Form untuk Mode Tambah
+            guruForm.reset();
+            isEditModeInput.value = "false";
+            idGuruInput.readOnly = false; // ID bisa diedit saat tambah baru
+            document.querySelector('.modal-header h3').textContent = "Tambah Guru Baru";
+            fileNameDisplay.style.display = 'none';
+            imagePreviewContainer.style.display = 'none';
+            imagePreview.src = '';
+            modal.classList.add('active');
+        });
+
+        // Tutup Modal
+        function closeModal() {
+            modal.classList.remove('active');
+            guruForm.reset();
+            fileNameDisplay.style.display = 'none';
+            imagePreviewContainer.style.display = 'none';
+            imagePreview.src = '';
+            isEditModeInput.value = "false";
+            idGuruInput.readOnly = false;
+        }
+
+        closeSpan.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // --- Error Modal Logic ---
+        const errorModal = document.getElementById('errorModal');
+        const errorMessageEl = document.getElementById('errorMessage');
+
+        function showError(message) {
+            errorMessageEl.textContent = message;
+            errorModal.classList.add('active');
+        }
+
+        window.closeErrorModal = function() {
+            errorModal.classList.remove('active');
+        }
+
+        // File Upload Display Name
+        photoInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                fileNameDisplay.textContent = 'File terpilih: ' + this.files[0].name;
+                fileNameDisplay.style.display = 'block';
+
+                // Preview Image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        // --- Auto Generate ID Guru ---
+        // Format: ID-[NIP]-[4 Random].[Nomor Urut]
+        async function generateIdGuru() {
+            const nip = nipInput.value.trim();
+            if (!nip) return; // Jangan generate jika NIP kosong
+
+            try {
+                // Ambil jumlah data guru untuk menentukan nomor urut
+                // Menggunakan tabel 'dataguru'
+                const { count, error } = await supabaseClient
+                    .from('dataguru')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (error) throw error;
+
+                const sequence = (count || 0) + 1;
+                const random4 = Math.floor(1000 + Math.random() * 9000); // 4 angka random
+                
+                idGuruInput.value = `ID-${nip}-${random4}.${sequence}`;
+            } catch (err) {
+                console.error('Gagal generate ID Guru:', err);
+            }
+        }
+        
+        // Trigger generate saat user selesai mengetik NIP (event blur)
+        nipInput.addEventListener('blur', generateIdGuru);
+
+        // Variabel global untuk menyimpan data guru agar mudah diakses saat edit
+        let allGuruData = [];
+
+        // --- Load Data Guru ---
+        async function loadGuruData() {
+            const tableBody = document.querySelector('.custom-table tbody');
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Memuat data...</td></tr>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('dataguru')
+                    .select('id_guru, nama_guru, nip::text, mapel, tlp, photo')
+                    .order('nama_guru', { ascending: true });
+
+                if (error) throw error;
+
+                allGuruData = data; // Simpan data ke variabel global
+                tableBody.innerHTML = '';
+
+                if (!data || data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #888; padding: 20px;">Belum ada data guru.</td></tr>';
+                    return;
+                }
+
+                data.forEach((guru) => {
+                    const row = document.createElement('tr');
+                    const photoHtml = guru.photo 
+                        ? `<img src="${guru.photo}" alt="${guru.nama_guru}" class="guru-photo">` 
+                        : `<div style="width:40px;height:40px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;border:1px solid #ddd;"><i class="fas fa-user"></i></div>`;
+
+                    row.innerHTML = `
+                        <td>${guru.id_guru}</td>
+                        <td>${guru.nama_guru}</td>
+                        <td>${guru.nip || '-'}</td>
+                        <td>${guru.mapel || '-'}</td>
+                        <td>${guru.tlp || '-'}</td>
+                        <td>${photoHtml}</td>
+                        <td>
+                            <button onclick="editGuru('${guru.id_guru}')" style="background:none; border:none; color:#60a5fa; cursor:pointer;" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteGuru('${guru.id_guru}', '${guru.photo || ''}')" style="background:none; border:none; color:#f87171; cursor:pointer; margin-left:10px;" title="Hapus"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (err) {
+                console.error('Error loading guru data:', err);
+                tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: #ef4444;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- Fungsi Edit Guru ---
+        window.editGuru = function(id) {
+            const guru = allGuruData.find(g => g.id_guru === id);
+            if (guru) {
+                // Isi form dengan data yang dipilih
+                idGuruInput.value = guru.id_guru;
+                idGuruInput.readOnly = true; // ID tidak boleh diubah saat edit (Primary Key)
+                document.getElementById('namaGuru').value = guru.nama_guru;
+                document.getElementById('nip').value = guru.nip;
+                document.getElementById('mapel').value = guru.mapel;
+                document.getElementById('telepon').value = guru.tlp;
+
+                // Tampilkan preview foto jika ada
+                if (guru.photo) {
+                    imagePreview.src = guru.photo;
+                    imagePreviewContainer.style.display = 'block';
+                    fileNameDisplay.textContent = 'Foto saat ini tersimpan (Upload baru untuk mengganti)';
+                    fileNameDisplay.style.display = 'block';
+                } else {
+                    imagePreviewContainer.style.display = 'none';
+                    fileNameDisplay.style.display = 'none';
+                }
+
+                // Set Mode Edit
+                isEditModeInput.value = "true";
+                document.querySelector('.modal-header h3').textContent = "Edit Data Guru";
+                
+                // Buka Modal
+                modal.classList.add('active');
+            }
+        }
+
+        // --- Fungsi Hapus Guru ---
+        window.deleteGuru = async function(id, photoUrl) {
+            if (confirm(`Apakah Anda yakin ingin menghapus data guru dengan ID: ${id}?`)) {
+                try {
+                    // 1. Hapus Foto dari Storage jika ada
+                    if (photoUrl) {
+                        try {
+                            // Ambil nama file dari URL (setelah nama bucket 'aset/')
+                            const path = photoUrl.split('/aset/')[1];
+                            if (path) {
+                                const fileName = decodeURIComponent(path);
+                                const { error: storageError } = await supabaseClient.storage
+                                    .from('aset')
+                                    .remove([fileName]);
+                                if (storageError) console.warn('Gagal menghapus file dari storage:', storageError);
+                            }
+                        } catch (storageErr) {
+                            console.warn('Error parsing photo URL:', storageErr);
+                        }
+                    }
+
+                    // 2. Hapus data dari tabel
+                    const { error } = await supabaseClient
+                        .from('dataguru')
+                        .delete()
+                        .eq('id_guru', id);
+
+                    if (error) throw error;
+
+                    loadGuruData(); // Refresh tabel
+                } catch (err) {
+                    console.error('Gagal menghapus:', err);
+                    showError('Gagal menghapus data: ' + err.message);
+                }
+            }
+        }
+
+        // Handle Form Submit (Simpan Data Guru)
+        guruForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = guruForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Menyimpan...';
+            submitBtn.disabled = true;
+
+            try {
+                const isEdit = isEditModeInput.value === "true";
+                const nipVal = document.getElementById('nip').value;
+                const tlpVal = document.getElementById('telepon').value;
+
+                // Validasi Input Angka
+                const isNumeric = (str) => /^\d+$/.test(str);
+                if ((nipVal && !isNumeric(nipVal)) || (tlpVal && !isNumeric(tlpVal))) {
+                    throw new Error("NIP dan Nomor Telepon harus berkarakter angka");
+                }
+                
+                // 1. Upload Foto ke Bucket 'aset'
+                let photoUrl = isEdit ? (imagePreview.src || '') : ''; // Default ke foto lama jika edit
+                const file = photoInput.files[0];
+                
+                if (file) {
+                    const fileExt = file.name.split('.').pop();
+                    // Nama file unik: guru_[id_bersih]_[timestamp].[ext]
+                    const fileName = `guru_${idGuruInput.value.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}.${fileExt}`;
+                    
+                    const { error: uploadError } = await supabaseClient.storage
+                        .from('aset')
+                        .upload(fileName, file);
+                        
+                    if (uploadError) throw new Error('Gagal upload foto: ' + uploadError.message);
+                    
+                    const { data } = supabaseClient.storage.from('aset').getPublicUrl(fileName);
+                    photoUrl = data.publicUrl;
+                }
+
+                // 2. Siapkan Data Object
+                const guruData = {
+                    id_guru: idGuruInput.value,
+                    nama_guru: document.getElementById('namaGuru').value,
+                    nip: nipVal,
+                    mapel: document.getElementById('mapel').value,
+                    tlp: tlpVal,
+                    photo: photoUrl
+                };
+
+                let result;
+                
+                if (isEdit) {
+                    // Update Data
+                    result = await supabaseClient
+                        .from('dataguru')
+                        .update(guruData)
+                        .eq('id_guru', idGuruInput.value);
+                } else {
+                    // Insert Data Baru
+                    result = await supabaseClient
+                        .from('dataguru')
+                        .insert([guruData]);
+                }
+
+                if (result.error) throw new Error('Gagal menyimpan data: ' + result.error.message);
+
+                alert('Data Guru berhasil disimpan!');
+                closeModal();
+                loadGuruData(); // Refresh tabel data
+                
+            } catch (err) {
+                console.error(err);
+                showError(err.message);
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // --- Export PDF Logic ---
+        document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 20;
+
+            // Tambahkan KOP Sekolah jika ada
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20; // Margin kiri kanan 10
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                    yPos = 10 + imgHeight + 10; // Update posisi Y di bawah gambar
+                } catch (err) {
+                    console.error("Gagal memuat KOP Sekolah:", err);
+                }
+            }
+
+            // Judul Dokumen
+            doc.setFontSize(18);
+            doc.text("Laporan Data Guru", pageWidth / 2, yPos, { align: 'center' });
+            yPos += 8;
+            
+            // Nama Sekolah (ambil dari navbar)
+            const schoolName = schoolData.nama_sekolah || document.querySelector('.navbar-brand span').textContent || 'SMK Negeri 1 Simpang Teritip';
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+            yPos += 6;
+
+            // Tahun Pelajaran (ambil dari tabel identitassekolah)
+            if (schoolData.tahun_pelajaran) {
+                doc.text("Tahun Pelajaran " + schoolData.tahun_pelajaran, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 6;
+            }
+            yPos += 4;
+
+            // Persiapkan Data Tabel
+            const tableRows = [];
+            const rows = document.querySelectorAll('.custom-table tbody tr');
+
+            rows.forEach((row) => {
+                const cells = row.querySelectorAll('td');
+                // Pastikan bukan baris loading atau kosong (cek jika ada kolom data > 1 karena ada colspan saat kosong)
+                if (cells.length > 1) {
+                    const rowData = [
+                        cells[0].innerText, // Id Guru
+                        cells[1].innerText, // Nama Guru
+                        cells[2].innerText, // NIP
+                        cells[3].innerText, // Mapel
+                        cells[4].innerText  // Telepon
+                    ];
+                    tableRows.push(rowData);
+                }
+            });
+
+            // Generate Tabel PDF
+            doc.autoTable({
+                head: [['ID Guru', 'Nama Guru', 'NIP', 'Mata Pelajaran', 'Telepon']],
+                body: tableRows,
+                startY: yPos,
+                theme: 'grid',
+                styles: { fontSize: 10 },
+                headStyles: { fillColor: [102, 126, 234] } // Warna primary-color
+            });
+
+            // Simpan File
+            doc.save('Data_Guru.pdf');
+        });
+    </script>
+</body>
+</html>

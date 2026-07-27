@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penilaian Ekstrakurikuler | SIMPEL-DIK</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF untuk Export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- SheetJS untuk Export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('bg2.jpg') no-repeat center center;
+            background-size: cover;
+            filter: blur(5px);
+            transform: scale(1.05);
+            z-index: -1;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        /* --- Tombol Dashboard --- */
+        .btn-back-dashboard {
+            margin-left: auto;
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .btn-back-dashboard:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0;
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: visible;
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand span { font-size: 1rem; }
+            .navbar-date { display: none !important; }
+            .main-content { padding-left: 5px; padding-right: 5px; }
+            .btn-back-dashboard span.btn-label { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <div class="navbar-date" style="margin-left: auto; display: flex; align-items: center; gap: 10px; color: #555; font-weight: 600; font-size: 0.9rem;">
+            <i class="far fa-calendar-alt" style="color: var(--primary-color);"></i>
+            <span id="navbarDate"></span>
+        </div>
+        <a href="dasboradmin.html" class="btn-back-dashboard">
+            <i class="fas fa-th-large"></i>
+            <span class="btn-label">Dashboard</span>
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Data Penilaian Ekstrakurikuler</h2>
+            <p style="color: #666; margin-top: 10px;">Rekap seluruh nilai siswa pada setiap kegiatan ekstrakurikuler.</p>
+        </div>
+
+        <!-- Container Penilaian Ekskul -->
+        <div class="dashboard-card" id="nilaiEkskulContainer">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 style="margin: 0; color: #333; font-size: 1.2rem;">
+                    <i class="fas fa-star" style="color: var(--primary-color); margin-right: 10px;"></i>
+                    Penilaian Ekskul
+                </h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <div style="position: relative;">
+                        <i class="fas fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #999; font-size: 0.85rem;"></i>
+                        <input type="text" id="inputCariNilai" placeholder="Cari nama, NISN, kelas, ekskul..." style="padding: 8px 12px 8px 30px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9rem; min-width: 220px;">
+                    </div>
+                    <button id="btnExportNilaiPdf" style="background-color: #dc2626; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-file-pdf"></i> Export Pdf
+                    </button>
+                    <button id="btnExportNilaiExcel" style="background-color: #16a34a; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="nilaiEkskulTable" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="background: #f4f6f9; text-align: left;">
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Id</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Nama Siswa</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">NISN</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Kelas</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Nama Ekskul</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Nilai</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #eee;">Deskripsi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nilaiEkskulTableBody">
+                        <tr><td colspan="7" style="text-align:center; padding: 20px;">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+                <p id="nilaiEkskulEmptyMsg" style="text-align: center; color: #999; padding: 20px; display: none;">Belum ada data penilaian ekstrakurikuler.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <script>
+        // --- Supabase Integration ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+
+        let supabaseClient;
+        let schoolData = {};
+        let allNilaiEkskul = []; // Menyimpan seluruh data untuk keperluan filter pencarian & export
+
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo, kop_sekolah')
+                        .limit(1)
+                        .single();
+
+                    if (data) {
+                        schoolData = data;
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading school identity:", err);
+                }
+            }
+
+            // --- Load & Render Seluruh Data Penilaian Ekskul ---
+            async function loadNilaiEkskul() {
+                const tbody = document.getElementById('nilaiEkskulTableBody');
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('nilaiekskul')
+                        .select('id, nama_siswa, nisn, kelas, nama_ekskul, nilai, deskripsi')
+                        .order('nama_ekskul', { ascending: true })
+                        .order('nama_siswa', { ascending: true });
+
+                    if (error) throw error;
+
+                    allNilaiEkskul = data || [];
+                    renderNilaiEkskulTable(allNilaiEkskul);
+                } catch (err) {
+                    console.error('Error loading data nilai ekskul:', err);
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#e74c3c; padding:20px;">Gagal memuat data: ${err.message}</td></tr>`;
+                }
+            }
+
+            function renderNilaiEkskulTable(list) {
+                const tbody = document.getElementById('nilaiEkskulTableBody');
+                const emptyMsg = document.getElementById('nilaiEkskulEmptyMsg');
+                tbody.innerHTML = '';
+
+                if (!list.length) {
+                    emptyMsg.style.display = 'block';
+                    return;
+                }
+                emptyMsg.style.display = 'none';
+
+                list.forEach((item) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.id}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nama_siswa || '-'}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nisn || '-'}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.kelas || '-'}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nama_ekskul || '-'}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.nilai !== null && item.nilai !== undefined ? item.nilai : '-'}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #f0f0f0;">${item.deskripsi || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // --- Fitur Cari ---
+            const inputCariNilai = document.getElementById('inputCariNilai');
+            if (inputCariNilai) {
+                inputCariNilai.addEventListener('input', () => {
+                    const keyword = inputCariNilai.value.trim().toLowerCase();
+                    if (!keyword) {
+                        renderNilaiEkskulTable(allNilaiEkskul);
+                        return;
+                    }
+                    const filtered = allNilaiEkskul.filter(item => {
+                        return (item.nama_siswa || '').toLowerCase().includes(keyword) ||
+                               (item.nisn || '').toLowerCase().includes(keyword) ||
+                               (item.kelas || '').toLowerCase().includes(keyword) ||
+                               (item.nama_ekskul || '').toLowerCase().includes(keyword) ||
+                               (item.nilai || '').toString().toLowerCase().includes(keyword);
+                    });
+                    renderNilaiEkskulTable(filtered);
+                });
+            }
+
+            // --- Helper: Tambah Kop Sekolah ke PDF ---
+            async function tambahKopSekolahPdf(doc, pageWidth) {
+                let yPos = 15;
+                try {
+                    if (schoolData.logo) {
+                        const imgData = await new Promise((resolve, reject) => {
+                            const img = new Image();
+                            img.crossOrigin = 'Anonymous';
+                            img.onload = () => resolve(img);
+                            img.onerror = reject;
+                            img.src = schoolData.logo;
+                        });
+                        doc.addImage(imgData, 'PNG', 15, yPos - 5, 20, 20);
+                    }
+                } catch (err) {
+                    console.warn('Logo tidak dapat dimuat untuk PDF:', err);
+                }
+                doc.setFontSize(13);
+                doc.setFont(undefined, 'bold');
+                doc.text(schoolData.nama_sekolah || 'SMK Negeri 1 Mentok', pageWidth / 2, yPos, { align: 'center' });
+                doc.setFont(undefined, 'normal');
+                yPos += 10;
+                doc.setLineWidth(0.5);
+                doc.line(15, yPos, pageWidth - 15, yPos);
+                yPos += 10;
+                return yPos;
+            }
+
+            // --- Export PDF Penilaian (Seluruh Data) ---
+            const btnExportNilaiPdf = document.getElementById('btnExportNilaiPdf');
+            if (btnExportNilaiPdf) {
+                btnExportNilaiPdf.addEventListener('click', () => {
+                    try {
+                        const dataToExport = inputCariNilai && inputCariNilai.value.trim() ?
+                            allNilaiEkskul.filter(item => {
+                                const keyword = inputCariNilai.value.trim().toLowerCase();
+                                return (item.nama_siswa || '').toLowerCase().includes(keyword) ||
+                                       (item.nisn || '').toLowerCase().includes(keyword) ||
+                                       (item.kelas || '').toLowerCase().includes(keyword) ||
+                                       (item.nama_ekskul || '').toLowerCase().includes(keyword);
+                            }) : allNilaiEkskul;
+
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF();
+                        const pageWidth = doc.internal.pageSize.getWidth();
+
+                        tambahKopSekolahPdf(doc, pageWidth).then(yPos => {
+                            doc.setFontSize(14);
+                            doc.setTextColor(0);
+                            doc.text('Data Penilaian Ekstrakurikuler', pageWidth / 2, yPos, { align: 'center' });
+                            yPos += 7;
+
+                            doc.setFontSize(10);
+                            doc.setTextColor(100);
+                            doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, pageWidth / 2, yPos, { align: 'center' });
+                            yPos += 8;
+                            doc.setTextColor(0);
+
+                            const rows = dataToExport.map((item, idx) => [
+                                idx + 1,
+                                item.nama_siswa || '-',
+                                item.nisn || '-',
+                                item.kelas || '-',
+                                item.nama_ekskul || '-',
+                                item.nilai !== null && item.nilai !== undefined ? item.nilai : '-',
+                                item.deskripsi || '-'
+                            ]);
+
+                            doc.autoTable({
+                                startY: yPos,
+                                theme: 'grid',
+                                head: [['No', 'Nama Siswa', 'NISN', 'Kelas', 'Nama Ekskul', 'Nilai', 'Deskripsi']],
+                                body: rows,
+                                headStyles: { fillColor: [102, 126, 234] }
+                            });
+
+                            doc.save(`data-penilaian-ekstrakurikuler.pdf`);
+                        });
+                    } catch (err) {
+                        console.error('Error exporting PDF penilaian:', err);
+                        alert('Gagal export PDF: ' + err.message);
+                    }
+                });
+            }
+
+            // --- Export Excel Penilaian (Seluruh Data) ---
+            const btnExportNilaiExcel = document.getElementById('btnExportNilaiExcel');
+            if (btnExportNilaiExcel) {
+                btnExportNilaiExcel.addEventListener('click', () => {
+                    try {
+                        const dataToExport = inputCariNilai && inputCariNilai.value.trim() ?
+                            allNilaiEkskul.filter(item => {
+                                const keyword = inputCariNilai.value.trim().toLowerCase();
+                                return (item.nama_siswa || '').toLowerCase().includes(keyword) ||
+                                       (item.nisn || '').toLowerCase().includes(keyword) ||
+                                       (item.kelas || '').toLowerCase().includes(keyword) ||
+                                       (item.nama_ekskul || '').toLowerCase().includes(keyword);
+                            }) : allNilaiEkskul;
+
+                        const rows = dataToExport.map((item, idx) => ({
+                            'No': idx + 1,
+                            'Nama Siswa': item.nama_siswa || '-',
+                            'NISN': item.nisn || '-',
+                            'Kelas': item.kelas || '-',
+                            'Nama Ekskul': item.nama_ekskul || '-',
+                            'Nilai': item.nilai !== null && item.nilai !== undefined ? item.nilai : '-',
+                            'Deskripsi': item.deskripsi || '-'
+                        }));
+
+                        const worksheet = XLSX.utils.json_to_sheet(rows);
+                        const workbook = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(workbook, worksheet, 'Penilaian');
+                        XLSX.writeFile(workbook, `data-penilaian-ekstrakurikuler.xlsx`);
+                    } catch (err) {
+                        console.error('Error exporting Excel penilaian:', err);
+                        alert('Gagal export Excel: ' + err.message);
+                    }
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+            document.addEventListener('DOMContentLoaded', loadNilaiEkskul);
+        }
+
+        // --- Date Display in Navbar ---
+        function updateNavbarDate() {
+            const now = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            document.getElementById('navbarDate').textContent = now.toLocaleDateString('id-ID', options);
+        }
+        document.addEventListener('DOMContentLoaded', updateNavbarDate);
+    </script>
+</body>
+</html>

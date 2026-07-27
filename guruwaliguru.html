@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guru Wali - SMKN 1 Simpang Teritip</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF & AutoTable for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* --- Styles copied from piketharin.html --- */
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+            --navbar-bg: #dc2626; /* Warna Merah untuk Navbar */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar (Custom Red) --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--navbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0 !important; /* Full width */
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        /* Overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand span {
+                font-size: 1rem;
+            }
+
+            .main-content {
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+        }
+
+        /* Tombol Kembali Ke Dashboard */
+        .btn-back-dashboard {
+            margin-left: auto;
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        .btn-back-dashboard:hover {
+            background-color: white;
+            color: var(--navbar-bg);
+        }
+
+        /* Table Styles */
+        .table-responsive { overflow-x: auto; }
+        .custom-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .custom-table th, .custom-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .custom-table th { background-color: #f8f9fa; color: #555; font-weight: 600; white-space: nowrap; }
+        .custom-table td { white-space: nowrap; }
+        .custom-table tr:hover { background-color: #f9f9f9; }
+        
+        /* Button Styles */
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; color: white; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-danger { background-color: #ef4444; }
+        .btn-warning { background-color: #f59e0b; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 90%; max-width: 600px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; max-height: 90vh; overflow-y: auto; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; color: #333; font-size: 1.2rem; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: #888; transition: color 0.2s; }
+        .close-modal:hover { color: #ef4444; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #666; font-size: 0.9rem; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; transition: border-color 0.3s; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+        .btn-secondary { background-color: #e2e8f0; color: #475569; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+
+        /* Form Card Style inside Modal */
+        .form-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        /* Custom Searchable Dropdown */
+        .searchable-dropdown { position: relative; }
+        .dropdown-options {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: white; border: 1px solid #ddd;
+            border-radius: 0 0 6px 6px; max-height: 200px;
+            overflow-y: auto; z-index: 10; display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .dropdown-options.show { display: block; }
+        .dropdown-option { padding: 10px; cursor: pointer; border-bottom: 1px solid #f1f1f1; font-size: 0.95rem; color: #333; }
+        .dropdown-option:hover { background-color: #f3f4f6; color: var(--primary-color); }
+        .dropdown-option:last-child { border-bottom: none; }
+        .no-results { padding: 10px; color: #888; font-size: 0.9rem; text-align: center; }
+
+        /* --- Tabs Styles --- */
+        .tabs-container { width: 100%; }
+        .tabs-header { 
+            display: flex; 
+            overflow-x: auto; 
+            border-bottom: 2px solid var(--primary-color); 
+            margin-bottom: 0; 
+            gap: 4px; 
+            padding-bottom: 0; 
+            padding-top: 5px;
+        }
+        .tabs-header::-webkit-scrollbar { height: 4px; }
+        .tabs-header::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 0; }
+        
+        .tab-btn { 
+            padding: 10px 20px; 
+            background: #e2e8f0; 
+            border: 1px solid #cbd5e1; 
+            border-bottom: none; 
+            border-radius: 0; 
+            cursor: pointer; 
+            font-weight: 600; 
+            color: #64748b; 
+            white-space: nowrap; 
+            transition: all 0.2s ease; 
+            font-size: 0.9rem; 
+            margin-bottom: 0;
+            position: relative;
+            top: 2px;
+        }
+        .tab-btn:hover { background-color: #cbd5e1; color: #334155; }
+        .tab-btn.active { 
+            background: #f59e0b; /* Kuning Gelap */
+            color: black; /* Tulisan Hitam */
+            border: 2px solid var(--primary-color); 
+            /* Border tetap (full) agar terlihat tegas dengan background kuning */
+            z-index: 2; 
+            box-shadow: none;
+        }
+        
+        .tabs-content {
+            border: 2px solid var(--primary-color);
+            border-top: none;
+            padding: 20px;
+            background: white;
+        }
+
+        .tab-pane { display: none; animation: fadeIn 0.4s ease-out; }
+        .tab-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="adminguru.html" class="btn-back-dashboard">Kembali Ke Dashboard</a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+            <div style="background: white; padding: 10px 20px; border-radius: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: #555; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;">
+                <i class="far fa-clock" style="color: var(--navbar-bg);"></i>
+                <span id="liveDateTime"></span>
+            </div>
+        </div>
+        
+        <div class="dashboard-card">
+            <h2>Halaman Guru Wali</h2>
+            <p style="color: #666; margin-top: 10px;">Halaman ini untuk fitur Guru Wali.</p>
+        </div>
+
+        <!-- Container Data Siswa Wali -->
+        <div class="dashboard-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0; color: #333;">Data Siswa Wali</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" id="addSiswaWaliBtn"><i class="fas fa-plus"></i> Tambah Siswa Wali</button>
+                    <button class="btn btn-warning" id="resetSiswaWaliBtn"><i class="fas fa-sync-alt"></i> Reset</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Kode Id</th>
+                            <th>Nama Siswa</th>
+                            <th>NISN</th>
+                            <th>Alamat</th>
+                            <th>Tempat Lahir</th>
+                            <th>Tanggal Lahir</th>
+                            <th>Nama Ayah</th>
+                            <th>Nama Ibu</th>
+                            <th>Walikelas</th>
+                            <th>NIP</th>
+                            <th>Kelas</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="13" style="text-align: center; padding: 20px; color: #666;">Belum ada data siswa wali.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Container Tabs Detail Siswa Wali -->
+        <div class="dashboard-card">
+            <h3 style="margin: 0 0 20px 0; color: #333;">Detail Siswa Wali</h3>
+            <div class="tabs-container">
+                <div class="tabs-header" id="siswaTabsHeader">
+                    <div style="padding: 10px; color: #666;">Memuat data siswa...</div>
+                </div>
+                <div class="tabs-content" id="siswaTabsContent">
+                    <!-- Konten tab akan dimuat di sini -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Tambah Siswa Wali -->
+    <div id="siswaWaliModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Siswa Wali</h3>
+                <span class="close-modal" id="closeSiswaWaliModal">&times;</span>
+            </div>
+            <form id="siswaWaliForm">
+                <div class="form-group">
+                    <label for="kodeId">Kode Id</label>
+                    <input type="text" id="kodeId" name="kodeId" placeholder="Masukkan Kode ID" required>
+                </div>
+                <div class="form-card">
+                    <div class="form-group">
+                        <label for="namaSiswa">Nama Siswa</label>
+                        <div class="searchable-dropdown">
+                            <input type="text" id="namaSiswaInput" placeholder="Ketik nama siswa..." autocomplete="off" required>
+                            <input type="hidden" id="namaSiswa" name="namaSiswa">
+                            <div id="siswaDropdownList" class="dropdown-options"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="nisn">NISN</label>
+                        <input type="number" id="nisn" name="nisn" placeholder="Nomor Induk Siswa Nasional" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="alamat">Alamat</label>
+                        <input type="text" id="alamat" name="alamat" placeholder="Alamat Lengkap" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tempatLahir">Tempat Lahir</label>
+                        <input type="text" id="tempatLahir" name="tempatLahir" placeholder="Kota Kelahiran" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tanggalLahir">Tanggal Lahir</label>
+                        <input type="text" id="tanggalLahir" name="tanggalLahir" placeholder="DD-MM-YYYY" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="namaAyah">Nama Ayah</label>
+                        <input type="text" id="namaAyah" name="namaAyah" placeholder="Nama Ayah Kandung" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="namaIbu">Nama Ibu</label>
+                        <input type="text" id="namaIbu" name="namaIbu" placeholder="Nama Ibu Kandung" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="walikelas">Walikelas</label>
+                    <select id="walikelas" name="walikelas" required>
+                        <option value="">Pilih Walikelas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="nipWalikelas">NIP Walikelas</label>
+                    <input type="text" id="nipWalikelas" name="nipWalikelas" placeholder="Otomatis terisi" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="kelas">Kelas</label>
+                    <input type="text" id="kelas" name="kelas" placeholder="Otomatis terisi" readonly required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelSiswaWaliBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Input Pembinaan -->
+    <div id="pembinaanModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Input Pembinaan Siswa</h3>
+                <span class="close-modal" id="closePembinaanModal">&times;</span>
+            </div>
+            <form id="pembinaanForm">
+                <div class="form-group">
+                    <label for="idPembinaan">Id Pembinaan</label>
+                    <input type="text" id="idPembinaan" name="idPembinaan" readonly placeholder="Otomatis">
+                </div>
+                <div class="form-group">
+                    <label for="namaSiswaPembinaan">Nama Siswa</label>
+                    <input type="text" id="namaSiswaPembinaan" name="namaSiswaPembinaan" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="nisnPembinaan">NISN</label>
+                    <input type="text" id="nisnPembinaan" name="nisnPembinaan" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="tanggalPembinaan">Tanggal Pembinaan</label>
+                    <input type="date" id="tanggalPembinaan" name="tanggalPembinaan" required>
+                </div>
+                <div class="form-group">
+                    <label for="kasusPembinaan">Kasus Pembinaan</label>
+                    <textarea id="kasusPembinaan" name="kasusPembinaan" required placeholder="Deskripsikan kasus dan pembinaan yang dilakukan..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; resize: vertical; min-height: 80px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="guruPembina">Guru Yang Membina</label>
+                    <input type="text" id="guruPembina" name="guruPembina" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="photoKegiatan">Upload Photo</label>
+                    <input type="file" id="photoKegiatan" name="photoKegiatan" accept="image/*">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelPembinaanBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Integration for Navbar ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        
+        // --- Supabase Integration for Absensi ---
+        const absensiUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const absensiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+
+        let supabaseClient;
+        let absensiClient;
+        let currentUserNip = '';
+        let schoolData = {};
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            absensiClient = supabase.createClient(absensiUrl, absensiKey);
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo, kop_sekolah')
+                        .limit(1)
+                        .single();
+                    
+                    if (data) {
+                        schoolData = data;
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading school identity:", err);
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        }
+
+        // --- Load Data Guru dari Sesi Login ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            
+            if (session) {
+                currentUserNip = session.nip || '';
+            } else {
+                // Jika tidak ada sesi, redirect ke login
+                window.location.href = 'index.html';
+            }
+        });
+
+        // --- Fitur Jam & Tanggal Berjalan ---
+        function updateLiveTime() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('liveDateTime').textContent = `${now.toLocaleDateString('id-ID', dateOptions)} | ${now.toLocaleTimeString('id-ID', timeOptions).replace(/\./g, ':')} WIB`;
+        }
+        setInterval(updateLiveTime, 1000);
+        updateLiveTime();
+
+        // --- Modal Logic ---
+        const modal = document.getElementById('siswaWaliModal');
+        const addBtn = document.getElementById('addSiswaWaliBtn');
+        const closeSpan = document.getElementById('closeSiswaWaliModal');
+        const cancelBtn = document.getElementById('cancelSiswaWaliBtn');
+        const form = document.getElementById('siswaWaliForm');
+        const namaSiswaInput = document.getElementById('namaSiswaInput');
+        const siswaDropdownList = document.getElementById('siswaDropdownList');
+        const walikelasSelect = document.getElementById('walikelas');
+
+        let siswaDataCache = [];
+        let walikelasDataCache = [];
+        let allSiswaWaliData = []; // Menyimpan data tabel untuk keperluan edit
+
+        // Load Data Siswa & Guru
+        async function loadInitialData() {
+            try {
+                // Load Siswa
+                const { data: siswaData, error: siswaError } = await supabaseClient
+                    .from('datasiswa')
+                    .select('*');
+                if (!siswaError) siswaDataCache = siswaData || [];
+
+                // Load Walikelas data
+                const { data: walikelasData, error: walikelasError } = await supabaseClient
+                    .from('walikelas')
+                    .select('nama_guru, nip, kelas')
+                    .order('nama_guru', { ascending: true });
+                
+                if (!walikelasError && walikelasData) {
+                    walikelasDataCache = walikelasData;
+                    walikelasSelect.innerHTML = '<option value="">Pilih Walikelas</option>';
+                    walikelasData.forEach(w => {
+                        const opt = document.createElement('option');
+                        opt.value = w.nama_guru;
+                        opt.textContent = w.nama_guru;
+                        walikelasSelect.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error('Error loading initial data:', err);
+            }
+        }
+
+        // Event listener for Walikelas dropdown
+        if (walikelasSelect) {
+            walikelasSelect.addEventListener('change', function() {
+                const selectedNama = this.value;
+                const selectedWali = walikelasDataCache.find(w => w.nama_guru === selectedNama);
+                
+                const nipWalikelasInput = document.getElementById('nipWalikelas');
+                const kelasInput = document.getElementById('kelas');
+
+                if (selectedWali) {
+                    nipWalikelasInput.value = selectedWali.nip || '';
+                    kelasInput.value = selectedWali.kelas || '';
+                }
+            });
+        }
+
+        // Search Logic
+        if (namaSiswaInput) {
+            namaSiswaInput.addEventListener('input', function() {
+                const filter = this.value.toLowerCase();
+                const filtered = siswaDataCache.filter(s => s.nama_siswa.toLowerCase().includes(filter));
+                renderDropdown(filtered);
+            });
+
+            namaSiswaInput.addEventListener('focus', function() {
+                const filter = this.value.toLowerCase();
+                const filtered = filter ? siswaDataCache.filter(s => s.nama_siswa.toLowerCase().includes(filter)) : siswaDataCache;
+                renderDropdown(filtered);
+            });
+        }
+
+        function renderDropdown(data) {
+            siswaDropdownList.innerHTML = '';
+            if (data.length === 0) {
+                siswaDropdownList.innerHTML = '<div class="no-results">Tidak ditemukan</div>';
+            } else {
+                data.forEach(siswa => {
+                    const div = document.createElement('div');
+                    div.className = 'dropdown-option';
+                    div.textContent = siswa.nama_siswa;
+                    div.addEventListener('click', () => selectSiswa(siswa));
+                    siswaDropdownList.appendChild(div);
+                });
+            }
+            siswaDropdownList.classList.add('show');
+        }
+
+        function selectSiswa(siswa) {
+            document.getElementById('namaSiswaInput').value = siswa.nama_siswa;
+            document.getElementById('namaSiswa').value = siswa.nama_siswa;
+            document.getElementById('nisn').value = siswa.nisn || '';
+            document.getElementById('alamat').value = siswa.alamat || '';
+            
+            // Auto-generate Kode Id: ID.[NIP]-[NISN]
+            if (currentUserNip && siswa.nisn) {
+                document.getElementById('kodeId').value = `ID.${currentUserNip}-${siswa.nisn}`;
+            }
+            
+            document.getElementById('tempatLahir').value = siswa.tempat_lahir || '';
+            document.getElementById('tanggalLahir').value = siswa.tanggal_lahir || '';
+            document.getElementById('namaAyah').value = siswa.nama_ayah || '';
+            document.getElementById('namaIbu').value = siswa.nama_ibu || '';
+            // Kelas tidak diisi dari data siswa, tapi dari walikelas
+            
+            siswaDropdownList.classList.remove('show');
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', (e) => {
+            if (namaSiswaInput && !namaSiswaInput.contains(e.target) && !siswaDropdownList.contains(e.target)) {
+                siswaDropdownList.classList.remove('show');
+            }
+            if (e.target === modal) closeModal();
+        });
+
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                loadInitialData(); // Load data when modal opens
+                resetFormState(); // Reset form ke mode tambah
+                modal.classList.add('active');
+            });
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+
+        if (closeSpan) closeSpan.addEventListener('click', closeModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+        
+        // Helper: Reset Form State (Mode Tambah)
+        function resetFormState() {
+            form.reset();
+            form.removeAttribute('data-mode'); // Hapus mode edit
+            document.querySelector('.modal-header h3').textContent = 'Tambah Siswa Wali';
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Simpan';
+            document.getElementById('kodeId').readOnly = false;
+            document.getElementById('namaSiswaInput').value = '';
+            document.getElementById('kodeId').value = '';
+            document.getElementById('namaSiswa').value = '';
+            document.getElementById('nisn').value = '';
+            document.getElementById('alamat').value = '';
+            document.getElementById('tempatLahir').value = '';
+            document.getElementById('tanggalLahir').value = '';
+            document.getElementById('namaAyah').value = '';
+            document.getElementById('namaIbu').value = '';
+            document.getElementById('walikelas').value = '';
+            document.getElementById('nipWalikelas').value = '';
+            document.getElementById('kelas').value = '';
+        }
+
+        // --- Load Data Siswa Wali from 'perwalian' table ---
+        async function loadSiswaWaliData() {
+            const tableBody = document.querySelector('.custom-table tbody');
+            tableBody.innerHTML = '<tr><td colspan="13" style="text-align:center;">Memuat data...</td></tr>';
+
+            try {
+                let query = supabaseClient
+                    .from('perwalian')
+                    .select('*')
+                    .order('nama_siswa', { ascending: true });
+
+                // Filter siswa berdasarkan NIP guru yang login
+                if (currentUserNip) {
+                    query = query.ilike('kode_id', `%${currentUserNip}%`);
+                }
+
+                const { data, error } = await query;
+
+                if (error) throw error;
+
+                tableBody.innerHTML = '';
+                allSiswaWaliData = data || []; // Simpan data ke variabel global
+                renderSiswaTabs(); // Render tabs setelah data dimuat
+
+                if (!data || data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px; color: #666;">Belum ada data siswa wali.</td></tr>';
+                    return;
+                }
+
+                data.forEach((item, index) => {
+                    // Format tanggal lahir for display (YYYY-MM-DD to DD-MM-YYYY if needed)
+                    let tglLahir = item.tanggal_lahir;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${item.kode_id}</td>
+                        <td>${item.nama_siswa}</td>
+                        <td>${item.nisn || '-'}</td>
+                        <td>${item.alamat || '-'}</td>
+                        <td>${item.tempat_lahir || '-'}</td>
+                        <td>${tglLahir || '-'}</td>
+                        <td>${item.nama_ayah || '-'}</td>
+                        <td>${item.nama_ibu || '-'}</td>
+                        <td>${item.walikelas || '-'}</td>
+                        <td>${item.nip || '-'}</td>
+                        <td>${item.kelas || '-'}</td>
+                        <td>
+                            <button class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8rem; margin-right: 5px;" onclick="editSiswaWali('${item.kode_id}')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;" onclick="deleteSiswaWali('${item.kode_id}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (err) {
+                console.error('Error loading data:', err);
+                tableBody.innerHTML = `<tr><td colspan="13" style="text-align:center; color: red;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- Render Tabs Siswa ---
+        function renderSiswaTabs() {
+            const tabsHeader = document.getElementById('siswaTabsHeader');
+            const tabsContent = document.getElementById('siswaTabsContent');
+            
+            if (!tabsHeader || !tabsContent) return;
+
+            tabsHeader.innerHTML = '';
+            tabsContent.innerHTML = '';
+
+            if (allSiswaWaliData.length === 0) {
+                tabsHeader.innerHTML = '<div style="padding: 10px; color: #666;">Belum ada data siswa wali.</div>';
+                return;
+            }
+
+            allSiswaWaliData.forEach((siswa, index) => {
+                // Create Tab Button
+                const btn = document.createElement('button');
+                btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+                btn.textContent = siswa.nama_siswa;
+                btn.onclick = () => switchSiswaTab(index);
+                tabsHeader.appendChild(btn);
+
+                // Create Tab Content
+                const pane = document.createElement('div');
+                pane.className = `tab-pane ${index === 0 ? 'active' : ''}`;
+                pane.id = `siswa-pane-${index}`;
+                
+                // Content for the student
+                pane.innerHTML = `
+                    <div style="background: #f8f9fa; padding: 20px; border: 1px solid #eee; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;">
+                            <h4 style="margin: 0; color: var(--primary-color);">Identitas Siswa: ${siswa.nama_siswa}</h4>
+                            <button class="btn btn-danger" style="padding: 5px 15px; font-size: 0.85rem;" onclick="exportStudentData('${siswa.nama_siswa.replace(/'/g, "\\'")}', '${siswa.nisn || ''}', '${siswa.kelas || ''}', '${siswa.kode_id || ''}')">
+                                <i class="fas fa-file-pdf"></i> Export Laporan Lengkap
+                            </button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                            <div><strong>Kode ID:</strong> ${siswa.kode_id || '-'}</div>
+                            <div><strong>NISN:</strong> ${siswa.nisn || '-'}</div>
+                            <div><strong>Kelas:</strong> ${siswa.kelas || '-'}</div>
+                            <div><strong>Tempat, Tgl Lahir:</strong> ${siswa.tempat_lahir || '-'}, ${siswa.tanggal_lahir || '-'}</div>
+                            <div><strong>Alamat:</strong> ${siswa.alamat || '-'}</div>
+                            <div><strong>Nama Ayah:</strong> ${siswa.nama_ayah || '-'}</div>
+                            <div><strong>Nama Ibu:</strong> ${siswa.nama_ibu || '-'}</div>
+                            <div><strong>Walikelas:</strong> ${siswa.walikelas || '-'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Container Data Kehadiran Siswa -->
+                    <div style="background: #f8f9fa; padding: 20px; border: 1px solid #eee;">
+                        <h4 style="margin-top: 0; color: var(--primary-color); border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;">Data Kehadiran Siswa</h4>
+                        <div id="attendance-stats-${index}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;"><i class="fas fa-check-circle"></i> Hadir</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #10b981;" id="stat-hadir-${index}">-</div>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;"><i class="fas fa-procedures"></i> Sakit</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #3b82f6;" id="stat-sakit-${index}">-</div>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;"><i class="fas fa-envelope-open-text"></i> Ijin</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #f59e0b;" id="stat-ijin-${index}">-</div>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;"><i class="fas fa-times-circle"></i> Alpa</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #ef4444;" id="stat-alpa-${index}">-</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabel Riwayat Kehadiran -->
+                        <div style="margin-top: 25px;">
+                            <h5 style="margin-bottom: 15px; color: #4b5563; font-size: 1rem; border-left: 4px solid var(--primary-color); padding-left: 10px; margin-top: 0;">Riwayat Kehadiran</h5>
+                            <div style="overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e5e7eb;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                        <tr>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">No</th>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Tanggal</th>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Hari</th>
+                                            <th style="padding: 12px 15px; text-align: center; color: #64748b; font-weight: 600;">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attendance-history-${index}">
+                                        <tr><td colspan="4" style="text-align: center; padding: 20px; color: #94a3b8;">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Container Data Piket Umum Siswa -->
+                    <div style="background: #f8f9fa; padding: 20px; border: 1px solid #eee; margin-top: 20px;">
+                        <h4 style="margin-top: 0; color: var(--primary-color); border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;">Data Piket Umum Siswa</h4>
+                        <div id="piket-stats-${index}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;"><i class="fas fa-check-circle"></i> Melaksanakan</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #10b981;" id="stat-piket-ya-${index}">-</div>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;"><i class="fas fa-times-circle"></i> Tidak Melaksanakan</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #ef4444;" id="stat-piket-tidak-${index}">-</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabel Riwayat Piket -->
+                        <div style="margin-top: 25px;">
+                            <h5 style="margin-bottom: 15px; color: #4b5563; font-size: 1rem; border-left: 4px solid var(--primary-color); padding-left: 10px; margin-top: 0;">Riwayat Piket</h5>
+                            <div style="overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e5e7eb;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                        <tr>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">No</th>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Tanggal</th>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Area</th>
+                                            <th style="padding: 12px 15px; text-align: center; color: #64748b; font-weight: 600;">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="piket-history-${index}">
+                                        <tr><td colspan="4" style="text-align: center; padding: 20px; color: #94a3b8;">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Container Nilai Akademis -->
+                    <div style="background: #f8f9fa; padding: 20px; border: 1px solid #eee; margin-top: 20px;">
+                        <h4 style="margin-top: 0; color: var(--primary-color); border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;">Nilai Akademis</h4>
+                        <div id="nilai-stats-${index}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;"><i class="fas fa-check-circle"></i> Tuntas</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #10b981;" id="stat-nilai-tuntas-${index}">-</div>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;"><i class="fas fa-times-circle"></i> Tidak Tuntas</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #ef4444;" id="stat-nilai-tidak-${index}">-</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabel Riwayat Nilai -->
+                        <div style="margin-top: 25px;">
+                            <h5 style="margin-bottom: 15px; color: #4b5563; font-size: 1rem; border-left: 4px solid var(--primary-color); padding-left: 10px; margin-top: 0;">Rincian Nilai</h5>
+                            <div style="overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e5e7eb;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                        <tr>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">No</th>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Mata Pelajaran</th>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Semester</th>
+                                            <th style="padding: 12px 15px; text-align: center; color: #64748b; font-weight: 600;">Nilai Akhir (NR)</th>
+                                            <th style="padding: 12px 15px; text-align: center; color: #64748b; font-weight: 600;">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="nilai-history-${index}">
+                                        <tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Container Daftar Kasus Pembelajaran -->
+                    <div style="background: #f8f9fa; padding: 20px; border: 1px solid #eee; margin-top: 20px;">
+                        <h4 style="margin-top: 0; color: var(--primary-color); border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;">Daftar Kasus Pembelajaran</h4>
+                        <div id="kasus-stats-${index}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;"><i class="fas fa-exclamation-triangle"></i> Total Kasus</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #ef4444;" id="stat-kasus-total-${index}">-</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabel Riwayat Kasus -->
+                        <div style="margin-top: 25px;">
+                            <h5 style="margin-bottom: 15px; color: #4b5563; font-size: 1rem; border-left: 4px solid var(--primary-color); padding-left: 10px; margin-top: 0;">Riwayat Kasus</h5>
+                            <div style="overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e5e7eb;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                        <tr>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">No</th>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Tanggal</th>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Jenis Kasus</th>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Mapel</th>
+                                            <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Pelapor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="kasus-history-${index}">
+                                        <tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Container Pembinaan Guru Wali -->
+                    <div style="background: #f8f9fa; padding: 20px; border: 1px solid #eee; margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+                            <h4 style="margin: 0; color: var(--primary-color);">Pembinaan Guru Wali</h4>
+                            <button class="btn btn-primary" onclick="openPembinaanModal('${siswa.nama_siswa.replace(/'/g, "\\'")}', '${siswa.nisn || ''}', '${siswa.kelas || ''}')"><i class="fas fa-plus"></i> Input Pembinaan Siswa</button>
+                        </div>
+                        <div style="overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e5e7eb;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                    <tr>
+                                        <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">No</th>
+                                        <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Id Pembinaan</th>
+                                        <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Nama Siswa</th>
+                                        <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">NISN</th>
+                                        <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Tanggal Pembinaan</th>
+                                        <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Kasus Pembinaan</th>
+                                        <th style="padding: 12px 15px; text-align: left; color: #64748b; font-weight: 600;">Guru Yang Membina</th>
+                                        <th style="padding: 12px 15px; text-align: center; color: #64748b; font-weight: 600;">Photo Kegiatan</th>
+                                        <th style="padding: 12px 15px; text-align: center; color: #64748b; font-weight: 600;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pembinaan-history-${index}">
+                                    <tr><td colspan="9" style="text-align: center; padding: 20px; color: #94a3b8;">Memuat data...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                tabsContent.appendChild(pane);
+                
+                // Fetch attendance data
+                fetchStudentAttendance(siswa.nama_siswa, index);
+                // Fetch piket data
+                fetchStudentPiket(siswa.nama_siswa, index);
+                // Fetch nilai data
+                fetchStudentNilai(siswa.nama_siswa, index);
+                // Fetch kasus data
+                fetchStudentKasus(siswa.nama_siswa, index);
+                // Fetch pembinaan data
+                fetchStudentPembinaan(siswa.nama_siswa, index);
+            });
+        }
+
+        function switchSiswaTab(index) {
+            const btns = document.querySelectorAll('#siswaTabsHeader .tab-btn');
+            const panes = document.querySelectorAll('#siswaTabsContent .tab-pane');
+
+            btns.forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+
+            panes.forEach((pane, i) => {
+                pane.classList.toggle('active', i === index);
+            });
+        }
+
+        // --- Edit Siswa Wali ---
+        window.editSiswaWali = function(kodeId) {
+            const siswa = allSiswaWaliData.find(s => s.kode_id === kodeId);
+            if (siswa) {
+                // Isi form dengan data
+                document.getElementById('kodeId').value = siswa.kode_id;
+                document.getElementById('kodeId').readOnly = true; // Kunci Kode ID saat edit
+                
+                document.getElementById('namaSiswaInput').value = siswa.nama_siswa;
+                document.getElementById('namaSiswa').value = siswa.nama_siswa;
+                document.getElementById('nisn').value = siswa.nisn || '';
+                document.getElementById('alamat').value = siswa.alamat || '';
+                document.getElementById('tempatLahir').value = siswa.tempat_lahir || '';
+                
+                // Konversi Tanggal YYYY-MM-DD ke DD-MM-YYYY untuk tampilan input
+                let tgl = siswa.tanggal_lahir;
+                if (tgl && tgl.includes('-') && tgl.split('-')[0].length === 4) {
+                    const [y, m, d] = tgl.split('-');
+                    tgl = `${d}-${m}-${y}`;
+                }
+                document.getElementById('tanggalLahir').value = tgl || '';
+
+                document.getElementById('namaAyah').value = siswa.nama_ayah || '';
+                document.getElementById('namaIbu').value = siswa.nama_ibu || '';
+                
+                // Trigger load data guru/walikelas dulu agar dropdown terisi
+                loadInitialData().then(() => {
+                    document.getElementById('walikelas').value = siswa.walikelas || '';
+                });
+                
+                document.getElementById('nipWalikelas').value = siswa.nip || '';
+                document.getElementById('kelas').value = siswa.kelas || '';
+
+                // Ubah UI ke Mode Edit
+                document.querySelector('.modal-header h3').textContent = 'Edit Siswa Wali';
+                form.querySelector('button[type="submit"]').textContent = 'Update';
+                form.dataset.mode = 'edit'; // Set flag edit
+                
+                modal.classList.add('active');
+            }
+        };
+
+        // --- Delete Siswa Wali ---
+        window.deleteSiswaWali = async function(kodeId) {
+            if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('perwalian')
+                        .delete()
+                        .eq('kode_id', kodeId);
+
+                    if (error) throw error;
+
+                    alert('Data berhasil dihapus.');
+                    loadSiswaWaliData();
+                } catch (err) {
+                    alert('Gagal menghapus data: ' + err.message);
+                }
+            }
+        };
+
+        // --- Handle Form Submit (Simpan ke tabel perwalian) ---
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                const isEdit = form.dataset.mode === 'edit';
+                submitBtn.textContent = isEdit ? 'Mengupdate...' : 'Menyimpan...';
+                submitBtn.disabled = true;
+
+                try {
+                    // Helper to format date DD-MM-YYYY to YYYY-MM-DD for DB
+                    const formatDate = (dateStr) => {
+                        if (!dateStr) return null;
+                        if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                            const [day, month, year] = dateStr.split('-');
+                            return `${year}-${month}-${day}`;
+                        }
+                        return dateStr;
+                    };
+
+                    const formData = {
+                        kode_id: document.getElementById('kodeId').value,
+                        nama_siswa: document.getElementById('namaSiswa').value,
+                        nisn: document.getElementById('nisn').value,
+                        alamat: document.getElementById('alamat').value,
+                        tempat_lahir: document.getElementById('tempatLahir').value,
+                        tanggal_lahir: formatDate(document.getElementById('tanggalLahir').value),
+                        nama_ayah: document.getElementById('namaAyah').value,
+                        nama_ibu: document.getElementById('namaIbu').value,
+                        walikelas: document.getElementById('walikelas').value,
+                        nip: document.getElementById('nipWalikelas').value,
+                        kelas: document.getElementById('kelas').value
+                    };
+
+                    let result;
+                    if (isEdit) {
+                        // Update Data
+                        result = await supabaseClient
+                            .from('perwalian')
+                            .update(formData)
+                            .eq('kode_id', formData.kode_id);
+                    } else {
+                        // Insert Data Baru
+                        result = await supabaseClient
+                            .from('perwalian')
+                            .insert([formData]);
+                    }
+
+                    if (result.error) throw result.error;
+
+                    alert(`Data Siswa Wali berhasil ${isEdit ? 'diupdate' : 'disimpan'}!`);
+                    closeModal();
+                    loadSiswaWaliData(); // Refresh table
+
+                } catch (err) {
+                    console.error('Error saving data:', err);
+                    alert('Gagal menyimpan data: ' + err.message);
+                } finally {
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
+            });
+        }
+
+        // --- Fetch Student Attendance ---
+        async function fetchStudentAttendance(namaSiswa, index) {
+            if (!absensiClient) return;
+            
+            try {
+                const { data, error } = await absensiClient
+                    .from('absensiswa')
+                    .select('tanggal, hari, status_kehadiran')
+                    .eq('nama_siswa', namaSiswa)
+                    .order('tanggal', { ascending: false });
+                
+                if (error) throw error;
+                
+                let hadir = 0, sakit = 0, ijin = 0, alpa = 0;
+                const historyBody = document.getElementById(`attendance-history-${index}`);
+                
+                if (historyBody) historyBody.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach((record, i) => {
+                        // Hitung Statistik
+                        const status = record.status_kehadiran;
+                        if (status === 'Hadir') hadir++;
+                        else if (status === 'Sakit') sakit++;
+                        else if (status === 'Ijin' || status === 'Izin') ijin++;
+                        else if (status === 'Alpa' || status === 'Alpha') alpa++;
+
+                        // Isi Tabel Riwayat
+                        if (historyBody) {
+                            const dateObj = new Date(record.tanggal);
+                            const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                            
+                            let badgeColor = '#f3f4f6';
+                            let textColor = '#1f2937';
+                            
+                            if (status === 'Hadir') { badgeColor = '#d1fae5'; textColor = '#065f46'; }
+                            else if (status === 'Sakit') { badgeColor = '#dbeafe'; textColor = '#1e40af'; }
+                            else if (status === 'Ijin' || status === 'Izin') { badgeColor = '#fef3c7'; textColor = '#92400e'; }
+                            else if (status === 'Alpa' || status === 'Alpha') { badgeColor = '#fee2e2'; textColor = '#991b1b'; }
+
+                            const row = `
+                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 15px; color: #334155;">${i + 1}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${formattedDate}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.hari || '-'}</td>
+                                    <td style="padding: 12px 15px; text-align: center;">
+                                        <span style="background-color: ${badgeColor}; color: ${textColor}; padding: 4px 10px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600;">${status}</span>
+                                    </td>
+                                </tr>
+                            `;
+                            historyBody.innerHTML += row;
+                        }
+                    });
+                } else {
+                    if (historyBody) historyBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #94a3b8;">Belum ada riwayat kehadiran.</td></tr>';
+                }
+                
+                const elHadir = document.getElementById(`stat-hadir-${index}`);
+                const elSakit = document.getElementById(`stat-sakit-${index}`);
+                const elIjin = document.getElementById(`stat-ijin-${index}`);
+                const elAlpa = document.getElementById(`stat-alpa-${index}`);
+
+                if(elHadir) elHadir.textContent = hadir;
+                if(elSakit) elSakit.textContent = sakit;
+                if(elIjin) elIjin.textContent = ijin;
+                if(elAlpa) elAlpa.textContent = alpa;
+                
+            } catch (err) {
+                console.error(`Error fetching attendance for ${namaSiswa}:`, err);
+                const historyBody = document.getElementById(`attendance-history-${index}`);
+                if (historyBody) historyBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: #ef4444;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- Fetch Student Piket ---
+        async function fetchStudentPiket(namaSiswa, index) {
+            if (!supabaseClient) return;
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('jurnalpiket')
+                    .select('tanggal, area, status')
+                    .eq('nama_siswa', namaSiswa)
+                    .order('tanggal', { ascending: false });
+                
+                if (error) throw error;
+                
+                let ya = 0, tidak = 0;
+                const historyBody = document.getElementById(`piket-history-${index}`);
+                
+                if (historyBody) historyBody.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach((record, i) => {
+                        // Hitung Statistik
+                        const status = record.status;
+                        if (status === 'Ya') ya++;
+                        else if (status === 'Tidak') tidak++;
+
+                        // Isi Tabel Riwayat
+                        if (historyBody) {
+                            const dateObj = new Date(record.tanggal);
+                            const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                            
+                            let badgeColor = '#f3f4f6';
+                            let textColor = '#1f2937';
+                            let statusText = status;
+                            
+                            if (status === 'Ya') { 
+                                badgeColor = '#d1fae5'; textColor = '#065f46'; 
+                                statusText = 'Melaksanakan';
+                            }
+                            else if (status === 'Tidak') { 
+                                badgeColor = '#fee2e2'; textColor = '#991b1b'; 
+                                statusText = 'Tidak Melaksanakan';
+                            }
+
+                            const row = `
+                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 15px; color: #334155;">${i + 1}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${formattedDate}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.area || '-'}</td>
+                                    <td style="padding: 12px 15px; text-align: center;">
+                                        <span style="background-color: ${badgeColor}; color: ${textColor}; padding: 4px 10px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600;">${statusText}</span>
+                                    </td>
+                                </tr>
+                            `;
+                            historyBody.innerHTML += row;
+                        }
+                    });
+                } else {
+                    if (historyBody) historyBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #94a3b8;">Belum ada riwayat piket.</td></tr>';
+                }
+                
+                const elYa = document.getElementById(`stat-piket-ya-${index}`);
+                const elTidak = document.getElementById(`stat-piket-tidak-${index}`);
+
+                if(elYa) elYa.textContent = ya;
+                if(elTidak) elTidak.textContent = tidak;
+                
+            } catch (err) {
+                console.error(`Error fetching piket for ${namaSiswa}:`, err);
+                const historyBody = document.getElementById(`piket-history-${index}`);
+                if (historyBody) historyBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: #ef4444;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- Fetch Student Nilai ---
+        async function fetchStudentNilai(namaSiswa, index) {
+            if (!absensiClient) return;
+            
+            try {
+                const { data, error } = await absensiClient
+                    .from('nilaimapel')
+                    .select('mapel, semester, nr, status')
+                    .eq('nama_siswa', namaSiswa)
+                    .order('mapel', { ascending: true });
+                
+                if (error) throw error;
+                
+                let tuntas = 0, tidakTuntas = 0;
+                const historyBody = document.getElementById(`nilai-history-${index}`);
+                
+                if (historyBody) historyBody.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach((record, i) => {
+                        // Hitung Statistik
+                        const status = record.status;
+                        if (status === 'Tuntas') tuntas++;
+                        else if (status === 'Tidak Tuntas') tidakTuntas++;
+
+                        // Isi Tabel Riwayat
+                        if (historyBody) {
+                            let badgeColor = '#f3f4f6';
+                            let textColor = '#1f2937';
+                            
+                            if (status === 'Tuntas') { badgeColor = '#d1fae5'; textColor = '#065f46'; }
+                            else if (status === 'Tidak Tuntas') { badgeColor = '#fee2e2'; textColor = '#991b1b'; }
+
+                            const row = `
+                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 15px; color: #334155;">${i + 1}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.mapel || '-'}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.semester || '-'}</td>
+                                    <td style="padding: 12px 15px; text-align: center; color: #334155;">${record.nr || '-'}</td>
+                                    <td style="padding: 12px 15px; text-align: center;">
+                                        <span style="background-color: ${badgeColor}; color: ${textColor}; padding: 4px 10px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600;">${status || '-'}</span>
+                                    </td>
+                                </tr>
+                            `;
+                            historyBody.innerHTML += row;
+                        }
+                    });
+                } else {
+                    if (historyBody) historyBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">Belum ada data nilai.</td></tr>';
+                }
+                
+                const elTuntas = document.getElementById(`stat-nilai-tuntas-${index}`);
+                const elTidak = document.getElementById(`stat-nilai-tidak-${index}`);
+
+                if(elTuntas) elTuntas.textContent = tuntas;
+                if(elTidak) elTidak.textContent = tidakTuntas;
+                
+            } catch (err) {
+                console.error(`Error fetching nilai for ${namaSiswa}:`, err);
+                const historyBody = document.getElementById(`nilai-history-${index}`);
+                if (historyBody) historyBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #ef4444;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- Fetch Student Kasus ---
+        async function fetchStudentKasus(namaSiswa, index) {
+            if (!absensiClient) return;
+            
+            try {
+                const { data, error } = await absensiClient
+                    .from('kasussiswa')
+                    .select('tanggal, jenis_kasus, mapel, nama_guru')
+                    .eq('nama_siswa', namaSiswa)
+                    .order('tanggal', { ascending: false });
+                
+                if (error) throw error;
+                
+                let totalKasus = 0;
+                const historyBody = document.getElementById(`kasus-history-${index}`);
+                
+                if (historyBody) historyBody.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    totalKasus = data.length;
+                    data.forEach((record, i) => {
+                        if (historyBody) {
+                            const dateObj = new Date(record.tanggal);
+                            const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                            
+                            const row = `
+                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 15px; color: #334155;">${i + 1}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${formattedDate}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.jenis_kasus || '-'}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.mapel || '-'}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.nama_guru || '-'}</td>
+                                </tr>
+                            `;
+                            historyBody.innerHTML += row;
+                        }
+                    });
+                } else {
+                    if (historyBody) historyBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">Tidak ada catatan kasus.</td></tr>';
+                }
+                
+                const elTotal = document.getElementById(`stat-kasus-total-${index}`);
+                if(elTotal) elTotal.textContent = totalKasus;
+                
+            } catch (err) {
+                console.error(`Error fetching kasus for ${namaSiswa}:`, err);
+                const historyBody = document.getElementById(`kasus-history-${index}`);
+                if (historyBody) historyBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #ef4444;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- Fetch Student Pembinaan ---
+        async function fetchStudentPembinaan(namaSiswa, index) {
+            if (!supabaseClient) return;
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('pembinaanwali')
+                    .select('*')
+                    .eq('nama_siswa', namaSiswa)
+                    .order('tanggal', { ascending: false });
+                
+                if (error) throw error;
+                
+                const historyBody = document.getElementById(`pembinaan-history-${index}`);
+                if (historyBody) historyBody.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach((record, i) => {
+                        if (historyBody) {
+                            const dateObj = new Date(record.tanggal);
+                            const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                            
+                            const photoHtml = record.photo ? `<a href="${record.photo}" target="_blank" style="color: var(--primary-color); text-decoration: none;"><i class="fas fa-image"></i> Lihat</a>` : '-';
+
+                            const row = `
+                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 15px; color: #334155;">${i + 1}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.id_pembinaan || '-'}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.nama_siswa || '-'}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.nisn || '-'}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${formattedDate}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.kasus || '-'}</td>
+                                    <td style="padding: 12px 15px; color: #334155;">${record.guru_wali || '-'}</td>
+                                    <td style="padding: 12px 15px; text-align: center;">${photoHtml}</td>
+                                    <td style="padding: 12px 15px; text-align: center;">
+                                        <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;" onclick="deletePembinaan('${record.id_pembinaan}', '${namaSiswa.replace(/'/g, "\\'")}', ${index})"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            `;
+                            historyBody.innerHTML += row;
+                        }
+                    });
+                } else {
+                    if (historyBody) historyBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #94a3b8;">Belum ada data pembinaan.</td></tr>';
+                }
+                
+            } catch (err) {
+                console.error(`Error fetching pembinaan for ${namaSiswa}:`, err.message, err);
+                const historyBody = document.getElementById(`pembinaan-history-${index}`);
+                if (historyBody) historyBody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 20px; color: #ef4444;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- Reset Siswa Wali Data ---
+        const resetSiswaWaliBtn = document.getElementById('resetSiswaWaliBtn');
+        if (resetSiswaWaliBtn) {
+            resetSiswaWaliBtn.addEventListener('click', async () => {
+                if (!currentUserNip) {
+                    alert("NIP Guru tidak ditemukan. Silakan login ulang.");
+                    return;
+                }
+                
+                if (confirm("Apakah Anda yakin ingin menghapus seluruh data Siswa Wali yang terdaftar pada Anda? Data yang dihapus tidak dapat dikembalikan.")) {
+                    try {
+                        const { error } = await supabaseClient
+                            .from('perwalian')
+                            .delete()
+                            .eq('nip', currentUserNip);
+
+                        if (error) throw error;
+
+                        alert("Data Siswa Wali berhasil direset.");
+                        loadSiswaWaliData();
+                    } catch (err) {
+                        console.error("Error resetting data:", err);
+                        alert("Gagal mereset data: " + err.message);
+                    }
+                }
+            });
+        }
+
+        // --- Export Student Data to PDF ---
+        window.exportStudentData = async function(nama, nisn, kelas, kodeId) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.width;
+            let yPos = 20;
+            
+            // Show loading indicator (optional, simple alert for now)
+            const originalCursor = document.body.style.cursor;
+            document.body.style.cursor = 'wait';
+
+            try {
+                // 1. Fetch All Data in Parallel
+                const pAbsensi = absensiClient.from('absensiswa').select('*').eq('nama_siswa', nama).order('tanggal', { ascending: false });
+                const pPiket = supabaseClient.from('jurnalpiket').select('*').eq('nama_siswa', nama).order('tanggal', { ascending: false });
+                const pNilai = absensiClient.from('nilaimapel').select('*').eq('nama_siswa', nama).order('mapel', { ascending: true });
+                const pKasus = absensiClient.from('kasussiswa').select('*').eq('nama_siswa', nama).order('tanggal', { ascending: false });
+
+                const [resAbsensi, resPiket, resNilai, resKasus] = await Promise.all([pAbsensi, pPiket, pNilai, pKasus]);
+
+                // Add KOP
+                if (schoolData.kop_sekolah) {
+                    try {
+                        const response = await fetch(schoolData.kop_sekolah);
+                        const blob = await response.blob();
+                        const base64data = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.readAsDataURL(blob);
+                        });
+
+                        const imgProps = doc.getImageProperties(base64data);
+                        const pdfWidth = pageWidth - 20; 
+                        const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                        
+                        doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                        yPos = 10 + imgHeight + 10;
+                    } catch (err) {
+                        console.error("Gagal memuat KOP Sekolah:", err);
+                    }
+                }
+
+                // 2. Header PDF
+                const schoolName = schoolData.nama_sekolah || document.querySelector('.navbar-brand span')?.textContent || 'SMK Negeri 1 Simpang Teritip';
+                doc.setFontSize(16);
+                doc.text("Laporan Lengkap Siswa", pageWidth / 2, yPos, { align: 'center' });
+                yPos += 8;
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 10;
+                doc.setTextColor(0);
+
+                // 3. Identitas Siswa
+                doc.setFontSize(10);
+                doc.text(`Nama: ${nama}`, 14, yPos);
+                doc.text(`NISN: ${nisn || '-'}`, 14, yPos + 5);
+                doc.text(`Kelas: ${kelas || '-'}`, 14, yPos + 10);
+                doc.text(`Kode ID: ${kodeId || '-'}`, 14, yPos + 15);
+                
+                yPos += 25;
+
+                // 4. Data Kehadiran
+                doc.setFont(undefined, 'bold');
+                doc.text("A. Data Kehadiran", 14, yPos);
+                yPos += 5;
+
+                const absensiRows = (resAbsensi.data || []).map((r, i) => {
+                    const dateStr = r.tanggal ? new Date(r.tanggal).toLocaleDateString('id-ID') : '-';
+                    return [i + 1, dateStr, r.hari || '-', r.status_kehadiran || '-'];
+                });
+
+                if (absensiRows.length === 0) absensiRows.push(['-', '-', '-', 'Belum ada data']);
+
+                doc.autoTable({
+                    head: [['No', 'Tanggal', 'Hari', 'Status']],
+                    body: absensiRows,
+                    startY: yPos,
+                    theme: 'grid',
+                    headStyles: { fillColor: [16, 185, 129] }, // Green
+                    styles: { fontSize: 9 },
+                    margin: { left: 14, right: 14 }
+                });
+                yPos = doc.lastAutoTable.finalY + 15;
+
+                // 5. Data Piket Umum
+                if (yPos > 250) { doc.addPage(); yPos = 20; }
+                doc.setFont(undefined, 'bold');
+                doc.text("B. Data Piket Umum", 14, yPos);
+                yPos += 5;
+
+                const piketRows = (resPiket.data || []).map((r, i) => {
+                    const dateStr = r.tanggal ? new Date(r.tanggal).toLocaleDateString('id-ID') : '-';
+                    const statusText = r.status === 'Ya' ? 'Melaksanakan' : 'Tidak Melaksanakan';
+                    return [i + 1, dateStr, r.area || '-', statusText];
+                });
+
+                if (piketRows.length === 0) piketRows.push(['-', '-', '-', 'Belum ada data']);
+
+                doc.autoTable({
+                    head: [['No', 'Tanggal', 'Area', 'Status']],
+                    body: piketRows,
+                    startY: yPos,
+                    theme: 'grid',
+                    headStyles: { fillColor: [245, 158, 11] }, // Orange
+                    styles: { fontSize: 9 },
+                    margin: { left: 14, right: 14 }
+                });
+                yPos = doc.lastAutoTable.finalY + 15;
+
+                // 6. Nilai Akademis
+                if (yPos > 250) { doc.addPage(); yPos = 20; }
+                doc.setFont(undefined, 'bold');
+                doc.text("C. Nilai Akademis", 14, yPos);
+                yPos += 5;
+
+                const nilaiRows = (resNilai.data || []).map((r, i) => [
+                    i + 1, r.mapel || '-', r.semester || '-', r.nr || '-', r.status || '-'
+                ]);
+
+                if (nilaiRows.length === 0) nilaiRows.push(['-', '-', '-', '-', 'Belum ada data']);
+
+                doc.autoTable({
+                    head: [['No', 'Mata Pelajaran', 'Semester', 'Nilai Akhir (NR)', 'Status']],
+                    body: nilaiRows,
+                    startY: yPos,
+                    theme: 'grid',
+                    headStyles: { fillColor: [59, 130, 246] }, // Blue
+                    styles: { fontSize: 9 },
+                    margin: { left: 14, right: 14 }
+                });
+                yPos = doc.lastAutoTable.finalY + 15;
+
+                // 7. Daftar Kasus
+                if (yPos > 250) { doc.addPage(); yPos = 20; }
+                doc.setFont(undefined, 'bold');
+                doc.text("D. Daftar Kasus Pembelajaran", 14, yPos);
+                yPos += 5;
+
+                const kasusRows = (resKasus.data || []).map((r, i) => {
+                    const dateStr = r.tanggal ? new Date(r.tanggal).toLocaleDateString('id-ID') : '-';
+                    return [i + 1, dateStr, r.jenis_kasus || '-', r.mapel || '-', r.nama_guru || '-'];
+                });
+
+                if (kasusRows.length === 0) kasusRows.push(['-', '-', 'Tidak ada catatan kasus', '-', '-']);
+
+                doc.autoTable({
+                    head: [['No', 'Tanggal', 'Jenis Kasus', 'Mapel', 'Pelapor']],
+                    body: kasusRows,
+                    startY: yPos,
+                    theme: 'grid',
+                    headStyles: { fillColor: [239, 68, 68] }, // Red
+                    styles: { fontSize: 9 },
+                    margin: { left: 14, right: 14 }
+                });
+
+                // 8. Tanda Tangan Guru Wali
+                yPos = doc.lastAutoTable.finalY + 20;
+                if (yPos > 240) { doc.addPage(); yPos = 20; }
+
+                const session = JSON.parse(sessionStorage.getItem('guru_session'));
+                const guruNama = session ? session.nama : '.........................';
+                const guruNip = session ? session.nip : '.........................';
+                const today = new Date();
+                const dateStr = today.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                const xPos = pageWidth - 60;
+
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(0);
+                
+                doc.text(`Simpang Teritip, ${dateStr}`, xPos, yPos, { align: 'center' });
+                doc.text("Guru Wali,", xPos, yPos + 5, { align: 'center' });
+                
+                doc.setFont(undefined, 'bold');
+                doc.text(guruNama, xPos, yPos + 25, { align: 'center' });
+                
+                doc.setFont(undefined, 'normal');
+                doc.text(`NIP. ${guruNip}`, xPos, yPos + 30, { align: 'center' });
+
+                // Save PDF
+                doc.save(`Laporan_Lengkap_${nama.replace(/\s+/g, '_')}.pdf`);
+
+            } catch (err) {
+                console.error("Export error:", err);
+                alert("Gagal mengexport data: " + err.message);
+            } finally {
+                document.body.style.cursor = originalCursor;
+            }
+        };
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', loadSiswaWaliData);
+
+        // --- Modal Pembinaan Logic ---
+        const pembinaanModal = document.getElementById('pembinaanModal');
+        const closePembinaanModal = document.getElementById('closePembinaanModal');
+        const cancelPembinaanBtn = document.getElementById('cancelPembinaanBtn');
+        const pembinaanForm = document.getElementById('pembinaanForm');
+
+        // Validasi Ukuran File Foto
+        const photoInput = document.getElementById('photoKegiatan');
+        if (photoInput) {
+            photoInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    if (this.files[0].size > 2 * 1024 * 1024) { // 2MB
+                        alert("File photo terlalu besar, Ukuran photo tidak boleh melebihi 2mb");
+                        this.value = ''; // Reset input
+                    }
+                }
+            });
+        }
+
+        window.openPembinaanModal = function(nama, nisn, kelas) {
+            // Set values
+            document.getElementById('namaSiswaPembinaan').value = nama;
+            document.getElementById('nisnPembinaan').value = nisn;
+            
+            // Set Guru Pembina from session
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            const guruNip = session ? session.nip : '';
+            document.getElementById('guruPembina').value = session ? session.nama : '';
+
+            // Generate ID: PB-NIP/NISN.Kelas-Random
+            const random = Math.floor(1000 + Math.random() * 9000);
+            const safeNip = guruNip || '000';
+            const safeNisn = nisn || '000';
+            const safeKelas = kelas || 'X';
+            document.getElementById('idPembinaan').value = `PB-${safeNip}/${safeNisn}.${safeKelas}-${random}`;
+            
+            // Set Date to today
+            document.getElementById('tanggalPembinaan').valueAsDate = new Date();
+
+            if(pembinaanModal) pembinaanModal.classList.add('active');
+        }
+
+        function closePembinaan() {
+            if(pembinaanModal) pembinaanModal.classList.remove('active');
+            if(pembinaanForm) pembinaanForm.reset();
+        }
+
+        if(closePembinaanModal) closePembinaanModal.addEventListener('click', closePembinaan);
+        if(cancelPembinaanBtn) cancelPembinaanBtn.addEventListener('click', closePembinaan);
+
+        // Submit Pembinaan
+        if(pembinaanForm) {
+            pembinaanForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = pembinaanForm.querySelector('button[type="submit"]');
+                submitBtn.textContent = 'Menyimpan...';
+                submitBtn.disabled = true;
+
+                try {
+                    const id = document.getElementById('idPembinaan').value;
+                    const nama = document.getElementById('namaSiswaPembinaan').value;
+                    const nisn = document.getElementById('nisnPembinaan').value;
+                    const tgl = document.getElementById('tanggalPembinaan').value;
+                    const kasus = document.getElementById('kasusPembinaan').value;
+                    const guru = document.getElementById('guruPembina').value;
+                    const photoInput = document.getElementById('photoKegiatan');
+                    
+                    let photoUrl = '';
+                    if (photoInput.files.length > 0) {
+                        const file = photoInput.files[0];
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `pembinaan_${id}_${Date.now()}.${fileExt}`;
+                        const { error: uploadError } = await supabaseClient.storage.from('aset').upload(fileName, file);
+                        if (uploadError) throw uploadError;
+                        const { data } = supabaseClient.storage.from('aset').getPublicUrl(fileName);
+                        photoUrl = data.publicUrl;
+                    }
+
+                    const { error } = await supabaseClient.from('pembinaanwali').insert([{
+                        id_pembinaan: id,
+                        nama_siswa: nama,
+                        nisn: nisn,
+                        tanggal: tgl,
+                        kasus: kasus,
+                        guru_wali: guru,
+                        photo: photoUrl
+                    }]);
+
+                    if (error) throw error;
+
+                    alert('Data Pembinaan berhasil disimpan');
+                    closePembinaan();
+                    loadSiswaWaliData(); // Reload to refresh data
+
+                } catch(err) {
+                    alert('Gagal menyimpan: ' + err.message);
+                } finally {
+                    submitBtn.textContent = 'Simpan';
+                    submitBtn.disabled = false;
+                }
+            });
+        }
+        
+        window.deletePembinaan = async function(id, nama, index) {
+            if(confirm('Hapus data pembinaan ini?')) {
+                try {
+                    const { error } = await supabaseClient.from('pembinaanwali').delete().eq('id_pembinaan', id);
+                    if(error) throw error;
+                    fetchStudentPembinaan(nama, index);
+                } catch(err) {
+                    alert('Gagal menghapus: ' + err.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

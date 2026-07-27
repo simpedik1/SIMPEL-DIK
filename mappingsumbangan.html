@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapping Sumbangan Siswa</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1d4ed8;
+            --navbar-bg: #1e40af;
+            --header-height: 60px;
+            --bg-light: #eff6ff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            height: var(--header-height);
+            background: linear-gradient(135deg, var(--navbar-bg), #2563eb);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 8px rgba(30,64,175,0.3);
+            z-index: 100;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px; width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: white;
+        }
+
+        .navbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.18);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .btn-back:hover { background: rgba(255,255,255,0.32); }
+
+        /* Main Content */
+        .main-content {
+            margin-top: calc(var(--header-height) + 1.5rem);
+            padding: 0 1rem 2rem;
+            flex: 1;
+            width: 100%;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+        }
+
+        .page-title h2 {
+            font-size: 1.2rem;
+            color: #1e3a8a;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .page-title p {
+            font-size: 0.82rem;
+            color: #64748b;
+            margin-top: 3px;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 1.2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 16px 18px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 4px solid transparent;
+        }
+        .stat-card.c-blue   { border-color: #2563eb; }
+        .stat-card.c-green  { border-color: #10b981; }
+        .stat-card.c-purple { border-color: #8b5cf6; }
+        .stat-card.c-orange { border-color: #f59e0b; }
+
+        .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .si-blue   { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .si-green  { background: linear-gradient(135deg, #10b981, #059669); }
+        .si-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .si-orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+        .stat-info h3 { font-size: 1.6rem; font-weight: 800; color: #1e293b; line-height: 1; }
+        .stat-info p  { font-size: 0.76rem; color: #64748b; margin-top: 3px; }
+
+        /* Tabs */
+        .tabs-wrapper {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-bottom: 1.2rem;
+        }
+
+        .tabs-nav {
+            display: flex;
+            overflow-x: auto;
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 0.5rem 1rem 0;
+            gap: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: #2563eb #e2e8f0;
+        }
+        .tabs-nav::-webkit-scrollbar { height: 4px; }
+        .tabs-nav::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 2px; }
+
+        .tab-btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            background: transparent;
+            color: #64748b;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            margin-bottom: -2px;
+        }
+        .tab-btn:hover { background: #eff6ff; color: #2563eb; }
+        .tab-btn.active { background: white; color: #2563eb; border-bottom: 3px solid #2563eb; }
+
+        .tab-content { display: none; padding: 1.25rem; }
+        .tab-content.active { display: block; }
+
+        /* Tab Toolbar */
+        .tab-toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .tab-toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 7px 10px 7px 32px;
+            border: 1.5px solid #ddd;
+            border-radius: 7px;
+            font-size: 0.84rem;
+            color: #333;
+            font-family: inherit;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .search-box i {
+            position: absolute;
+            left: 10px; top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .tab-toolbar-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Nominal Input Inline */
+        .nominal-input-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f0f9ff;
+            border: 1.5px solid #bae6fd;
+            border-radius: 8px;
+            padding: 6px 12px;
+        }
+        .nominal-input-bar label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #0369a1;
+            white-space: nowrap;
+        }
+        .nominal-input-bar input {
+            padding: 5px 10px;
+            border: 1.5px solid #bae6fd;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #333;
+            font-family: inherit;
+            width: 130px;
+            background: white;
+        }
+        .nominal-input-bar input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .tahun-input-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f5f3ff;
+            border: 1.5px solid #ddd6fe;
+            border-radius: 8px;
+            padding: 6px 12px;
+        }
+        .tahun-input-bar label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #6b21a8;
+            white-space: nowrap;
+        }
+        .tahun-input-bar input {
+            padding: 5px 10px;
+            border: 1.5px solid #ddd6fe;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #333;
+            font-family: inherit;
+            width: 110px;
+            background: white;
+        }
+        .tahun-input-bar input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: opacity 0.2s, transform 0.2s;
+            box-shadow: 0 3px 8px rgba(37,99,235,0.25);
+        }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+        .btn-success {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: opacity 0.2s, transform 0.2s;
+            box-shadow: 0 3px 8px rgba(16,185,129,0.25);
+        }
+        .btn-success:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-success:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+        .btn-outline {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            color: #555;
+            border: 1.5px solid #ddd;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .btn-outline:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+
+        /* Selection bar */
+        .selection-bar {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: #eff6ff;
+            border: 1.5px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .selection-bar.visible { display: flex; }
+        .selection-bar span {
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: #1e40af;
+        }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead th {
+            background: linear-gradient(135deg, #1e40af, #2563eb);
+            color: white;
+            padding: 11px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        thead th.col-check { width: 40px; text-align: center; }
+
+        tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #f8fafc; }
+        tbody tr.selected { background: #eff6ff !important; }
+        tbody tr.already-added { opacity: 0.5; }
+
+        tbody td { padding: 9px 12px; color: #374151; vertical-align: middle; }
+        tbody td.col-check { text-align: center; }
+
+        /* Checkbox style */
+        input[type="checkbox"] {
+            width: 16px; height: 16px;
+            accent-color: #2563eb;
+            cursor: pointer;
+        }
+
+        .badge-kelas {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-added {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        .badge-pending {
+            display: inline-block;
+            background: #fef9c3;
+            color: #854d0e;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        /* Empty / Loading */
+        .state-row td {
+            text-align: center;
+            padding: 30px;
+            color: #94a3b8;
+            font-size: 0.88rem;
+        }
+
+        /* Data table section (existing data) */
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Dashboard card for existing data */
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 1.2rem;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eff6ff;
+            flex-wrap: wrap;
+        }
+        .card-title-left { display: flex; align-items: center; gap: 8px; }
+        .card-title i { color: var(--primary-color); }
+
+        .toolbar-existing {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.86rem;
+            color: #333;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+        }
+        .filter-select:focus { outline: none; border-color: #2563eb; }
+
+        .nominal-text { font-weight: 700; color: #059669; }
+
+        .action-btns { display: flex; gap: 6px; }
+        .btn-icon {
+            width: 30px; height: 30px;
+            border-radius: 7px;
+            border: none;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .btn-icon:hover { opacity: 0.82; transform: scale(1.1); }
+        .btn-edit   { background: #dbeafe; color: #2563eb; }
+        .btn-delete { background: #fee2e2; color: #dc2626; }
+
+        .badge-tahun {
+            display: inline-block;
+            background: #f3e8ff;
+            color: #6b21a8;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .pagination-info { font-size: 0.8rem; color: #64748b; }
+        .pagination-btns { display: flex; gap: 5px; }
+        .btn-page {
+            padding: 5px 11px;
+            border: 1.5px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-page:hover { border-color: #2563eb; color: #2563eb; }
+        .btn-page.active { background: #2563eb; color: white; border-color: #2563eb; }
+        .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-box {
+            background: white;
+            width: 100%;
+            max-width: 460px;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease;
+            overflow: hidden;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-30px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            background: linear-gradient(135deg, #1e40af, #2563eb);
+        }
+        .modal-header h3 { margin: 0; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+        .modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.4); }
+        .modal-body { padding: 20px 22px; overflow-y: auto; max-height: 65vh; }
+        .modal-footer {
+            padding: 13px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .form-group { margin-bottom: 13px; }
+        .form-group label {
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: #555;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 11px;
+            border: 1.5px solid #ddd;
+            border-radius: 7px;
+            font-size: 0.88rem;
+            color: #333;
+            font-family: inherit;
+            background: white;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn-cancel {
+            padding: 7px 17px;
+            border: 1.5px solid #ddd;
+            background: white;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: #555;
+        }
+        .btn-cancel:hover { background: #f5f5f5; }
+        .btn-save {
+            padding: 7px 20px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.84rem;
+            font-weight: 600;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-danger-sm {
+            padding: 7px 20px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.84rem;
+            font-weight: 600;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .btn-danger-sm:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .confirm-body { padding: 22px; text-align: center; }
+        .confirm-icon { font-size: 2.8rem; color: #ef4444; margin-bottom: 10px; }
+        .confirm-body h4 { font-size: 0.95rem; color: #1e293b; margin-bottom: 5px; }
+        .confirm-body p { font-size: 0.84rem; color: #64748b; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            z-index: 9999;
+            transform: translateY(60px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            max-width: 340px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 4px solid #22c55e; }
+        .toast.error   { border-left: 4px solid #ef4444; }
+        .toast.info    { border-left: 4px solid #3b82f6; }
+
+        /* Progress bar for bulk save */
+        .progress-wrap {
+            margin-top: 10px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            height: 6px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-wrap.visible { display: block; }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Preview Summary Cards */
+        .preview-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 1.1rem;
+        }
+
+        .preview-card {
+            background: white;
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1.5px solid #e2e8f0;
+            transition: box-shadow 0.2s;
+        }
+        .preview-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.09); }
+
+        .preview-card.pc-blue  { border-left: 4px solid #2563eb; }
+        .preview-card.pc-green { border-left: 4px solid #10b981; }
+
+        .preview-icon {
+            width: 42px; height: 42px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .pi-blue  { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .pi-green { background: linear-gradient(135deg, #10b981, #059669); }
+
+        .preview-info { min-width: 0; }
+        .preview-info h4 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .preview-info p {
+            font-size: 0.73rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 480px) {
+            .preview-summary { grid-template-columns: 1fr; }
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 14px;
+            color: #94a3b8;
+            font-size: 0.78rem;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 10px;
+        }
+
+        /* Loading spinner */
+        .loading-tabs {
+            padding: 2rem;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        /* No tabs placeholder */
+        .no-tabs {
+            padding: 2.5rem 1rem;
+            text-align: center;
+            color: #94a3b8;
+        }
+        .no-tabs i { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+
+        /* Info note */
+        .info-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            color: #92400e;
+            margin-bottom: 0.75rem;
+        }
+        .info-note i { margin-top: 1px; flex-shrink: 0; }
+
+        @media (max-width: 768px) {
+            .main-content { padding: 0 0.5rem 2rem; }
+            .form-row { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .tab-toolbar { gap: 6px; }
+            .nominal-input-bar, .tahun-input-bar { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="admintu.html" class="navbar-brand">
+            <img src="" alt="Logo" id="navLogo" style="display:none;">
+            <span id="navSchoolName">SMKN 1 Simpang Teritip</span>
+        </a>
+        <div class="navbar-right">
+            <a href="admintu.html" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title">
+                <h2><i class="fas fa-users" style="color:#2563eb;"></i> Mapping Sumbangan Siswa</h2>
+                <p>Input massal tagihan sumbangan komite per kelas dan per tahun pelajaran</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card c-blue">
+                <div class="stat-icon si-blue"><i class="fas fa-users"></i></div>
+                <div class="stat-info"><h3 id="statTotal">—</h3><p>Total Terdaftar</p></div>
+            </div>
+            <div class="stat-card c-green">
+                <div class="stat-icon si-green"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="stat-info"><h3 id="statNominal">—</h3><p>Avg Nominal/Bln</p></div>
+            </div>
+            <div class="stat-card c-purple">
+                <div class="stat-icon si-purple"><i class="fas fa-school"></i></div>
+                <div class="stat-info"><h3 id="statKelas">—</h3><p>Jumlah Kelas</p></div>
+            </div>
+            <div class="stat-card c-orange">
+                <div class="stat-icon si-orange"><i class="fas fa-user-clock"></i></div>
+                <div class="stat-info"><h3 id="statBelum">—</h3><p>Belum Diinput</p></div>
+            </div>
+        </div>
+
+        <!-- =======================================
+             IMPORT MASSAL PER KELAS
+        ======================================= -->
+        <div class="tabs-wrapper">
+            <!-- Info -->
+            <div style="padding: 1rem 1.25rem 0;">
+                <div class="info-note">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Pilih kelas di tab bawah → isi <strong>Nominal/Bulan</strong> dan <strong>Tahun Pelajaran</strong> → centang siswa yang ingin diinput (atau <em>Pilih Semua</em>) → klik <strong>Simpan Terpilih</strong>. Siswa yang sudah punya data ditandai <span class="badge-added" style="font-size:0.7rem;">Sudah</span>.</span>
+                </div>
+            </div>
+
+            <!-- Tabs Nav -->
+            <div class="tabs-nav" id="importTabsNav">
+                <div class="loading-tabs"><i class="fas fa-spinner fa-spin"></i> Memuat kelas dari Supabase...</div>
+            </div>
+
+            <!-- Tabs Content -->
+            <div id="importTabsContent">
+                <!-- Dynamically filled -->
+            </div>
+        </div>
+
+        <!-- =======================================
+             DATA YANG SUDAH ADA
+        ======================================= -->
+        <div class="dashboard-card">
+
+            <!-- Preview Summary -->
+            <div class="preview-summary">
+                <div class="preview-card pc-blue">
+                    <div class="preview-icon pi-blue"><i class="fas fa-users"></i></div>
+                    <div class="preview-info">
+                        <h4 id="previewJumlahAnggota">—</h4>
+                        <p>Jumlah Anggota Sumbangan</p>
+                    </div>
+                </div>
+                <div class="preview-card pc-green">
+                    <div class="preview-icon pi-green"><i class="fas fa-wallet"></i></div>
+                    <div class="preview-info">
+                        <h4 id="previewTotalRencana">—</h4>
+                        <p>Total Rencana Pemasukan (12 bln)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-title">
+                <div class="card-title-left">
+                    <i class="fas fa-list-ul"></i>
+                    <span>Data Tagihan Sumbangan (Sudah Tersimpan)</span>
+                </div>
+                <button class="btn-primary" onclick="openManualModal()">
+                    <i class="fas fa-plus"></i> Tambah Manual
+                </button>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar-existing">
+                <div class="search-box" style="min-width:200px; flex:1;">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Cari nama / NISN..." oninput="filterExistingData()">
+                </div>
+                <select class="filter-select" id="filterKelas" onchange="filterExistingData()">
+                    <option value="">Semua Kelas</option>
+                </select>
+                <select class="filter-select" id="filterTahun" onchange="filterExistingData()">
+                    <option value="">Semua Tahun</option>
+                </select>
+            </div>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Nama Siswa</th>
+                            <th>NISN</th>
+                            <th>Kelas</th>
+                            <th>Tahun Pelajaran</th>
+                            <th>Nominal/Bulan</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="existingTableBody">
+                        <tr class="state-row">
+                            <td colspan="7"><i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <div class="pagination-info" id="paginationInfo">—</div>
+                <div class="pagination-btns" id="paginationBtns"></div>
+            </div>
+        </div>
+
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP. CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Edit Manual -->
+    <div class="modal-overlay" id="modalForm">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fas fa-user-plus"></i> Tambah Data Tagihan</h3>
+                <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-user" style="margin-right:4px;color:#2563eb"></i>Nama Siswa</label>
+                        <input type="text" id="fNama" placeholder="Nama lengkap">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card" style="margin-right:4px;color:#2563eb"></i>NISN</label>
+                        <input type="text" id="fNisn" placeholder="Nomor NISN">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-school" style="margin-right:4px;color:#2563eb"></i>Kelas</label>
+                        <input type="text" id="fKelas" placeholder="Contoh: X TKJ 1">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar" style="margin-right:4px;color:#2563eb"></i>Tahun Pelajaran</label>
+                        <input type="text" id="fTahun" placeholder="Contoh: 2025/2026">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-money-bill-wave" style="margin-right:4px;color:#2563eb"></i>Nominal per Bulan (Rp)</label>
+                    <input type="number" id="fNominal" placeholder="Contoh: 50000" min="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal()">Batal</button>
+                <button class="btn-save" id="btnSimpan" onclick="saveManualData()">
+                    <i class="fas fa-save"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus -->
+    <div class="modal-overlay" id="modalConfirm">
+        <div class="modal-box" style="max-width:360px;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#dc2626,#ef4444);">
+                <h3><i class="fas fa-trash"></i> Hapus Data</h3>
+                <button class="modal-close" onclick="closeConfirm()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="confirm-body">
+                <div class="confirm-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <h4>Hapus data tagihan ini?</h4>
+                <p id="confirmText">Data yang dihapus tidak dapat dikembalikan.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeConfirm()">Batal</button>
+                <button class="btn-danger-sm" id="btnHapus" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i> Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+    // ============================================================
+    // SUPABASE INIT
+    // ============================================================
+    const SUPA_URL  = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+    const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+    const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+    const SIMPEDIK_URL = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+    const SIMPEDIK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+    const simpedik = supabase.createClient(SIMPEDIK_URL, SIMPEDIK_KEY);
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let allExistingData  = [];   // data dari tagihansumbangan
+    let filteredExisting = [];
+    let allSiswaData     = {};   // { kelas: [siswa...] }
+    let kelasList        = [];
+    let deleteTargetId   = null;
+    const PAGE_SIZE = 15;
+    let currentPage = 1;
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+        loadSchoolIdentity();
+        // loadExistingData harus selesai dulu sebelum loadSiswaPerKelas,
+        // agar allExistingData sudah terisi saat refreshTabStatus dipanggil
+        // sehingga checkbox siswa yang sudah ada otomatis tercentang dengan benar.
+        await loadExistingData();
+        await loadSiswaPerKelas();
+    });
+
+    // ============================================================
+    // SCHOOL IDENTITY
+    // ============================================================
+    async function loadSchoolIdentity() {
+        try {
+            const { data } = await simpedik
+                .from('identitassekolah')
+                .select('nama_sekolah, logo')
+                .limit(1).maybeSingle();
+            if (data) {
+                if (data.nama_sekolah) document.getElementById('navSchoolName').textContent = data.nama_sekolah;
+                if (data.logo) {
+                    const img = document.getElementById('navLogo');
+                    img.src = data.logo;
+                    img.style.display = 'block';
+                }
+            }
+        } catch(e) {}
+    }
+
+    // ============================================================
+    // LOAD EXISTING DATA (tagihansumbangan)
+    // ============================================================
+    async function loadExistingData() {
+        try {
+            const { data, error } = await db
+                .from('tagihansumbangan')
+                .select('*')
+                .order('nama_siswa', { ascending: true });
+            if (error) throw error;
+            allExistingData = data || [];
+            buildFilters();
+            updateStats();
+            filterExistingData();
+        } catch(err) {
+            document.getElementById('existingTableBody').innerHTML =
+                `<tr class="state-row"><td colspan="7" style="color:#ef4444;"><i class="fas fa-exclamation-circle"></i> Gagal memuat data: ${err.message}</td></tr>`;
+        }
+    }
+
+    // ============================================================
+    // LOAD SISWA PER KELAS (dari mappingsiswa via Supabase utama)
+    // ============================================================
+    async function loadSiswaPerKelas() {
+        const nav = document.getElementById('importTabsNav');
+        const content = document.getElementById('importTabsContent');
+
+        try {
+            // Ambil semua data mappingsiswa
+            const { data: mappingData, error: mappingErr } = await db
+                .from('mappingsiswa')
+                .select('kelas, nama_siswa, nisn')
+                .order('kelas')
+                .order('nama_siswa');
+
+            if (mappingErr) throw mappingErr;
+
+            if (!mappingData || mappingData.length === 0) {
+                nav.innerHTML = '';
+                content.innerHTML = `<div class="no-tabs"><i class="fas fa-inbox"></i><p>Belum ada data siswa di tabel <code>mappingsiswa</code>.<br>Silakan isi data siswa terlebih dahulu di halaman Mapping Siswa.</p></div>`;
+                return;
+            }
+
+            // Group by kelas
+            mappingData.forEach(s => {
+                if (!allSiswaData[s.kelas]) allSiswaData[s.kelas] = [];
+                allSiswaData[s.kelas].push(s);
+            });
+
+            kelasList = Object.keys(allSiswaData).sort();
+
+            // Render tabs nav
+            nav.innerHTML = kelasList.map((k, i) =>
+                `<button class="tab-btn ${i===0?'active':''}" onclick="switchImportTab('${escAttr(k)}', this)">${escHtml(k)}</button>`
+            ).join('');
+
+            // Render tabs content
+            content.innerHTML = kelasList.map((k, i) => `
+                <div class="tab-content ${i===0?'active':''}" id="tab-import-${escAttr(k).replace(/\s+/g,'-')}">
+                    ${renderImportTab(k)}
+                </div>
+            `).join('');
+
+            // Init first tab
+            refreshTabStatus(kelasList[0]);
+
+        } catch(err) {
+            nav.innerHTML = '';
+            content.innerHTML = `<div class="no-tabs"><i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i><p style="color:#ef4444;">Gagal memuat data siswa: ${err.message}</p></div>`;
+        }
+    }
+
+    // ============================================================
+    // RENDER IMPORT TAB HTML
+    // ============================================================
+    function renderImportTab(kelas) {
+        const tabId = kelas.replace(/\s+/g, '-');
+        const siswaList = allSiswaData[kelas] || [];
+
+        return `
+            <div class="tab-toolbar">
+                <div class="tab-toolbar-left">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-${tabId}" placeholder="Cari nama / NISN..." oninput="filterImportRows('${escAttr(kelas)}')">
+                    </div>
+                </div>
+                <div class="tab-toolbar-right">
+                    <div class="nominal-input-bar">
+                        <label><i class="fas fa-money-bill-wave"></i> Nominal/Bln (Rp)</label>
+                        <input type="number" id="nominal-${tabId}" placeholder="Contoh: 50000" min="0">
+                    </div>
+                    <div class="tahun-input-bar">
+                        <label><i class="fas fa-calendar"></i> Tahun Pelajaran</label>
+                        <input type="text" id="tahun-${tabId}" placeholder="2025/2026" value="2025/2026">
+                    </div>
+                </div>
+            </div>
+
+            <div class="selection-bar" id="selbar-${tabId}">
+                <i class="fas fa-check-square" style="color:#2563eb;"></i>
+                <span id="selcount-${tabId}">0 siswa dipilih</span>
+                <button class="btn-success" id="btnSave-${tabId}" onclick="saveBulk('${escAttr(kelas)}')">
+                    <i class="fas fa-save"></i> Simpan Terpilih
+                </button>
+                <div class="progress-wrap" id="progress-wrap-${tabId}">
+                    <div class="progress-bar" id="progress-bar-${tabId}"></div>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table id="tbl-${tabId}">
+                    <thead>
+                        <tr>
+                            <th class="col-check">
+                                <input type="checkbox" id="chkAll-${tabId}" title="Pilih Semua" onchange="toggleSelectAll('${escAttr(kelas)}')">
+                            </th>
+                            <th>No</th>
+                            <th>Nama Siswa</th>
+                            <th>NISN</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-${tabId}">
+                        <tr class="state-row"><td colspan="5"><i class="fas fa-spinner fa-spin"></i> Memuat...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    // ============================================================
+    // SWITCH IMPORT TAB
+    // ============================================================
+    function switchImportTab(kelas, btnEl) {
+        document.querySelectorAll('#importTabsNav .tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#importTabsContent .tab-content').forEach(c => c.classList.remove('active'));
+        btnEl.classList.add('active');
+        const tabId = kelas.replace(/\s+/g, '-');
+        const panel = document.getElementById(`tab-import-${tabId}`);
+        if (panel) panel.classList.add('active');
+        refreshTabStatus(kelas);
+    }
+
+    // ============================================================
+    // REFRESH TAB — mark which students already have data
+    // ============================================================
+    function refreshTabStatus(kelas) {
+        const tabId = kelas.replace(/\s+/g, '-');
+        const tbody  = document.getElementById(`tbody-${tabId}`);
+        if (!tbody) return;
+
+        const siswaList = allSiswaData[kelas] || [];
+        const tahunEl   = document.getElementById(`tahun-${tabId}`);
+        const tahun     = tahunEl ? tahunEl.value.trim() : '';
+
+        // Build set of (nisn + tahun) already in DB
+        const addedSet = new Set(
+            allExistingData
+                .filter(d => d.kelas === kelas && (!tahun || d.tahun_pelajaran === tahun))
+                .map(d => String(d.nisn || '').trim())
+        );
+
+        renderImportRows(kelas, siswaList, addedSet);
+        updateSelectionBar(kelas);
+    }
+
+    // ============================================================
+    // RENDER IMPORT ROWS
+    // ============================================================
+    function renderImportRows(kelas, siswaList, addedSet) {
+        const tabId = kelas.replace(/\s+/g, '-');
+        const tbody  = document.getElementById(`tbody-${tabId}`);
+        if (!tbody) return;
+
+        const searchEl = document.getElementById(`search-${tabId}`);
+        const q = searchEl ? searchEl.value.toLowerCase() : '';
+
+        const filtered = siswaList.filter(s => {
+            if (!q) return true;
+            return (s.nama_siswa||'').toLowerCase().includes(q) || (s.nisn||'').toLowerCase().includes(q);
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr class="state-row"><td colspan="5">Tidak ada siswa ditemukan.</td></tr>`;
+            return;
+        }
+
+        let no = 0;
+        tbody.innerHTML = filtered.map(s => {
+            no++;
+            const isAdded = addedSet.has(String(s.nisn || '').trim());
+            const chkId   = `chk-${tabId}-${s.nisn}`;
+            return `
+                <tr id="row-${tabId}-${escAttr(s.nisn)}" class="${isAdded ? 'already-added' : ''}">
+                    <td class="col-check">
+                        <input type="checkbox" id="${chkId}" data-kelas="${escAttr(kelas)}" data-nisn="${escAttr(s.nisn)}"
+                            ${isAdded ? 'checked disabled title="Sudah ada di tagihan"' : ''}
+                            onchange="updateSelectionBar('${escAttr(kelas)}')">
+                    </td>
+                    <td style="color:#94a3b8;font-size:0.78rem;">${no}</td>
+                    <td><strong>${escHtml(s.nama_siswa||'-')}</strong></td>
+                    <td style="font-family:monospace;font-size:0.82rem;color:#475569;">${escHtml(s.nisn||'-')}</td>
+                    <td>${isAdded
+                        ? `<span class="badge-added"><i class="fas fa-check-circle"></i> Sudah</span>`
+                        : `<span class="badge-pending"><i class="fas fa-clock"></i> Belum</span>`
+                    }</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // ============================================================
+    // FILTER ROWS DALAM TAB
+    // ============================================================
+    function filterImportRows(kelas) {
+        const tahunEl  = document.getElementById(`tahun-${kelas.replace(/\s+/g,'-')}`);
+        const tahun    = tahunEl ? tahunEl.value.trim() : '';
+        const addedSet = new Set(
+            allExistingData
+                .filter(d => d.kelas === kelas && (!tahun || d.tahun_pelajaran === tahun))
+                .map(d => String(d.nisn || '').trim())
+        );
+        renderImportRows(kelas, allSiswaData[kelas] || [], addedSet);
+        updateSelectionBar(kelas);
+    }
+
+    // ============================================================
+    // SELECT ALL / DESELECT ALL
+    // ============================================================
+    function toggleSelectAll(kelas) {
+        const tabId   = kelas.replace(/\s+/g, '-');
+        const chkAll  = document.getElementById(`chkAll-${tabId}`);
+        const checkboxes = document.querySelectorAll(`#tbody-${tabId} input[type="checkbox"]:not(:disabled)`);
+        checkboxes.forEach(c => c.checked = chkAll.checked);
+        updateSelectionBar(kelas);
+    }
+
+    // ============================================================
+    // UPDATE SELECTION BAR
+    // ============================================================
+    function updateSelectionBar(kelas) {
+        const tabId      = kelas.replace(/\s+/g, '-');
+        const checkboxes = document.querySelectorAll(`#tbody-${tabId} input[type="checkbox"]:not(:disabled)`);
+        const checked    = [...checkboxes].filter(c => c.checked);
+        const selBar     = document.getElementById(`selbar-${tabId}`);
+        const selCount   = document.getElementById(`selcount-${tabId}`);
+
+        if (selBar) {
+            selBar.classList.toggle('visible', checked.length > 0);
+            if (selCount) selCount.textContent = `${checked.length} siswa dipilih`;
+        }
+
+        // Sync chkAll state
+        const chkAll = document.getElementById(`chkAll-${tabId}`);
+        if (chkAll) {
+            const all = [...checkboxes];
+            chkAll.checked = all.length > 0 && all.every(c => c.checked);
+            chkAll.indeterminate = checked.length > 0 && checked.length < all.length;
+        }
+
+        // Highlight rows
+        document.querySelectorAll(`#tbody-${tabId} tr`).forEach(row => {
+            const chk = row.querySelector('input[type="checkbox"]');
+            if (chk && !chk.disabled) row.classList.toggle('selected', chk.checked);
+        });
+    }
+
+    // ============================================================
+    // SAVE BULK
+    // ============================================================
+    async function saveBulk(kelas) {
+        const tabId   = kelas.replace(/\s+/g, '-');
+        const nominal = parseFloat(document.getElementById(`nominal-${tabId}`)?.value) || 0;
+        const tahun   = document.getElementById(`tahun-${tabId}`)?.value.trim() || '';
+
+        if (!nominal || nominal <= 0) {
+            showToast('Isi Nominal per Bulan terlebih dahulu!', 'error');
+            return;
+        }
+        if (!tahun) {
+            showToast('Isi Tahun Pelajaran terlebih dahulu!', 'error');
+            return;
+        }
+
+        const checkboxes = [...document.querySelectorAll(`#tbody-${tabId} input[type="checkbox"]:checked:not(:disabled)`)];
+        if (checkboxes.length === 0) {
+            showToast('Pilih minimal 1 siswa!', 'error');
+            return;
+        }
+
+        const btn         = document.getElementById(`btnSave-${tabId}`);
+        const progWrap    = document.getElementById(`progress-wrap-${tabId}`);
+        const progBar     = document.getElementById(`progress-bar-${tabId}`);
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memverifikasi...';
+        if (progWrap) { progWrap.classList.add('visible'); progBar.style.width = '10%'; }
+
+        try {
+            // Kumpulkan semua NISN yang dipilih
+            const selectedNisns = checkboxes.map(chk => String(chk.dataset.nisn || '').trim());
+
+            // Verifikasi ke Supabase: cek NISN mana yang sudah ada di tagihansumbangan
+            const { data: existingRows, error: checkErr } = await db
+                .from('tagihansumbangan')
+                .select('nisn')
+                .eq('kelas', kelas)
+                .eq('tahun_pelajaran', tahun)
+                .in('nisn', selectedNisns);
+
+            if (checkErr) throw checkErr;
+
+            // Buat set NISN yang sudah ada
+            const alreadyExistSet = new Set(
+                (existingRows || []).map(r => String(r.nisn || '').trim())
+            );
+
+            // Filter: hanya yang NISN-nya belum ada
+            const toInsert = selectedNisns.filter(nisn => !alreadyExistSet.has(nisn));
+            const skipped  = selectedNisns.length - toInsert.length;
+
+            if (toInsert.length === 0) {
+                showToast(`Semua ${skipped} siswa sudah ada di tagihan, tidak ada yang perlu disimpan.`, 'info');
+                await loadExistingData();
+                refreshTabStatus(kelas);
+                return;
+            }
+
+            if (progBar) progBar.style.width = '30%';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            // Build payload hanya untuk NISN yang belum ada
+            const payloads = toInsert.map(nisn => {
+                const siswa = (allSiswaData[kelas] || []).find(s => String(s.nisn || '').trim() === nisn);
+                const namaSiswa = (siswa && siswa.nama_siswa && String(siswa.nama_siswa).trim())
+                    ? String(siswa.nama_siswa).trim()
+                    : '';
+                if (!namaSiswa) console.warn('[saveBulk] nama_siswa tidak ditemukan untuk NISN:', nisn);
+                return {
+                    id: 'TS-' + Date.now() + '-' + Math.random().toString(36).substr(2,5),
+                    nama_siswa: namaSiswa,
+                    nisn: nisn,
+                    kelas: kelas,
+                    tahun_pelajaran: tahun,
+                    nominal_per_bulan: nominal
+                };
+            });
+
+            // Batch insert in chunks of 50
+            const CHUNK = 50;
+            let saved = 0;
+            let failed = 0;
+
+            for (let i = 0; i < payloads.length; i += CHUNK) {
+                const chunk = payloads.slice(i, i + CHUNK);
+                const { error } = await db.from('tagihansumbangan').insert(chunk);
+                if (error) {
+                    for (const row of chunk) {
+                        const { error: e2 } = await db.from('tagihansumbangan').insert([row]);
+                        if (e2) { failed++; console.error('[saveBulk] gagal insert:', row.nisn, e2.message); }
+                        else saved++;
+                    }
+                } else {
+                    saved += chunk.length;
+                }
+                const pct = 30 + Math.round(((i + CHUNK) / payloads.length) * 70);
+                if (progBar) progBar.style.width = Math.min(pct, 100) + '%';
+            }
+
+            await loadExistingData();
+            refreshTabStatus(kelas);
+
+            if (skipped > 0 && failed === 0) {
+                showToast(`✅ ${saved} siswa disimpan. ${skipped} dilewati (sudah ada).`, 'success');
+            } else if (failed === 0) {
+                showToast(`✅ ${saved} siswa berhasil disimpan!`, 'success');
+            } else {
+                showToast(`⚠️ ${saved} berhasil, ${failed} gagal, ${skipped} dilewati.`, 'info');
+            }
+        } catch(err) {
+            showToast('Gagal menyimpan: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Simpan Terpilih';
+            setTimeout(() => { if (progWrap) progWrap.classList.remove('visible'); }, 1500);
+        }
+    }
+
+    // ============================================================
+    // EXISTING DATA — FILTERS & TABLE
+    // ============================================================
+    function buildFilters() {
+        const kelasList = [...new Set(allExistingData.map(d => d.kelas).filter(Boolean))].sort();
+        const tahunList = [...new Set(allExistingData.map(d => d.tahun_pelajaran).filter(Boolean))].sort().reverse();
+
+        document.getElementById('filterKelas').innerHTML =
+            '<option value="">Semua Kelas</option>' +
+            kelasList.map(k => `<option value="${escAttr(k)}">${escHtml(k)}</option>`).join('');
+        document.getElementById('filterTahun').innerHTML =
+            '<option value="">Semua Tahun</option>' +
+            tahunList.map(t => `<option value="${escAttr(t)}">${escHtml(t)}</option>`).join('');
+    }
+
+    function updateStats() {
+        const total  = allExistingData.length;
+        const kelas  = new Set(allExistingData.map(d => d.kelas).filter(Boolean)).size;
+        const avg    = total > 0
+            ? Math.round(allExistingData.reduce((s,d) => s + (parseFloat(d.nominal_per_bulan)||0), 0) / total)
+            : 0;
+
+        // Count "belum" — students in mappingsiswa not yet in tagihansumbangan
+        const addedNisn = new Set(allExistingData.map(d => d.nisn));
+        let belum = 0;
+        Object.values(allSiswaData).forEach(list => {
+            list.forEach(s => { if (!addedNisn.has(s.nisn)) belum++; });
+        });
+
+        document.getElementById('statTotal').textContent   = total;
+        document.getElementById('statKelas').textContent   = kelas;
+        document.getElementById('statNominal').textContent = 'Rp ' + avg.toLocaleString('id-ID');
+        document.getElementById('statBelum').textContent   = belum || '—';
+
+        // Preview cards
+        const totalNominal = allExistingData.reduce((s,d) => s + (parseFloat(d.nominal_per_bulan)||0), 0);
+        const totalRencana = totalNominal * 12;
+        document.getElementById('previewJumlahAnggota').textContent = total.toLocaleString('id-ID') + ' Siswa';
+        document.getElementById('previewTotalRencana').textContent  = 'Rp ' + totalRencana.toLocaleString('id-ID');
+    }
+
+    function filterExistingData() {
+        const q     = document.getElementById('searchInput').value.toLowerCase();
+        const kelas = document.getElementById('filterKelas').value;
+        const tahun = document.getElementById('filterTahun').value;
+
+        filteredExisting = allExistingData.filter(d => {
+            const matchQ = !q || (d.nama_siswa||'').toLowerCase().includes(q) || (d.nisn||'').toLowerCase().includes(q);
+            const matchK = !kelas || d.kelas === kelas;
+            const matchT = !tahun || d.tahun_pelajaran === tahun;
+            return matchQ && matchK && matchT;
+        });
+        currentPage = 1;
+        renderExistingTable();
+    }
+
+    function renderExistingTable() {
+        const tbody = document.getElementById('existingTableBody');
+        const total = filteredExisting.length;
+
+        if (total === 0) {
+            tbody.innerHTML = `<tr class="state-row"><td colspan="7"><i class="fas fa-inbox" style="font-size:1.5rem;display:block;margin-bottom:6px;color:#cbd5e1;"></i>Tidak ada data ditemukan.</td></tr>`;
+            document.getElementById('paginationInfo').textContent = 'Tidak ada data';
+            document.getElementById('paginationBtns').innerHTML = '';
+            return;
+        }
+
+        const totalPages = Math.ceil(total / PAGE_SIZE);
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const slice = filteredExisting.slice(start, start + PAGE_SIZE);
+
+        tbody.innerHTML = slice.map((d, i) => `
+            <tr>
+                <td style="color:#94a3b8;font-size:0.78rem;">${start + i + 1}</td>
+                <td><strong>${escHtml(d.nama_siswa||'-')}</strong></td>
+                <td style="font-family:monospace;color:#475569;font-size:0.82rem;">${escHtml(d.nisn||'-')}</td>
+                <td><span class="badge-kelas">${escHtml(d.kelas||'-')}</span></td>
+                <td><span class="badge-tahun">${escHtml(d.tahun_pelajaran||'-')}</span></td>
+                <td class="nominal-text">Rp ${(parseFloat(d.nominal_per_bulan)||0).toLocaleString('id-ID')}</td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-icon btn-edit" onclick="openEditModal('${escAttr(d.id)}')" title="Edit">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="btn-icon btn-delete" onclick="openConfirm('${escAttr(d.id)}','${escAttr(d.nama_siswa||'')}')" title="Hapus">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+
+        document.getElementById('paginationInfo').textContent =
+            `Menampilkan ${start+1}–${Math.min(start+PAGE_SIZE, total)} dari ${total} data`;
+
+        const btnsEl = document.getElementById('paginationBtns');
+        let btnsHtml = `<button class="btn-page" onclick="goPage(${currentPage-1})" ${currentPage<=1?'disabled':''}><i class="fas fa-chevron-left"></i></button>`;
+        for (let p = 1; p <= totalPages; p++) {
+            if (totalPages <= 7 || Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages) {
+                btnsHtml += `<button class="btn-page ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+            } else if (Math.abs(p - currentPage) === 3) {
+                btnsHtml += `<span style="padding:4px;color:#94a3b8;">…</span>`;
+            }
+        }
+        btnsHtml += `<button class="btn-page" onclick="goPage(${currentPage+1})" ${currentPage>=totalPages?'disabled':''}><i class="fas fa-chevron-right"></i></button>`;
+        btnsEl.innerHTML = btnsHtml;
+    }
+
+    function goPage(p) {
+        const totalPages = Math.ceil(filteredExisting.length / PAGE_SIZE);
+        if (p < 1 || p > totalPages) return;
+        currentPage = p;
+        renderExistingTable();
+    }
+
+    // ============================================================
+    // MODAL EDIT MANUAL
+    // ============================================================
+    function openManualModal() {
+        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-plus"></i> Tambah Data Tagihan';
+        document.getElementById('editId').value = '';
+        document.getElementById('fNama').value = '';
+        document.getElementById('fNisn').value = '';
+        document.getElementById('fKelas').value = '';
+        document.getElementById('fTahun').value = '';
+        document.getElementById('fNominal').value = '';
+        document.getElementById('modalForm').classList.add('active');
+    }
+
+    function openEditModal(id) {
+        const row = allExistingData.find(d => d.id === id);
+        if (!row) return;
+        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-pen"></i> Edit Data Tagihan';
+        document.getElementById('editId').value    = row.id;
+        document.getElementById('fNama').value     = row.nama_siswa || '';
+        document.getElementById('fNisn').value     = row.nisn || '';
+        document.getElementById('fKelas').value    = row.kelas || '';
+        document.getElementById('fTahun').value    = row.tahun_pelajaran || '';
+        document.getElementById('fNominal').value  = row.nominal_per_bulan || '';
+        document.getElementById('modalForm').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('modalForm').classList.remove('active');
+    }
+
+    async function saveManualData() {
+        const editId  = document.getElementById('editId').value.trim();
+        const nama    = document.getElementById('fNama').value.trim();
+        const nisn    = document.getElementById('fNisn').value.trim();
+        const kelas   = document.getElementById('fKelas').value.trim();
+        const tahun   = document.getElementById('fTahun').value.trim();
+        const nominal = parseFloat(document.getElementById('fNominal').value) || 0;
+
+        if (!nama || !nisn || !kelas || !tahun) {
+            showToast('Semua field wajib diisi!', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('btnSimpan');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+        try {
+            const payload = { nama_siswa: nama, nisn, kelas, tahun_pelajaran: tahun, nominal_per_bulan: nominal };
+            let error;
+            if (editId) {
+                ({ error } = await db.from('tagihansumbangan').update(payload).eq('id', editId));
+            } else {
+                payload.id = 'TS-' + Date.now();
+                ({ error } = await db.from('tagihansumbangan').insert([payload]));
+            }
+            if (error) throw error;
+            showToast(editId ? 'Data berhasil diperbarui!' : 'Data berhasil ditambahkan!', 'success');
+            closeModal();
+            await loadExistingData();
+            // Refresh current active tab
+            const activeTab = document.querySelector('#importTabsContent .tab-content.active');
+            if (activeTab) {
+                const match = activeTab.id.replace('tab-import-','').replace(/-/g,' ');
+                if (allSiswaData[match]) refreshTabStatus(match);
+            }
+        } catch(err) {
+            showToast('Gagal menyimpan: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Simpan';
+        }
+    }
+
+    // ============================================================
+    // DELETE
+    // ============================================================
+    function openConfirm(id, nama) {
+        deleteTargetId = id;
+        document.getElementById('confirmText').textContent = `Hapus tagihan atas nama "${nama}"? Data tidak dapat dikembalikan.`;
+        document.getElementById('modalConfirm').classList.add('active');
+    }
+
+    function closeConfirm() {
+        deleteTargetId = null;
+        document.getElementById('modalConfirm').classList.remove('active');
+    }
+
+    async function confirmDelete() {
+        if (!deleteTargetId) return;
+        const btn = document.getElementById('btnHapus');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghapus...';
+        try {
+            const { error } = await db.from('tagihansumbangan').delete().eq('id', deleteTargetId);
+            if (error) throw error;
+            showToast('Data berhasil dihapus!', 'success');
+            closeConfirm();
+            await loadExistingData();
+            const activeTabBtn = document.querySelector('#importTabsNav .tab-btn.active');
+            if (activeTabBtn) {
+                const kelas = activeTabBtn.textContent;
+                if (allSiswaData[kelas]) refreshTabStatus(kelas);
+            }
+        } catch(err) {
+            showToast('Gagal menghapus: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Hapus';
+        }
+    }
+
+    // ============================================================
+    // CLOSE MODAL ON BACKDROP CLICK
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('modalForm').addEventListener('click', e => { if (e.target === document.getElementById('modalForm')) closeModal(); });
+        document.getElementById('modalConfirm').addEventListener('click', e => { if (e.target === document.getElementById('modalConfirm')) closeConfirm(); });
+    });
+
+    // ============================================================
+    // TOAST
+    // ============================================================
+    let toastTimer;
+    function showToast(msg, type = 'success') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `toast ${type} show`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    // ============================================================
+    // UTILS
+    // ============================================================
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+    function escAttr(str) {
+        return String(str).replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    }
+    </script>
+
+</body>
+</html>

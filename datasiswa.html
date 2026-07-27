@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPEL-DIK</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF & AutoTable for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <!-- PapaParse for CSV Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <!-- SheetJS for Excel Template Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar {
+            justify-content: space-between;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        /* --- Navbar Dashboard Button --- */
+        .navbar-dashboard-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .navbar-dashboard-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0;
+            padding: 2rem 5px;
+            flex: 1;
+            overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand span {
+                font-size: 1rem;
+            }
+        }
+
+        /* --- Styles Tambahan untuk Tabel dan Tombol --- */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            color: white;
+        }
+        .btn-primary { background: linear-gradient(to right, var(--primary-color), var(--secondary-color)); }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-danger { background-color: #ef4444; }
+        .btn-danger:hover { background-color: #dc2626; }
+        .btn-success { background-color: #10b981; }
+        .btn-success:hover { background-color: #059669; }
+
+        .table-responsive { overflow-x: auto; }
+        .custom-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .custom-table th, .custom-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .custom-table th { background-color: #f8f9fa; color: #555; font-weight: 600; }
+        .custom-table tr:hover { background-color: #f9f9f9; }
+
+        /* --- Toolbar Tombol (Tambah/Import/Export) --- */
+        .toolbar-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .toolbar-left, .toolbar-right {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .toolbar-right { justify-content: flex-end; }
+
+        /* --- Modal Styles --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; max-height: 90vh; overflow-y: auto; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; color: #333; font-size: 1.2rem; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: #888; transition: color 0.2s; }
+        .close-modal:hover { color: #ef4444; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #666; font-size: 0.9rem; font-weight: 500; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; transition: border-color 0.3s; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        
+        /* Styling khusus untuk input date agar lebih menarik */
+        input[type="date"] { position: relative; padding-right: 10px; color: #444; }
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; transition: 0.3s; }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; transform: scale(1.1); }
+
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+        .btn-secondary { background-color: #e2e8f0; color: #475569; }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+
+        /* Search Box Style */
+        .search-box { position: relative; min-width: 250px; }
+        .search-box input { 
+            width: 100%; padding: 10px 15px 10px 35px; 
+            border: 1px solid #ddd; border-radius: 6px; 
+            font-size: 0.9rem; transition: border-color 0.3s; 
+        }
+        .search-box input:focus { outline: none; border-color: var(--primary-color); }
+        .search-box i { 
+            position: absolute; left: 12px; top: 50%; 
+            transform: translateY(-50%); color: #999; 
+        }
+        @media (max-width: 768px) {
+            .search-box { width: 100%; margin-top: 10px; }
+
+            .toolbar-left, .toolbar-right {
+                width: 100%;
+                justify-content: center;
+            }
+            .toolbar-left .btn, .toolbar-right .btn {
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="dasboradmin.html" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="dasboradmin.html" class="navbar-dashboard-btn">
+            <i class="fas fa-th-large"></i> Dashboard
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Data Siswa</h2>
+            <p style="color: #666; margin-top: 10px;">Halaman untuk mengelola data siswa.</p>
+        </div>
+        
+        <!-- Container Tabel Data Siswa -->
+        <div class="dashboard-card">
+            <div class="toolbar-wrap">
+                <div class="toolbar-left">
+                    <button class="btn btn-primary" id="addSiswaBtn"><i class="fas fa-plus"></i> Tambah Siswa</button>
+                    <div class="search-box" title="Cari data siswa">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Cari NISN atau Nama...">
+                    </div>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-success" id="importBtn"><i class="fas fa-file-import"></i> Import CSV/Excel</button>
+                    <button class="btn btn-secondary" id="downloadTemplateBtn"><i class="fas fa-file-excel"></i> Download Template</button>
+                    <button class="btn btn-danger" id="exportPdfBtn"><i class="fas fa-file-pdf"></i> Export Pdf</button>
+                    <button class="btn btn-primary" id="kirimLinkBtn" style="background: linear-gradient(to right, #06b6d4, #3b82f6);"><i class="fas fa-link"></i> Kirim Link Ke Siswa</button>
+                </div>
+                <input type="file" id="importFile" accept=".csv,.xlsx,.xls" style="display: none;" title="Pilih file CSV atau Excel untuk diimport">
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>NISN</th>
+                            <th>Nama Siswa</th>
+                            <th>Tempat Lahir</th>
+                            <th>Tanggal Lahir</th>
+                            <th>Nama Ayah</th>
+                            <th>Nama Ibu</th>
+                            <th>Alamat</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="9" style="text-align: center; color: #888; padding: 20px;">Belum ada data siswa.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Tambah Siswa -->
+    <div id="siswaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Siswa Baru</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <form id="siswaForm">
+                <!-- Hidden Input untuk Mode Edit -->
+                <input type="hidden" id="isEditMode" value="false">
+                <div class="form-group">
+                    <label for="nisn">NISN</label>
+                    <input type="number" id="nisn" name="nisn" placeholder="Nomor Induk Siswa Nasional" required>
+                </div>
+                <div class="form-group">
+                    <label for="namaSiswa">Nama Siswa</label>
+                    <input type="text" id="namaSiswa" name="namaSiswa" placeholder="Nama Lengkap Siswa" required>
+                </div>
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <label for="tempatLahir">Tempat Lahir</label>
+                        <input type="text" id="tempatLahir" name="tempatLahir" placeholder="Kota Kelahiran">
+                    </div>
+                    <div>
+                        <label for="tanggalLahir">Tanggal Lahir</label>
+                        <input type="date" id="tanggalLahir" name="tanggalLahir">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="namaAyah">Nama Ayah</label>
+                    <input type="text" id="namaAyah" name="namaAyah" placeholder="Nama Ayah Kandung">
+                </div>
+                <div class="form-group">
+                    <label for="namaIbu">Nama Ibu</label>
+                    <input type="text" id="namaIbu" name="namaIbu" placeholder="Nama Ibu Kandung">
+                </div>
+                <div class="form-group">
+                    <label for="alamat">Alamat</label>
+                    <textarea id="alamat" name="alamat" placeholder="Alamat Lengkap" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Integration for Navbar Identity ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let schoolData = {}; // Menyimpan data sekolah untuk keperluan export
+
+        async function loadSchoolIdentity() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo, kop_sekolah, tahun_pelajaran')
+                    .limit(1)
+                    .single();
+                
+                if (data) {
+                    schoolData = data; // Simpan data ke variabel global
+                    if (data.nama_sekolah) {
+                        document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    }
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading school identity:", err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        document.addEventListener('DOMContentLoaded', loadSiswaData);
+
+        // --- Modal Logic ---
+        const modal = document.getElementById('siswaModal');
+        const addBtn = document.getElementById('addSiswaBtn');
+        const closeSpan = document.querySelector('.close-modal');
+        const cancelBtn = document.querySelector('.cancel-btn');
+        const siswaForm = document.getElementById('siswaForm');
+        const isEditModeInput = document.getElementById('isEditMode');
+        const nisnInput = document.getElementById('nisn');
+
+        // Buka Modal
+        addBtn.addEventListener('click', () => {
+            siswaForm.reset();
+            isEditModeInput.value = "false";
+            nisnInput.readOnly = false; // NISN bisa diedit saat tambah baru
+            document.querySelector('.modal-header h3').textContent = "Tambah Siswa Baru";
+            modal.classList.add('active');
+        });
+
+        // Tutup Modal
+        function closeModal() {
+            modal.classList.remove('active');
+            siswaForm.reset();
+        }
+
+        closeSpan.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Variabel global untuk menyimpan data siswa
+        let allSiswaData = [];
+
+        // --- Load Data Siswa ---
+        async function loadSiswaData() {
+            const tableBody = document.querySelector('.custom-table tbody');
+            tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Memuat data...</td></tr>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('datasiswa')
+                    .select('*')
+                    .order('nama_siswa', { ascending: true });
+
+                if (error) throw error;
+
+                allSiswaData = data; // Simpan data ke variabel global
+                renderSiswaTable(allSiswaData);
+
+            } catch (err) {
+                console.error('Error loading siswa data:', err);
+                tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color: #ef4444;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // Fungsi Render Tabel
+        function renderSiswaTable(data) {
+            const tableBody = document.querySelector('.custom-table tbody');
+            tableBody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #888; padding: 20px;">Data tidak ditemukan.</td></tr>';
+                return;
+            }
+
+            data.forEach((siswa, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${siswa.nisn}</td>
+                    <td>${siswa.nama_siswa}</td>
+                    <td>${siswa.tempat_lahir || '-'}</td>
+                    <td>${siswa.tanggal_lahir || '-'}</td>
+                    <td>${siswa.nama_ayah || '-'}</td>
+                    <td>${siswa.nama_ibu || '-'}</td>
+                    <td>${siswa.alamat}</td>
+                    <td>
+                        <button onclick="editSiswa('${siswa.nisn}')" style="background:none; border:none; color:#60a5fa; cursor:pointer;" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteSiswa('${siswa.nisn}')" style="background:none; border:none; color:#f87171; cursor:pointer; margin-left:10px;" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Event Listener Pencarian
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredData = allSiswaData.filter(siswa => 
+                (siswa.nisn && siswa.nisn.toString().toLowerCase().includes(searchTerm)) ||
+                (siswa.nama_siswa && siswa.nama_siswa.toLowerCase().includes(searchTerm))
+            );
+            renderSiswaTable(filteredData);
+        });
+
+        // --- Fungsi Edit Siswa ---
+        window.editSiswa = function(nisn) {
+            const siswa = allSiswaData.find(s => s.nisn == nisn);
+            if (siswa) {
+                // Isi form dengan data yang dipilih
+                nisnInput.value = siswa.nisn;
+                nisnInput.readOnly = true; // NISN tidak boleh diubah saat edit (Primary Key)
+                document.getElementById('namaSiswa').value = siswa.nama_siswa;
+                document.getElementById('tempatLahir').value = siswa.tempat_lahir || '';
+                document.getElementById('tanggalLahir').value = siswa.tanggal_lahir || '';
+                document.getElementById('namaAyah').value = siswa.nama_ayah || '';
+                document.getElementById('namaIbu').value = siswa.nama_ibu || '';
+                document.getElementById('alamat').value = siswa.alamat;
+
+                // Set Mode Edit
+                isEditModeInput.value = "true";
+                document.querySelector('.modal-header h3').textContent = "Edit Data Siswa";
+                
+                // Buka Modal
+                modal.classList.add('active');
+            }
+        }
+
+        // --- Fungsi Hapus Siswa ---
+        window.deleteSiswa = async function(nisn) {
+            if (confirm(`Apakah Anda yakin ingin menghapus data siswa dengan NISN: ${nisn}?`)) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('datasiswa')
+                        .delete()
+                        .eq('nisn', nisn);
+
+                    if (error) throw error;
+
+                    alert('Data berhasil dihapus.');
+                    loadSiswaData(); // Refresh tabel
+                } catch (err) {
+                    console.error('Gagal menghapus:', err);
+                    alert('Gagal menghapus data: ' + err.message);
+                }
+            }
+        }
+
+        // Handle Form Submit (Simpan Data Siswa)
+        siswaForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = siswaForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Menyimpan...';
+            submitBtn.disabled = true;
+
+            try {
+                const isEdit = isEditModeInput.value === "true";
+                const nisnVal = document.getElementById('nisn').value;
+                const namaVal = document.getElementById('namaSiswa').value;
+                const tempatLahirVal = document.getElementById('tempatLahir').value;
+                const tanggalLahirVal = document.getElementById('tanggalLahir').value || null;
+                const namaAyahVal = document.getElementById('namaAyah').value;
+                const namaIbuVal = document.getElementById('namaIbu').value;
+                const alamatVal = document.getElementById('alamat').value;
+
+                const siswaData = {
+                    nisn: nisnVal,
+                    nama_siswa: namaVal,
+                    tempat_lahir: tempatLahirVal,
+                    tanggal_lahir: tanggalLahirVal,
+                    nama_ayah: namaAyahVal,
+                    nama_ibu: namaIbuVal,
+                    alamat: alamatVal
+                };
+
+                let result;
+                if (isEdit) {
+                    // Update Data
+                    const { nisn, ...updateData } = siswaData; // Exclude NISN from update payload
+                    result = await supabaseClient
+                        .from('datasiswa')
+                        .update(updateData)
+                        .eq('nisn', nisnVal);
+                } else {
+                    // Insert Data Baru
+                    result = await supabaseClient
+                        .from('datasiswa')
+                        .insert([siswaData]);
+                }
+
+                if (result.error) throw result.error;
+
+                alert('Data Siswa berhasil disimpan!');
+                closeModal();
+                loadSiswaData(); // Refresh tabel
+            } catch (err) {
+                console.error(err);
+                alert('Terjadi kesalahan: ' + err.message);
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // --- Export PDF Logic ---
+        document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 20;
+
+            // Tambahkan KOP Sekolah jika ada
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20; // Margin kiri kanan 10
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                    yPos = 10 + imgHeight + 10; // Update posisi Y di bawah gambar
+                } catch (err) {
+                    console.error("Gagal memuat KOP Sekolah:", err);
+                }
+            }
+
+            // Judul Dokumen
+            doc.setFontSize(18);
+            doc.text("Laporan Data Siswa", pageWidth / 2, yPos, { align: 'center' });
+            yPos += 8;
+            
+            // Nama Sekolah (ambil dari navbar)
+            const schoolName = schoolData.nama_sekolah || document.querySelector('.navbar-brand span').textContent || 'SMK Negeri 1 Simpang Teritip';
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+            yPos += 6;
+
+            // Tahun Pelajaran (ambil dari tabel identitassekolah)
+            if (schoolData.tahun_pelajaran) {
+                doc.text("Tahun Pelajaran " + schoolData.tahun_pelajaran, pageWidth / 2, yPos, { align: 'center' });
+                yPos += 6;
+            }
+            yPos += 4;
+
+            // Persiapkan Data Tabel
+            const tableRows = [];
+            const rows = document.querySelectorAll('.custom-table tbody tr');
+
+            rows.forEach((row) => {
+                const cells = row.querySelectorAll('td');
+                // Pastikan bukan baris loading atau kosong (cek jika ada kolom data > 1)
+                if (cells.length > 1) {
+                    const rowData = [
+                        cells[0].innerText, // No
+                        cells[1].innerText, // NISN
+                        cells[2].innerText, // Nama Siswa
+                        cells[3].innerText, // Tempat Lahir
+                        cells[4].innerText, // Tanggal Lahir
+                        cells[5].innerText, // Nama Ayah
+                        cells[6].innerText, // Nama Ibu
+                        cells[7].innerText  // Alamat
+                    ];
+                    tableRows.push(rowData);
+                }
+            });
+
+            // Generate Tabel PDF
+            doc.autoTable({
+                head: [['No', 'NISN', 'Nama Siswa', 'Tempat Lahir', 'Tgl Lahir', 'Ayah', 'Ibu', 'Alamat']],
+                body: tableRows,
+                startY: yPos,
+                theme: 'grid',
+                styles: { fontSize: 10 },
+                headStyles: { fillColor: [102, 126, 234] } // Warna primary-color
+            });
+
+            // Simpan File
+            doc.save('Data_Siswa.pdf');
+        });
+
+        // --- Kirim Link Ke Siswa: buka halaman input mandiri di tab baru ---
+        document.getElementById('kirimLinkBtn').addEventListener('click', () => {
+            window.open('input-siswa.html', '_blank');
+        });
+
+        // --- Download Template Excel Logic ---
+        const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
+
+        downloadTemplateBtn.addEventListener('click', () => {
+            // Header HARUS sama persis dengan nama kolom di tabel 'datasiswa'
+            const headers = ['nisn', 'nama_siswa', 'tempat_lahir', 'tanggal_lahir', 'nama_ayah', 'nama_ibu', 'alamat'];
+            const contohData = [
+                ['0012345678', 'Contoh Nama Siswa', 'Muntok', '2008-05-17', 'Contoh Nama Ayah', 'Contoh Nama Ibu', 'Contoh Alamat Lengkap']
+            ];
+
+            const worksheetData = [headers, ...contohData];
+            const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+            // Atur lebar kolom agar lebih mudah dibaca
+            worksheet['!cols'] = [
+                { wch: 15 }, { wch: 25 }, { wch: 18 }, { wch: 15 },
+                { wch: 25 }, { wch: 25 }, { wch: 30 }
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Data Siswa');
+
+            XLSX.writeFile(workbook, 'Template_Import_Data_Siswa.xlsx');
+        });
+
+        // --- Import CSV / Excel Logic ---
+        const importBtn = document.getElementById('importBtn');
+        const importFile = document.getElementById('importFile');
+
+        // Kolom yang valid sesuai tabel 'datasiswa' di database
+        const KOLOM_VALID = ['nisn', 'nama_siswa', 'tempat_lahir', 'tanggal_lahir', 'nama_ayah', 'nama_ibu', 'alamat'];
+
+        importBtn.addEventListener('click', () => {
+            importFile.click();
+        });
+
+        // Ubah nilai tanggal (Date object / serial Excel / string) menjadi format YYYY-MM-DD
+        function normalisasiTanggal(value) {
+            if (value === null || value === undefined || value === '') return null;
+
+            if (value instanceof Date && !isNaN(value)) {
+                const y = value.getFullYear();
+                const m = String(value.getMonth() + 1).padStart(2, '0');
+                const d = String(value.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            // Serial angka Excel (kalau cellDates tidak berhasil mengonversi)
+            if (typeof value === 'number') {
+                const parsed = XLSX.SSF.parse_date_code(value);
+                if (parsed) {
+                    const y = parsed.y;
+                    const m = String(parsed.m).padStart(2, '0');
+                    const d = String(parsed.d).padStart(2, '0');
+                    return `${y}-${m}-${d}`;
+                }
+            }
+
+            return String(value).trim();
+        }
+
+        // Bersihkan & normalisasi baris data mentah (dari CSV atau Excel) sebelum dikirim ke Supabase
+        function bersihkanData(rawRows) {
+            const kolomAsingDitemukan = new Set();
+
+            const rows = rawRows
+                .map(rawRow => {
+                    const row = {};
+                    Object.keys(rawRow).forEach(key => {
+                        const cleanKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+                        if (!KOLOM_VALID.includes(cleanKey)) {
+                            if (cleanKey) kolomAsingDitemukan.add(key);
+                            return; // abaikan kolom yang tidak dikenal (misal 'no', 'aksi')
+                        }
+                        let val = rawRow[key];
+                        if (typeof val === 'string') val = val.trim();
+                        if (val === '') val = null;
+
+                        if (cleanKey === 'tanggal_lahir') {
+                            val = normalisasiTanggal(val);
+                        } else if (cleanKey === 'nisn' && val !== null) {
+                            val = String(val).trim(); // NISN disimpan sebagai teks agar angka 0 di depan tidak hilang
+                        }
+
+                        row[cleanKey] = val;
+                    });
+                    return row;
+                })
+                // buang baris yang seluruh kolomnya kosong
+                .filter(row => Object.values(row).some(v => v !== null && v !== undefined && v !== ''));
+
+            return { rows, kolomAsingDitemukan };
+        }
+
+        // Fungsi untuk memproses data hasil parsing (dari CSV maupun Excel)
+        async function processImportedData(rawRows) {
+            if (!rawRows || rawRows.length === 0) {
+                alert('File kosong atau format salah.');
+                importFile.value = '';
+                return;
+            }
+
+            const { rows, kolomAsingDitemukan } = bersihkanData(rawRows);
+
+            if (rows.length === 0) {
+                alert('Tidak ada data valid yang bisa diimport. Pastikan header kolom sesuai: nisn, nama_siswa, tempat_lahir, tanggal_lahir, nama_ayah, nama_ibu, alamat');
+                importFile.value = '';
+                return;
+            }
+
+            if (kolomAsingDitemukan.size > 0) {
+                console.warn('Kolom diabaikan karena tidak dikenali:', Array.from(kolomAsingDitemukan).join(', '));
+            }
+
+            try {
+                // Insert data ke Supabase (Upsert untuk update jika NISN sudah ada)
+                const { error } = await supabaseClient
+                    .from('datasiswa')
+                    .upsert(rows);
+
+                if (error) throw error;
+
+                let pesan = `Berhasil mengimport ${rows.length} data siswa!`;
+                if (kolomAsingDitemukan.size > 0) {
+                    pesan += `\n\nKolom berikut diabaikan karena tidak dikenali: ${Array.from(kolomAsingDitemukan).join(', ')}`;
+                }
+                alert(pesan);
+                loadSiswaData(); // Refresh tabel
+            } catch (err) {
+                console.error('Import error:', err);
+                const detailPesan = [err.message, err.details, err.hint].filter(Boolean).join(' | ');
+                alert('Gagal import data: ' + detailPesan + '\n\nPastikan header sesuai: nisn, nama_siswa, tempat_lahir, tanggal_lahir, nama_ayah, nama_ibu, alamat\n\nFormat tanggal_lahir yang didukung: YYYY-MM-DD');
+            } finally {
+                // Reset input file agar bisa pilih file yang sama lagi jika perlu
+                importFile.value = '';
+            }
+        }
+
+        importFile.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name.toLowerCase();
+            const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+
+            if (isExcel) {
+                // Parse Excel menggunakan SheetJS
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+
+                        // Konversi sheet ke array of object, baris pertama dianggap header
+                        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: true });
+
+                        processImportedData(rows);
+                    } catch (err) {
+                        console.error('Excel parse error:', err);
+                        alert('Gagal membaca file Excel. Pastikan format file benar (.xlsx/.xls).');
+                        importFile.value = '';
+                    }
+                };
+                reader.onerror = function() {
+                    alert('Gagal membaca file Excel.');
+                    importFile.value = '';
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                // Parse CSV menggunakan PapaParse
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    dynamicTyping: true, // Konversi angka otomatis
+                    complete: function(results) {
+                        processImportedData(results.data);
+                    },
+                    error: function(err) {
+                        console.error('PapaParse error:', err);
+                        alert('Gagal membaca file CSV.');
+                        importFile.value = '';
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

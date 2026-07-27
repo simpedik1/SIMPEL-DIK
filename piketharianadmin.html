@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPPEDIK-SMKN 1 Mentok</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF & AutoTable for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Mencegah scroll ganda pada body */
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar {
+            justify-content: space-between;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        /* --- Navbar Dashboard Button --- */
+        .navbar-dashboard-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .navbar-dashboard-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0; /* Default: Full width */
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+
+        .dashboard-card {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            border: 1px solid #374151;
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand span {
+                font-size: 1rem; /* Sedikit lebih kecil di HP */
+            }
+
+            .main-content {
+                padding: 2rem 5px;
+            }
+
+            .dashboard-card {
+                padding: 15px;
+            }
+
+            .piket-toolbar {
+                flex-direction: row;
+                align-items: center;
+                flex-wrap: nowrap;
+                gap: 10px;
+            }
+
+            .piket-actions {
+                justify-content: flex-end;
+                flex-wrap: nowrap;
+                flex-shrink: 0;
+                order: 2;
+            }
+
+            .search-box {
+                flex: 1 1 auto;
+                width: auto;
+                margin-top: 0;
+                min-width: 0;
+                order: 1;
+            }
+            .search-box input {
+                width: 100%;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* --- Custom Styles for Table & Buttons --- */
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-danger { background-color: #ef4444; }
+        .btn-secondary { background-color: #6c757d; }
+        
+        .search-box input {
+            padding: 8px 10px;
+            border: 1px solid #4b5563;
+            border-radius: 5px;
+            width: 250px;
+            background-color: #374151;
+            color: white;
+        }
+
+        .piket-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .piket-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .piket-actions .btn {
+            padding: 10px 14px;
+            font-size: 1rem;
+        }
+
+        /* --- Table Responsive Styles --- */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            margin-top: 15px;
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            white-space: nowrap; /* Mencegah teks turun ke bawah, memaksa scroll */
+            color: #e5e7eb;
+        }
+
+        .custom-table th, .custom-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #374151;
+        }
+
+        .custom-table th {
+            background-color: #111827;
+            color: #9ca3af;
+            font-weight: 600;
+        }
+
+        .custom-table tr:hover {
+            background-color: #374151;
+        }
+
+        /* --- Stats Card Styles (Light Mode) --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 2px solid #e5e7eb; /* Border tegas */
+        }
+
+        .stat-info h3 { font-size: 2rem; margin-bottom: 5px; color: #1f2937; margin-top: 0; }
+        .stat-info p { color: #6b7280; font-size: 0.9rem; font-weight: 700; margin: 0; }
+        .stat-icon { font-size: 2.5rem; opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="dasboradmin.html" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="dasboradmin.html" class="navbar-dashboard-btn">
+            <i class="fas fa-th-large"></i> Dashboard
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Laporan Piket Harian</h2>
+            <p style="color: #9ca3af; margin-top: 10px;">Halaman ini menampilkan laporan piket harian.</p>
+        </div>
+        
+        <!-- Stats Container -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3 id="statSiswaAktif">0</h3>
+                    <p>Jumlah Siswa Aktif</p>
+                </div>
+                <i class="fas fa-users stat-icon" style="color: #3b82f6;"></i>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3 id="statMelaksanakan">0</h3>
+                    <p>Jumlah Melaksanakan Piket</p>
+                </div>
+                <i class="fas fa-check-circle stat-icon" style="color: #10b981;"></i>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3 id="statTidakMelaksanakan">0</h3>
+                    <p>Jumlah Tidak Melaksanakan Piket</p>
+                </div>
+                <i class="fas fa-times-circle stat-icon" style="color: #ef4444;"></i>
+            </div>
+        </div>
+
+        <!-- Container Data Laporan -->
+        <div class="dashboard-card">
+            <div class="piket-toolbar">
+                <div class="piket-actions">
+                    <button class="btn btn-primary" id="refreshBtn" title="Refresh" aria-label="Refresh"><i class="fas fa-sync-alt"></i></button>
+                    <button class="btn btn-danger" id="exportPdfBtn" title="Export Pdf" aria-label="Export Pdf"><i class="fas fa-file-pdf"></i></button>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Cari data...">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Id Petugas</th>
+                            <th>Tanggal</th>
+                            <th>Nama Siswa</th>
+                            <th>NISN</th>
+                            <th>Kelas</th>
+                            <th>Area Piket</th>
+                            <th>Status Piket</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jurnalTableBody"></tbody>
+                </table>
+            </div>
+            <div id="paginationControls" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;"></div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2024 SIMPPEDIK-SMK. All rights reserved.</p>
+            <p>Dikembangkan oleh Kenji StudioDeveloper@2026</p>
+        </footer>
+    </main>
+
+    <script>
+        // --- Supabase Integration for Navbar ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        
+        // Deklarasi variabel global agar bisa diakses oleh semua fungsi
+        let supabaseClient;
+        let schoolData = {}; // Menyimpan data sekolah untuk keperluan export
+
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo, kop_sekolah')
+                        .limit(1)
+                        .single();
+                    
+                    if (data) {
+                        schoolData = data; // Simpan data ke variabel global
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading school identity:", err);
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        }
+
+        // --- Logic Laporan Piket Harian ---
+        let jurnalDataList = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        // Load Stats
+        async function loadStats() {
+            try {
+                // 1. Siswa Aktif
+                const { count: siswaCount, error: siswaError } = await supabaseClient
+                    .from('datasiswa')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (!siswaError) {
+                    document.getElementById('statSiswaAktif').textContent = siswaCount || 0;
+                }
+
+                // 2. Jurnal Stats
+                const { data: jurnalData, error: jurnalError } = await supabaseClient
+                    .from('jurnalpiket')
+                    .select('status');
+
+                if (!jurnalError && jurnalData) {
+                    const melaksanakan = jurnalData.filter(item => item.status === 'Ya').length;
+                    const tidakMelaksanakan = jurnalData.filter(item => item.status === 'Tidak').length;
+                    
+                    document.getElementById('statMelaksanakan').textContent = melaksanakan;
+                    document.getElementById('statTidakMelaksanakan').textContent = tidakMelaksanakan;
+                }
+
+            } catch (err) {
+                console.error("Error loading stats:", err);
+            }
+        }
+
+        // Load Data Jurnal
+        async function loadJurnalData() {
+            const tableBody = document.getElementById('jurnalTableBody');
+            tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Memuat data...</td></tr>';
+
+            try {
+                // Pastikan client sudah siap
+                if (!supabaseClient) {
+                    throw new Error("Koneksi database belum siap.");
+                }
+
+                const { data, error } = await supabaseClient
+                    .from('jurnalpiket')
+                    .select('*')
+                    .order('tanggal', { ascending: false });
+
+                if (error) throw error;
+
+                jurnalDataList = data || [];
+                renderTable(1);
+                loadStats(); // Update stats when data loads
+
+            } catch (err) {
+                console.error(err);
+                tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">Gagal memuat: ${err.message}</td></tr>`;
+            }
+        }
+
+        // Render Table & Pagination
+        function renderTable(page = 1) {
+            currentPage = page;
+            const tableBody = document.getElementById('jurnalTableBody');
+            const searchFilter = document.getElementById('searchInput').value.toLowerCase();
+
+            // Filter Data
+            const filteredData = jurnalDataList.filter(item => {
+                const text = (
+                    (item.id_piket || '') + ' ' +
+                    (item.nama_siswa || '') + ' ' + 
+                    (item.kelas || '') + ' ' + 
+                    (item.area || '') + ' ' + 
+                    (item.nisn || '') + ' ' +
+                    (item.id_petugas || '')
+                ).toLowerCase();
+                return text.includes(searchFilter);
+            });
+
+            // Pagination Calculation
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const paginatedData = filteredData.slice(start, end);
+
+            tableBody.innerHTML = '';
+
+            if (paginatedData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">Data tidak ditemukan.</td></tr>';
+            } else {
+                paginatedData.forEach(item => {
+                    let formattedDate = item.tanggal;
+                    if (item.tanggal) {
+                        const dateObj = new Date(item.tanggal);
+                        formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                    }
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.id_piket}</td>
+                        <td>${item.id_petugas || '-'}</td>
+                        <td>${formattedDate}</td>
+                        <td>${item.nama_siswa}</td>
+                        <td>${item.nisn || '-'}</td>
+                        <td>${item.kelas}</td>
+                        <td>${item.area}</td>
+                        <td>${item.status}</td>
+                        <td>
+                            <button class="btn btn-danger" style="padding:5px 10px; font-size:0.8rem;" onclick="deleteJurnal('${item.id_piket}')" title="Hapus Jurnal"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            renderPaginationControls(totalPages, page);
+        }
+
+        function renderPaginationControls(totalPages, page) {
+            const container = document.getElementById('paginationControls');
+            container.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'btn btn-secondary';
+            prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            prevBtn.disabled = page === 1;
+            prevBtn.onclick = () => renderTable(page - 1);
+            container.appendChild(prevBtn);
+
+            const info = document.createElement('span');
+            info.style.fontWeight = '600';
+            info.textContent = `Halaman ${page} dari ${totalPages}`;
+            container.appendChild(info);
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'btn btn-secondary';
+            nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            nextBtn.disabled = page === totalPages;
+            nextBtn.onclick = () => renderTable(page + 1);
+            container.appendChild(nextBtn);
+        }
+
+        // Delete Function
+        window.deleteJurnal = async function(id) {
+            if(confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+                try {
+                    const { error } = await supabaseClient.from('jurnalpiket').delete().eq('id_piket', id);
+                    if(error) throw error;
+                    loadJurnalData();
+                    loadStats();
+                } catch(err) {
+                    alert('Gagal menghapus: ' + err.message);
+                }
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('searchInput').addEventListener('input', () => renderTable(1));
+        document.getElementById('refreshBtn').addEventListener('click', loadJurnalData);
+
+        // Export PDF
+        document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 20;
+
+            // Tambahkan KOP Sekolah jika ada
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20; // Margin kiri kanan 10
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                    yPos = 10 + imgHeight + 10; // Update posisi Y di bawah gambar
+                } catch (err) {
+                    console.error("Gagal memuat KOP Sekolah:", err);
+                }
+            }
+            
+            doc.setFontSize(18);
+            doc.text("Laporan Piket Harian", pageWidth / 2, yPos, { align: 'center' });
+            yPos += 8;
+            
+            const schoolName = schoolData.nama_sekolah || document.querySelector('.navbar-brand span').textContent || 'SMK Negeri 1 Simpang Teritip';
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+            yPos += 10;
+
+            // Ambil data berdasarkan pencarian atau semua data jika kosong
+            const searchInput = document.getElementById('searchInput');
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            
+            let dataToExport = jurnalDataList;
+
+            if (searchTerm) {
+                dataToExport = jurnalDataList.filter(item => {
+                    const text = (
+                        (item.id_piket || '') + ' ' +
+                        (item.nama_siswa || '') + ' ' + 
+                        (item.kelas || '') + ' ' + 
+                        (item.area || '') + ' ' + 
+                        (item.nisn || '') + ' ' +
+                        (item.id_petugas || '')
+                    ).toLowerCase();
+                    return text.includes(searchTerm);
+                });
+            }
+
+            const tableBody = dataToExport.map(item => {
+                let formattedDate = item.tanggal;
+                if (item.tanggal) {
+                    const dateObj = new Date(item.tanggal);
+                    formattedDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                }
+                return [
+                    item.id_piket,
+                    item.id_petugas || '-',
+                    formattedDate,
+                    item.nama_siswa,
+                    item.nisn || '-',
+                    item.kelas,
+                    item.area,
+                    item.status
+                ];
+            });
+
+            doc.autoTable({
+                head: [['Id', 'Id Petugas', 'Tanggal', 'Nama Siswa', 'NISN', 'Kelas', 'Area Piket', 'Status Piket']],
+                body: tableBody,
+                startY: yPos,
+                theme: 'grid',
+                headStyles: { fillColor: [102, 126, 234] },
+                styles: { fontSize: 9 }
+            });
+
+            doc.save('Laporan_Piket_Harian.pdf');
+        });
+
+        // Initial Load
+        document.addEventListener('DOMContentLoaded', loadJurnalData);
+    </script>
+</body>
+</html>

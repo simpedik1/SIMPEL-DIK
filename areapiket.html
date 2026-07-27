@@ -1,0 +1,392 @@
+<!-- e:\VS CODE\SIMPEDIK DEMO\areapiket.html -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Area Piket - SIMPEDIK</title>
+    <!-- Icon Keren -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+        }
+
+        /* --- Gaya Tabel & Tombol --- */
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; color: white; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-danger { background-color: #ef4444; }
+        .btn-secondary { background-color: #6c757d; }
+
+        .table-responsive { overflow-x: auto; margin-top: 20px; }
+        .custom-table { width: 100%; border-collapse: collapse; background: white; }
+        .custom-table th, .custom-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        .custom-table th { background-color: #f8f9fa; color: #555; font-weight: 600; }
+        .custom-table tr:hover { background-color: #f9f9f9; }
+
+        /* --- Modal Styles --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; color: #333; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: #888; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #666; font-weight: 500; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        /* --- Konten Utama --- */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 1rem 5px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        @media (min-width: 576px) {
+            .main-content { padding: 1.5rem 1rem; }
+        }
+        @media (min-width: 768px) {
+            .main-content { padding: 2rem; }
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 15px 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 576px) {
+            .dashboard-card { padding: 20px; }
+        }
+
+        /* Kaki Halaman */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        /* Tombol Dashboard */
+        .btn-dashboard {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigasi Atas -->
+    <nav class="navbar">
+        <a href="dasboradmin.html" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+    </nav>
+
+    <!-- Area Konten -->
+    <main class="main-content">
+        <div class="dashboard-card">
+            <h2>Data Area Piket</h2>
+            <p style="color: #666; margin-top: 10px;">Halaman untuk mengelola data area piket.</p>
+        </div>
+        
+        <div class="dashboard-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0; color: #333;">Daftar Area Piket</h3>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" id="btnAddArea"><i class="fas fa-plus"></i> Tambah Area Piket Umum</button>
+                    <a href="dasboradmin.html" class="btn btn-dashboard"><i class="fas fa-home"></i> Dashboard</a>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th width="50">No</th>
+                            <th>Area Piket</th>
+                            <th width="150">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="areaTableBody">
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 20px; color: #888;">Belum ada data area piket.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Kaki Halaman -->
+        <footer class="main-footer">
+            <p>&copy; SIMPPEDIK (Sistem Informasi Manajemen Perkembangan Pembelajaran Peserta Didik).2026</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Tambah Area -->
+    <div id="areaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Tambah Area Piket</h3>
+                <span class="close-modal" id="closeModal">&times;</span>
+            </div>
+            <form id="areaForm">
+                <div class="form-group">
+                    <label for="areaId">ID Area</label>
+                    <input type="text" id="areaId" name="areaId" placeholder="Otomatis" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                    <small style="color: #888;">Primary Key (ID urut otomatis)</small>
+                </div>
+                <div class="form-group">
+                    <label for="namaArea">Nama Area</label>
+                    <input type="text" id="namaArea" name="namaArea" placeholder="Contoh: Halaman Depan" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btnCancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Tambahkan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- Koneksi Supabase ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        
+        let supabaseClient;
+        let absensiClient;
+        
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            absensiClient = supabaseClient;
+
+            async function loadSchoolIdentity() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('identitassekolah')
+                        .select('nama_sekolah, logo')
+                        .limit(1)
+                        .single();
+                    
+                    if (data) {
+                        if (data.nama_sekolah) {
+                            document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                        }
+                        if (data.logo) {
+                            const img = document.querySelector('.navbar-brand img');
+                            img.src = data.logo;
+                            img.style.display = 'block';
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading school identity:", err);
+                }
+            }
+            document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+        }
+
+        // --- Logic Area Piket ---
+        const modal = document.getElementById('areaModal');
+        const btnAdd = document.getElementById('btnAddArea');
+        const btnCancel = document.getElementById('btnCancel');
+        const closeModal = document.getElementById('closeModal');
+        const form = document.getElementById('areaForm');
+        const modalTitle = document.getElementById('modalTitle');
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        async function openModal() {
+            modal.classList.add('active');
+            
+            // Jika ID kosong (mode tambah), ambil ID tertinggi dari database + 1
+            const idInput = document.getElementById('areaId');
+            if (!idInput.value) {
+                try {
+                    const { data, error } = await absensiClient
+                        .from('areapiketumum')
+                        .select('id')
+                        .order('id', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+                    
+                    let nextNum = 1;
+                    if (data && data.id) {
+                        const match = String(data.id).match(/(\d+)$/);
+                        if (match) nextNum = parseInt(match[1], 10) + 1;
+                    }
+                    idInput.value = 'AP' + String(nextNum).padStart(3, '0');
+                } catch (err) {
+                    console.error("Gagal generate ID:", err);
+                }
+            }
+        }
+
+        function hideModal() {
+            modal.classList.remove('active');
+            form.reset();
+            document.getElementById('areaId').value = '';
+            modalTitle.textContent = 'Tambah Area Piket';
+            submitBtn.textContent = 'Tambahkan';
+        }
+
+        if(btnAdd) btnAdd.addEventListener('click', openModal);
+        if(btnCancel) btnCancel.addEventListener('click', hideModal);
+        if(closeModal) closeModal.addEventListener('click', hideModal);
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) hideModal();
+        });
+
+        // Load Data
+        async function loadAreas() {
+            const tbody = document.getElementById('areaTableBody');
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">Memuat data...</td></tr>';
+
+            try {
+                // Menggunakan tabel 'areapiketumum' di database absensi
+                const { data, error } = await absensiClient
+                    .from('areapiketumum')
+                    .select('*')
+                    .order('id', { ascending: true });
+
+                if (error) throw error;
+
+                tbody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #888;">Belum ada data area piket.</td></tr>';
+                    return;
+                }
+
+                data.forEach((item, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${item.nama_area}</td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="editArea('${item.id}', '${item.nama_area}')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;" onclick="deleteArea('${item.id}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Error loading areas:", err);
+                // Fallback untuk demo jika tabel tidak ada
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 20px; color: #ef4444;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // Initial Load
+        if (typeof supabase !== 'undefined') {
+            loadAreas();
+        }
+
+        // Handle Submit
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('areaId').value;
+            const nama = document.getElementById('namaArea').value;
+            const isEdit = submitBtn.textContent === 'Update';
+            
+            try {
+                let result;
+                if (isEdit) {
+                    result = await absensiClient.from('areapiketumum').update({ nama_area: nama }).eq('id', id);
+                } else {
+                    result = await absensiClient.from('areapiketumum').insert([{ id: id, nama_area: nama }]);
+                }
+
+                if (result.error) throw result.error;
+
+                alert('Data berhasil disimpan!');
+                hideModal();
+                loadAreas();
+            } catch (err) {
+                alert('Gagal menyimpan: ' + err.message);
+            }
+        });
+
+        window.deleteArea = async (id) => {
+            if(confirm('Hapus area ini?')) {
+                const { error } = await absensiClient.from('areapiketumum').delete().eq('id', id);
+                if(!error) loadAreas();
+                else alert('Gagal hapus: ' + error.message);
+            }
+        };
+
+        window.editArea = (id, nama) => {
+            document.getElementById('areaId').value = id;
+            document.getElementById('namaArea').value = nama;
+            modalTitle.textContent = 'Edit Area Piket';
+            submitBtn.textContent = 'Update';
+            openModal();
+        };
+    </script>
+</body>
+</html>

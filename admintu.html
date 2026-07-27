@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin TU - SMKN 1 Simpang Teritip</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #0ea5e9;
+            --secondary-color: #0284c7;
+            --navbar-bg: #0369a1;
+            --header-height: 60px;
+            --bg-light: #f0f7ff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background: linear-gradient(135deg, var(--navbar-bg), #0284c7);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 8px rgba(3,105,161,0.3);
+            z-index: 1002;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        .navbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.15);
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .navbar-user img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.5);
+            background: #e2e8f0;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 1.5rem 1rem;
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        /* --- Top Bar (datetime + welcome) --- */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+        }
+
+        .welcome-text h2 {
+            font-size: 1.15rem;
+            color: #0c4a6e;
+            font-weight: 700;
+        }
+
+        .welcome-text p {
+            font-size: 0.82rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .datetime-pill {
+            background: white;
+            padding: 8px 18px;
+            border-radius: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.82rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* --- Stat Cards --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 1.2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 18px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-left: 4px solid transparent;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .stat-card.arsip { border-color: #0ea5e9; }
+        .stat-card.sumbangan { border-color: #10b981; }
+        .stat-card.lunas { border-color: #8b5cf6; }
+        .stat-card.belum { border-color: #f59e0b; }
+
+        .stat-icon-box {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .si-blue   { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+        .si-green  { background: linear-gradient(135deg, #10b981, #059669); }
+        .si-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .si-amber  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+        .stat-info h3 { font-size: 1.7rem; font-weight: 800; color: #1e293b; line-height: 1; }
+        .stat-info p  { font-size: 0.78rem; color: #64748b; margin-top: 4px; }
+
+        /* --- Dashboard Card --- */
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 1.2rem;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #0c4a6e;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f7ff;
+        }
+
+        .card-title i { color: var(--primary-color); }
+
+        /* --- Menu Grid --- */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
+            padding: 6px 0;
+        }
+
+        .menu-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            text-decoration: none;
+            gap: 8px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .icon-box {
+            width: 64px; height: 64px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+            font-size: 1.6rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.25s ease;
+        }
+
+        .menu-card:hover .icon-box {
+            transform: translateY(-5px) scale(1.07);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+            filter: brightness(1.1);
+        }
+
+        .ic-blue    { background: linear-gradient(135deg, #2980b9, #6dd5fa); }
+        .ic-emerald { background: linear-gradient(135deg, #0ba360, #3cba92); }
+        .ic-amber   { background: linear-gradient(135deg, #f7971e, #ffd200); }
+        .ic-purple  { background: linear-gradient(135deg, #8e2de2, #4a00e0); }
+        .ic-indigo  { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .ic-rose    { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+        .ic-teal    { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .ic-cyan    { background: linear-gradient(135deg, #00b4db, #0083b0); }
+        .ic-slate   { background: linear-gradient(135deg, #485563, #29323c); }
+        .ic-sky     { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+        .ic-green   { background: linear-gradient(135deg, #10b981, #059669); }
+
+        .menu-card span {
+            font-size: 0.72rem;
+            color: #444;
+            text-align: center;
+            line-height: 1.3;
+            width: 84px;
+            word-wrap: break-word;
+            font-weight: 600;
+            height: 2.6em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-card:hover span { color: #1e293b; }
+
+        /* --- Chart Grid --- */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 1.2rem;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 18px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .chart-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #0c4a6e;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chart-badge {
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: white;
+        }
+        .badge-blue  { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+        .badge-green { background: linear-gradient(135deg, #10b981, #059669); }
+
+        .chart-canvas-wrap {
+            position: relative;
+            height: 200px;
+            width: 100%;
+        }
+
+        /* --- Biodata Card --- */
+        .biodata-wrap {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .bio-photo {
+            width: 110px; height: 110px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 3px solid #e0f2fe;
+            background: #f0f9ff;
+            flex-shrink: 0;
+        }
+
+        .bio-table { width: 100%; border-collapse: collapse; }
+        .bio-table td { padding: 7px 0; color: #444; font-size: 0.88rem; vertical-align: top; }
+        .bio-table td:first-child { color: #64748b; font-weight: 600; width: 140px; }
+
+        /* --- Update Profil Button --- */
+        .btn-update-profil {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white;
+            border: none;
+            padding: 7px 16px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(14,165,233,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-left: auto;
+        }
+        .btn-update-profil:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(14,165,233,0.45); }
+
+        /* --- Modal Edit Profil --- */
+        .modal-edit-profil .modal-header {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            padding: 16px 20px;
+        }
+        .modal-edit-profil .modal-box {
+            max-width: 500px;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-edit-profil .modal-body {
+            padding: 20px 22px;
+            overflow-y: auto;
+        }
+        .ep-form-group { margin-bottom: 14px; }
+        .ep-form-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .ep-form-group input,
+        .ep-form-group textarea {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 7px;
+            font-size: 0.9rem;
+            color: #333;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .ep-form-group input:focus,
+        .ep-form-group textarea:focus {
+            outline: none;
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14,165,233,0.15);
+        }
+        .ep-form-group textarea { resize: vertical; min-height: 70px; }
+        .ep-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        /* Photo upload in edit profil */
+        .ep-photo-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 14px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            background: #fafafa;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .ep-photo-wrapper:hover { border-color: #0ea5e9; background: #f0f9ff; }
+        .ep-photo-preview {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #0ea5e9;
+            display: none;
+        }
+        .ep-photo-placeholder {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #7dd3fc;
+        }
+        .ep-photo-hint {
+            font-size: 0.76rem;
+            color: #888;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .ep-photo-hint strong { color: #0ea5e9; }
+        .ep-upload-progress {
+            width: 100%;
+            background: #eee;
+            border-radius: 10px;
+            height: 5px;
+            overflow: hidden;
+            display: none;
+        }
+        .ep-upload-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #0ea5e9, #0284c7);
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .ep-modal-footer {
+            padding: 14px 22px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .ep-btn-cancel {
+            padding: 8px 18px;
+            border: 1.5px solid #ddd;
+            background: white;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: #555;
+            transition: background 0.2s;
+        }
+        .ep-btn-cancel:hover { background: #f5f5f5; }
+        .ep-btn-save {
+            padding: 8px 22px;
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.86rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .ep-btn-save:hover { opacity: 0.88; }
+        .ep-btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* --- Footer --- */
+        .main-footer {
+            text-align: center;
+            padding: 16px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 10px;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .main-content { padding: 1rem 0.5rem; }
+            .navbar-brand span { font-size: 0.95rem; }
+            .navbar-user span { display: none; }
+            .chart-grid { grid-template-columns: 1fr; }
+            .chart-card { padding: 14px; overflow: hidden; }
+            .chart-canvas-wrap { height: 180px; }
+            .chart-header { flex-wrap: wrap; gap: 6px; }
+            .chart-badge { font-size: 0.65rem; padding: 2px 8px; }
+            .menu-grid {
+                grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+                gap: 12px;
+            }
+            .icon-box { width: 52px; height: 52px; font-size: 1.3rem; border-radius: 10px; }
+            .menu-card span { font-size: 0.65rem; width: 68px; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        /* --- Modal --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-box {
+            background: white;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease;
+            overflow: hidden;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-30px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.4); }
+
+        .modal-body {
+            padding: 20px 22px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            justify-items: center;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transform: translateY(60px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 4px solid #22c55e; }
+        .toast.error   { border-left: 4px solid #ef4444; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo" id="navLogo" style="display:none;">
+            <span id="navSchoolName">SMKN 1 Simpang Teritip</span>
+        </a>
+        <div class="navbar-right">
+            <div class="navbar-user">
+                <img src="" alt="" id="navUserPhoto">
+                <span id="navUserName">Admin TU</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="welcome-text">
+                <h2 id="welcomeHeading">Selamat Datang, Admin TU!</h2>
+                <p>Dashboard Tata Usaha — SMKN 1 Simpang Teritip</p>
+            </div>
+            <div class="datetime-pill">
+                <i class="far fa-clock" style="color: var(--primary-color);"></i>
+                <span id="liveDateTime"></span>
+            </div>
+        </div>
+
+        <!-- Biodata Pegawai -->
+        <div class="dashboard-card" id="biodataCard" style="display:none;">
+            <div class="card-title" style="justify-content:space-between;">
+                <span style="display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-id-badge"></i> Profil Pegawai TU
+                </span>
+                <button class="btn-update-profil" onclick="openEditProfil()">
+                    <i class="fas fa-pen"></i> Update Profil
+                </button>
+            </div>
+            <div class="biodata-wrap">
+                <img id="bioPhoto" src="" alt="Foto" class="bio-photo">
+                <div style="flex:1; min-width:220px;">
+                    <table class="bio-table">
+                        <tr>
+                            <td>ID Pegawai</td>
+                            <td>: <strong id="bioId">-</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Nama Pegawai</td>
+                            <td>: <strong id="bioNama">-</strong></td>
+                        </tr>
+                        <tr>
+                            <td>NIP</td>
+                            <td>: <span id="bioNip">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>Telepon/WA</td>
+                            <td>: <span id="bioTlp">-</span></td>
+                        </tr>
+                        <tr>
+                            <td>Alamat</td>
+                            <td>: <span id="bioAlamat">-</span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="stats-grid">
+            <div class="stat-card arsip">
+                <div class="stat-icon-box si-blue"><i class="fas fa-archive"></i></div>
+                <div class="stat-info">
+                    <h3 id="statArsip">—</h3>
+                    <p>Total Arsip Sekolah</p>
+                </div>
+            </div>
+            <div class="stat-card sumbangan">
+                <div class="stat-icon-box si-green"><i class="fas fa-donate"></i></div>
+                <div class="stat-info">
+                    <h3 id="statSumbangan">—</h3>
+                    <p>Transaksi Sumbangan</p>
+                </div>
+            </div>
+            <div class="stat-card lunas">
+                <div class="stat-icon-box si-purple"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <h3 id="statLunas">—</h3>
+                    <p>Sumbangan Lunas</p>
+                </div>
+            </div>
+            <div class="stat-card belum">
+                <div class="stat-icon-box si-amber"><i class="fas fa-hourglass-half"></i></div>
+                <div class="stat-info">
+                    <h3 id="statBelum">—</h3>
+                    <p>Belum Lunas</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Grid -->
+        <div class="dashboard-card">
+            <div class="card-title"><i class="fas fa-th"></i> Menu Utama</div>
+            <div class="menu-grid">
+
+                <a href="arsipsekolah.html" class="menu-card">
+                    <div class="icon-box ic-sky">
+                        <i class="fas fa-archive"></i>
+                    </div>
+                    <span>Arsip Sekolah</span>
+                </a>
+
+                <a href="mappingsumbangan.html" class="menu-card">
+                    <div class="icon-box ic-blue">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <span>Mapping Sumbangan Siswa</span>
+                </a>
+
+                <a href="sumbangankomite.html" class="menu-card">
+                    <div class="icon-box ic-emerald">
+                        <i class="fas fa-cash-register"></i>
+                    </div>
+                    <span>Transaksi Pembayaran</span>
+                </a>
+
+                <a href="pengeluaransumbangan.html" class="menu-card">
+                    <div class="icon-box ic-rose">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <span>Pengeluaran Sumbangan Komite</span>
+                </a>
+
+                <a href="neracasumbangan.html" class="menu-card">
+                    <div class="icon-box ic-purple">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <span>Laporan Neraca Sumbangan Komite</span>
+                </a>
+
+                <a href="index.html" class="menu-card" onclick="return logOut()">
+                    <div class="icon-box ic-rose">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                    <span>Log Out</span>
+                </a>
+
+            </div>
+        </div>
+
+        <!-- Chart Preview -->
+        <div class="chart-grid">
+
+            <!-- Chart Arsip -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-bar" style="color:#0ea5e9;"></i>
+                        Perkembangan Arsip
+                    </div>
+                    <span class="chart-badge badge-blue">6 Bulan Terakhir</span>
+                </div>
+                <div class="chart-canvas-wrap">
+                    <canvas id="chartArsip" style="width:100%!important;"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart Sumbangan -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-line" style="color:#10b981;"></i>
+                        Sumbangan Komite
+                    </div>
+                    <span class="chart-badge badge-green">6 Bulan Terakhir</span>
+                </div>
+                <div class="chart-canvas-wrap">
+                    <canvas id="chartSumbangan" style="width:100%!important;"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP. CopyRight Kenji Studio Developer.</p>
+        </footer>
+
+    </main>
+
+    <!-- Modal Edit Profil -->
+    <div class="modal-overlay modal-edit-profil" id="modalEditProfil">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-edit"></i> Update Profil</h3>
+                <button class="modal-close" onclick="closeEditProfil()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+
+                <div class="ep-form-row">
+                    <div class="ep-form-group">
+                        <label><i class="fas fa-hashtag" style="margin-right:4px;color:#0ea5e9"></i>ID Pegawai</label>
+                        <input type="text" id="epInputId" readonly style="background:#f8fafc;color:#94a3b8;cursor:not-allowed;">
+                    </div>
+                    <div class="ep-form-group">
+                        <label><i class="fas fa-id-card" style="margin-right:4px;color:#0ea5e9"></i>NIP <span style="color:#aaa;font-weight:400;font-size:0.75rem;">(opsional)</span></label>
+                        <input type="text" id="epInputNip" placeholder="NIP pegawai">
+                    </div>
+                </div>
+
+                <div class="ep-form-group">
+                    <label><i class="fas fa-user" style="margin-right:4px;color:#0ea5e9"></i>Nama Pegawai</label>
+                    <input type="text" id="epInputNama" placeholder="Nama lengkap pegawai">
+                </div>
+
+                <div class="ep-form-row">
+                    <div class="ep-form-group">
+                        <label><i class="fas fa-phone" style="margin-right:4px;color:#0ea5e9"></i>Telepon/WA</label>
+                        <input type="text" id="epInputTlp" placeholder="Nomor telepon/WA">
+                    </div>
+                    <div class="ep-form-group">
+                        <label><i class="fas fa-lock" style="margin-right:4px;color:#0ea5e9"></i>Password Baru <span style="color:#aaa;font-weight:400;font-size:0.75rem;">(opsional)</span></label>
+                        <input type="password" id="epInputPassword" placeholder="Biarkan kosong jika tidak diganti">
+                    </div>
+                </div>
+
+                <div class="ep-form-group">
+                    <label><i class="fas fa-home" style="margin-right:4px;color:#0ea5e9"></i>Alamat</label>
+                    <textarea id="epInputAlamat" placeholder="Alamat lengkap"></textarea>
+                </div>
+
+                <div class="ep-form-group">
+                    <label><i class="fas fa-camera" style="margin-right:4px;color:#0ea5e9"></i>Foto Profil</label>
+                    <div class="ep-photo-wrapper" id="epPhotoWrapper" onclick="document.getElementById('epPhotoInput').click()">
+                        <div class="ep-photo-placeholder" id="epPhotoPlaceholder"><i class="fas fa-user-tie"></i></div>
+                        <img id="epPhotoPreview" class="ep-photo-preview" src="" alt="Preview">
+                        <div class="ep-photo-hint">
+                            <strong>Klik untuk ganti foto</strong><br>
+                            JPG, PNG, WEBP · maks. 2MB
+                        </div>
+                        <div class="ep-upload-progress" id="epUploadProgress">
+                            <div class="ep-upload-progress-bar" id="epUploadProgressBar"></div>
+                        </div>
+                    </div>
+                    <input type="file" id="epPhotoInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                    <input type="hidden" id="epInputPhotoUrl">
+                </div>
+
+            </div>
+            <div class="ep-modal-footer">
+                <button class="ep-btn-cancel" onclick="closeEditProfil()">Batal</button>
+                <button class="ep-btn-save" id="epBtnSimpan" onclick="saveEditProfil()">
+                    <i class="fas fa-save"></i> Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // =============================================
+        // Supabase
+        // =============================================
+        const supabaseUrl = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+        const simpedikClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        const absensiUrl = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const absensiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+        const absensiClient = supabase.createClient(absensiUrl, absensiKey);
+
+        // =============================================
+        // Jam & Tanggal Berjalan
+        // =============================================
+        function updateLiveTime() {
+            const now = new Date();
+            const dateOpt = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOpt = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('liveDateTime').textContent =
+                `${now.toLocaleDateString('id-ID', dateOpt)} | ${now.toLocaleTimeString('id-ID', timeOpt).replace(/\./g, ':')} WIB`;
+        }
+        setInterval(updateLiveTime, 1000);
+        updateLiveTime();
+
+        // =============================================
+        // Load Identitas Sekolah (Navbar)
+        // =============================================
+        async function loadSchoolIdentity() {
+            try {
+                const { data } = await simpedikClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo')
+                    .limit(1).single();
+                if (data) {
+                    if (data.nama_sekolah) document.getElementById('navSchoolName').textContent = data.nama_sekolah;
+                    if (data.logo) {
+                        const img = document.getElementById('navLogo');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // =============================================
+        // Load Biodata Pegawai dari sessionStorage
+        // =============================================
+        function loadBiodata() {
+            const session = JSON.parse(sessionStorage.getItem('admintu_session'));
+            if (!session) return;
+
+            document.getElementById('welcomeHeading').textContent = `Selamat Datang, ${session.nama}!`;
+            document.getElementById('navUserName').textContent = session.nama;
+
+            // Load full data from Supabase
+            absensiClient
+                .from('datapegawai')
+                .select('*')
+                .eq('id', session.id)
+                .single()
+                .then(({ data, error }) => {
+                    if (error || !data) return;
+
+                    document.getElementById('biodataCard').style.display = 'block';
+                    document.getElementById('bioId').textContent    = data.id || '-';
+                    document.getElementById('bioNama').textContent  = data.nama_pegawai || '-';
+                    document.getElementById('bioNip').textContent   = data.nip || '-';
+                    document.getElementById('bioTlp').textContent   = data.tlp || '-';
+                    document.getElementById('bioAlamat').textContent = data.alamat || '-';
+
+                    const photoEl = document.getElementById('bioPhoto');
+                    if (data.photo) {
+                        photoEl.src = data.photo;
+                    } else {
+                        photoEl.style.display = 'none';
+                    }
+
+                    const navPhoto = document.getElementById('navUserPhoto');
+                    if (data.photo) navPhoto.src = data.photo;
+                });
+        }
+
+        // =============================================
+        // Stat Cards
+        // =============================================
+        async function loadStats() {
+            // Stat Arsip — placeholder karena tabel arsipsekolah mungkin belum ada
+            try {
+                const { count: arsipCount } = await absensiClient
+                    .from('arsipsekolah')
+                    .select('*', { count: 'exact', head: true });
+                document.getElementById('statArsip').textContent = arsipCount ?? 0;
+            } catch { document.getElementById('statArsip').textContent = '0'; }
+
+            // Stat Sumbangan — tabel belum dibuat, set 0 dulu
+            document.getElementById('statSumbangan').textContent = '0';
+            document.getElementById('statLunas').textContent     = '0';
+            document.getElementById('statBelum').textContent     = '0';
+        }
+
+        // =============================================
+        // Chart Helpers
+        // =============================================
+        function getLast6Months() {
+            const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+            const result = [];
+            const now = new Date();
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                result.push({ label: months[d.getMonth()], year: d.getFullYear(), month: d.getMonth() + 1 });
+            }
+            return result;
+        }
+
+        // =============================================
+        // Chart Arsip
+        // =============================================
+        async function loadChartArsip() {
+            const periods = getLast6Months();
+            const labels  = periods.map(p => `${p.label} ${p.year}`);
+            let counts    = new Array(6).fill(0);
+
+            try {
+                const { data } = await absensiClient
+                    .from('arsipsekolah')
+                    .select('tanggal_input');
+                if (data && data.length > 0) {
+                    data.forEach(row => {
+                        const d = new Date(row.tanggal_input);
+                        periods.forEach((p, i) => {
+                            if (d.getFullYear() === p.year && d.getMonth() + 1 === p.month) counts[i]++;
+                        });
+                    });
+                }
+            } catch(e) { /* tabel belum ada, pakai 0 */ }
+
+            const ctx = document.getElementById('chartArsip').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Jumlah Arsip',
+                        data: counts,
+                        backgroundColor: 'rgba(14,165,233,0.2)',
+                        borderColor: '#0ea5e9',
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        hoverBackgroundColor: 'rgba(14,165,233,0.45)',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} arsip` } }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, font: { size: 10 } },
+                            grid: { color: '#f0f7ff' }
+                        },
+                        x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // =============================================
+        // Chart Sumbangan
+        // =============================================
+        async function loadChartSumbangan() {
+            const periods = getLast6Months();
+            const labels  = periods.map(p => `${p.label} ${p.year}`);
+            // Tabel sumbangankomite belum dibuat — tampilkan chart kosong dulu
+            const lunas  = new Array(6).fill(0);
+            const belum  = new Array(6).fill(0);
+
+            const ctx = document.getElementById('chartSumbangan').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Lunas',
+                            data: lunas,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16,185,129,0.12)',
+                            borderWidth: 2.5,
+                            tension: 0.4,
+                            pointBackgroundColor: '#10b981',
+                            pointRadius: 4,
+                            fill: true,
+                        },
+                        {
+                            label: 'Belum Lunas',
+                            data: belum,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245,158,11,0.1)',
+                            borderWidth: 2.5,
+                            tension: 0.4,
+                            pointBackgroundColor: '#f59e0b',
+                            pointRadius: 4,
+                            fill: true,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { font: { size: 10 }, boxWidth: 12 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, font: { size: 10 } },
+                            grid: { color: '#f0fdf4' }
+                        },
+                        x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // =============================================
+        // Edit Profil
+        // =============================================
+        function openEditProfil() {
+            const session = JSON.parse(sessionStorage.getItem('admintu_session'));
+            if (!session) return;
+
+            // Populate fields from current displayed data
+            document.getElementById('epInputId').value       = document.getElementById('bioId').textContent.trim() !== '-' ? document.getElementById('bioId').textContent.trim() : '';
+            document.getElementById('epInputNip').value      = document.getElementById('bioNip').textContent.trim() !== '-' ? document.getElementById('bioNip').textContent.trim() : '';
+            document.getElementById('epInputNama').value     = document.getElementById('bioNama').textContent.trim() !== '-' ? document.getElementById('bioNama').textContent.trim() : '';
+            document.getElementById('epInputTlp').value      = document.getElementById('bioTlp').textContent.trim() !== '-' ? document.getElementById('bioTlp').textContent.trim() : '';
+            document.getElementById('epInputAlamat').value   = document.getElementById('bioAlamat').textContent.trim() !== '-' ? document.getElementById('bioAlamat').textContent.trim() : '';
+            document.getElementById('epInputPassword').value = '';
+
+            const currentPhoto = document.getElementById('bioPhoto').src;
+            if (currentPhoto && !currentPhoto.endsWith('admintu.html')) {
+                document.getElementById('epInputPhotoUrl').value = currentPhoto;
+                document.getElementById('epPhotoPreview').src    = currentPhoto;
+                document.getElementById('epPhotoPreview').style.display  = 'block';
+                document.getElementById('epPhotoPlaceholder').style.display = 'none';
+            } else {
+                document.getElementById('epInputPhotoUrl').value = '';
+                document.getElementById('epPhotoPreview').style.display  = 'none';
+                document.getElementById('epPhotoPlaceholder').style.display = 'flex';
+            }
+
+            document.getElementById('modalEditProfil').classList.add('active');
+        }
+
+        function closeEditProfil() {
+            document.getElementById('modalEditProfil').classList.remove('active');
+        }
+
+        async function saveEditProfil() {
+            const session = JSON.parse(sessionStorage.getItem('admintu_session'));
+            if (!session) return;
+
+            const nama    = document.getElementById('epInputNama').value.trim();
+            const nip     = document.getElementById('epInputNip').value.trim() || '-';
+            const tlp     = document.getElementById('epInputTlp').value.trim();
+            const alamat  = document.getElementById('epInputAlamat').value.trim();
+            const password = document.getElementById('epInputPassword').value.trim();
+            const photo   = document.getElementById('epInputPhotoUrl').value;
+
+            if (!nama || !tlp || !alamat) {
+                showToast('Nama, Telepon, dan Alamat wajib diisi.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('epBtnSimpan');
+            const oriText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            try {
+                const payload = { nama_pegawai: nama, nip, tlp, alamat, photo };
+                if (password) payload.password = password;
+
+                const { error } = await absensiClient
+                    .from('datapegawai')
+                    .update(payload)
+                    .eq('id', session.id);
+
+                if (error) throw error;
+
+                // Update tampilan biodata tanpa reload halaman
+                document.getElementById('bioNama').textContent   = nama;
+                document.getElementById('bioNip').textContent    = nip;
+                document.getElementById('bioTlp').textContent    = tlp;
+                document.getElementById('bioAlamat').textContent = alamat;
+                document.getElementById('navUserName').textContent = nama;
+
+                if (photo) {
+                    document.getElementById('bioPhoto').src    = photo;
+                    document.getElementById('bioPhoto').style.display = 'block';
+                    document.getElementById('navUserPhoto').src = photo;
+                }
+
+                // Update session storage
+                session.nama = nama;
+                sessionStorage.setItem('admintu_session', JSON.stringify(session));
+
+                showToast('Profil berhasil diperbarui!', 'success');
+                closeEditProfil();
+            } catch(err) {
+                console.error(err);
+                showToast('Gagal menyimpan: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oriText;
+            }
+        }
+
+        // =============================================
+        // Log Out
+        // =============================================
+        function logOut() {
+            if (!confirm('Apakah Anda yakin ingin keluar?')) return false;
+            sessionStorage.removeItem('admintu_session');
+            window.location.href = 'index.html';
+            return false;
+        }
+
+        // =============================================
+        // Toast
+        // =============================================
+        let toastTimer;
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast ${type} show`;
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // =============================================
+        // Init
+        // =============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSchoolIdentity();
+            loadBiodata();
+            loadStats();
+            loadChartArsip();
+            loadChartSumbangan();
+
+            // Photo upload untuk Edit Profil
+            document.getElementById('epPhotoInput').addEventListener('change', async function() {
+                const file = this.files[0];
+                if (!file) return;
+                if (file.size > 2 * 1024 * 1024) {
+                    showToast('Ukuran file maksimal 2MB.', 'error');
+                    return;
+                }
+                const progress = document.getElementById('epUploadProgress');
+                const bar      = document.getElementById('epUploadProgressBar');
+                progress.style.display = 'block';
+                bar.style.width = '30%';
+                const ext      = file.name.split('.').pop();
+                const fileName = `pegawai_${Date.now()}.${ext}`;
+                try {
+                    bar.style.width = '60%';
+                    const { error } = await absensiClient.storage
+                        .from('aset')
+                        .upload(`pegawai/${fileName}`, file, { upsert: true });
+                    if (error) throw error;
+                    bar.style.width = '100%';
+                    const { data: urlData } = absensiClient.storage.from('aset').getPublicUrl(`pegawai/${fileName}`);
+                    document.getElementById('epInputPhotoUrl').value = urlData.publicUrl;
+                    const preview = document.getElementById('epPhotoPreview');
+                    preview.src = urlData.publicUrl;
+                    preview.style.display = 'block';
+                    document.getElementById('epPhotoPlaceholder').style.display = 'none';
+                    setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 600);
+                    showToast('Foto berhasil diunggah.', 'success');
+                } catch(err) {
+                    progress.style.display = 'none';
+                    bar.style.width = '0%';
+                    showToast('Gagal upload foto: ' + err.message, 'error');
+                }
+            });
+
+            // Tutup modal edit profil saat klik backdrop
+            document.getElementById('modalEditProfil').addEventListener('click', function(e) {
+                if (e.target === this) closeEditProfil();
+            });
+
+        });
+    </script>
+
+</body>
+</html>

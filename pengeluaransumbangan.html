@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengeluaran Sumbangan Komite</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #dc2626;
+            --secondary-color: #b91c1c;
+            --navbar-bg: #7f1d1d;
+            --header-height: 60px;
+            --bg-light: #fef2f2;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            height: var(--header-height);
+            background: linear-gradient(135deg, var(--navbar-bg), #b91c1c);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 8px rgba(127,29,29,0.3);
+            z-index: 100;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px; width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: white;
+        }
+
+        .navbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.18);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .btn-back:hover { background: rgba(255,255,255,0.32); }
+
+        /* Main Content */
+        .main-content {
+            padding: 1.5rem 1rem;
+            flex: 1;
+            width: 100%;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+        }
+
+        .page-title h2 {
+            font-size: 1.2rem;
+            color: #7f1d1d;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .page-title p {
+            font-size: 0.82rem;
+            color: #64748b;
+            margin-top: 3px;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 1.2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 16px 18px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 4px solid transparent;
+        }
+        .stat-card.c-red    { border-color: #dc2626; }
+        .stat-card.c-blue   { border-color: #2563eb; }
+        .stat-card.c-amber  { border-color: #f59e0b; }
+        .stat-card.c-purple { border-color: #8b5cf6; }
+
+        .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .si-red    { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+        .si-blue   { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .si-amber  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .si-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .stat-info h3 { font-size: 1.4rem; font-weight: 800; color: #1e293b; line-height: 1; }
+        .stat-info p  { font-size: 0.76rem; color: #64748b; margin-top: 3px; }
+
+        /* Dashboard Card */
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 1.2rem;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #7f1d1d;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #fef2f2;
+            flex-wrap: wrap;
+        }
+
+        .card-title-left {
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .card-title i { color: var(--primary-color); }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px 8px 36px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            color: #333;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220,38,38,0.12);
+        }
+        .search-box i {
+            position: absolute;
+            left: 11px; top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            color: #333;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .filter-select:focus {
+            outline: none;
+            border-color: #dc2626;
+        }
+
+        .btn-export-pdf {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(15,23,42,0.3);
+            transition: opacity 0.2s, transform 0.2s;
+            white-space: nowrap;
+        }
+        .btn-export-pdf:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-export-pdf:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(220,38,38,0.3);
+            transition: opacity 0.2s, transform 0.2s;
+            white-space: nowrap;
+        }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.86rem;
+        }
+
+        thead th {
+            background: linear-gradient(135deg, #7f1d1d, #b91c1c);
+            color: white;
+            padding: 11px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.15s;
+        }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #fef2f2; }
+
+        tbody td {
+            padding: 10px 14px;
+            color: #374151;
+            vertical-align: middle;
+        }
+
+        .nominal-text {
+            font-weight: 700;
+            color: #dc2626;
+        }
+
+        .nota-thumb {
+            width: 38px; height: 38px;
+            border-radius: 7px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 1.5px solid #e2e8f0;
+            transition: transform 0.15s;
+        }
+        .nota-thumb:hover { transform: scale(1.15); }
+        .nota-empty {
+            color: #cbd5e1;
+            font-size: 0.78rem;
+        }
+
+        /* Action Buttons */
+        .action-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-icon {
+            width: 30px; height: 30px;
+            border-radius: 7px;
+            border: none;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.82rem;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .btn-icon:hover { opacity: 0.85; transform: scale(1.1); }
+        .btn-edit   { background: #dbeafe; color: #2563eb; }
+        .btn-delete { background: #fee2e2; color: #dc2626; }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #94a3b8;
+        }
+        .empty-state i { font-size: 3rem; margin-bottom: 12px; display: block; color: #cbd5e1; }
+        .empty-state p { font-size: 0.9rem; }
+
+        /* Loading */
+        .loading-row td {
+            text-align: center;
+            padding: 30px;
+            color: #94a3b8;
+            font-size: 0.88rem;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 14px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .pagination-info { font-size: 0.82rem; color: #64748b; }
+
+        .pagination-btns { display: flex; gap: 6px; }
+
+        .btn-page {
+            padding: 5px 12px;
+            border: 1.5px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-page:hover { border-color: #dc2626; color: #dc2626; }
+        .btn-page.active { background: #dc2626; color: white; border-color: #dc2626; }
+        .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-box {
+            background: white;
+            width: 100%;
+            max-width: 540px;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease;
+            overflow: hidden;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-30px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 16px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            background: linear-gradient(135deg, #7f1d1d, #dc2626);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.4); }
+
+        .modal-body {
+            padding: 22px 24px;
+            overflow-y: auto;
+            max-height: 70vh;
+        }
+
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 7px;
+            font-size: 0.9rem;
+            color: #333;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: white;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220,38,38,0.12);
+        }
+        .form-group input[readonly] {
+            background: #f8fafc;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+        .form-group textarea { resize: vertical; min-height: 60px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        .total-preview {
+            background: #fef2f2;
+            border: 1.5px solid #fecaca;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .total-preview span:first-child {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #7f1d1d;
+        }
+        .total-preview span:last-child {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #dc2626;
+        }
+
+        /* Upload Nota */
+        .nota-upload-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            background: #fafafa;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .nota-upload-wrapper:hover { border-color: var(--primary-color); background: #fef2f2; }
+
+        .nota-icon {
+            width: 40px; height: 40px;
+            border-radius: 8px;
+            background: #fee2e2;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            color: #dc2626;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .nota-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+        .nota-upload-text { flex: 1; }
+        .nota-upload-text strong { font-size: 0.84rem; color: #334155; display: block; }
+        .nota-upload-text span   { font-size: 0.75rem; color: #94a3b8; }
+
+        .nota-filename {
+            font-size: 0.75rem;
+            color: #b91c1c;
+            font-weight: 600;
+            background: #fee2e2;
+            padding: 3px 10px;
+            border-radius: 10px;
+            display: none;
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .upload-progress {
+            width: 100%;
+            background: #eee;
+            border-radius: 10px;
+            height: 5px;
+            overflow: hidden;
+            display: none;
+            margin-top: 8px;
+        }
+        .upload-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), #b91c1c);
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .nota-url-box {
+            display: none;
+            margin-top: 10px;
+            background: #fef2f2;
+            border: 1.5px solid #fecaca;
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+        .nota-url-box.show { display: block; }
+        .nota-url-box .label-row {
+            font-size: 0.75rem; font-weight: 700; color: #b91c1c;
+            margin-bottom: 5px; display: flex; align-items: center; gap: 6px;
+        }
+        .nota-url-box .row {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .nota-url-box input {
+            flex: 1; padding: 7px 10px; border: 1px solid #fecaca; border-radius: 6px;
+            font-size: 0.75rem; color: #b91c1c; background: white; font-family: monospace; cursor: text;
+        }
+        .btn-mini {
+            border: none; padding: 7px 12px; border-radius: 6px; font-size: 0.75rem;
+            font-weight: 600; cursor: pointer; white-space: nowrap; display: flex;
+            align-items: center; gap: 5px; text-decoration: none; transition: background 0.2s;
+        }
+        .btn-mini-view   { background: #fee2e2; color: #b91c1c; }
+        .btn-mini-remove { background: #f1f5f9; color: #475569; }
+
+        .modal-footer {
+            padding: 14px 22px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-cancel {
+            padding: 8px 18px;
+            border: 1.5px solid #ddd;
+            background: white;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: #555;
+            transition: background 0.2s;
+        }
+        .btn-cancel:hover { background: #f5f5f5; }
+
+        .btn-save {
+            padding: 8px 22px;
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.86rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .btn-save:hover { opacity: 0.88; }
+        .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Confirm Modal */
+        .confirm-body {
+            padding: 24px;
+            text-align: center;
+        }
+        .confirm-icon {
+            font-size: 3rem;
+            color: #ef4444;
+            margin-bottom: 12px;
+        }
+        .confirm-body h4 { font-size: 1rem; color: #1e293b; margin-bottom: 6px; }
+        .confirm-body p  { font-size: 0.86rem; color: #64748b; }
+        .btn-danger {
+            padding: 8px 22px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.86rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .btn-danger:hover { opacity: 0.88; }
+        .btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Lightbox Nota */
+        .lightbox-overlay {
+            display: none;
+            position: fixed;
+            z-index: 4000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .lightbox-overlay.active { display: flex; }
+        .lightbox-overlay img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 20px; right: 24px;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .lightbox-close:hover { background: rgba(255,255,255,0.3); }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            z-index: 9999;
+            transform: translateY(60px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 4px solid #22c55e; }
+        .toast.error   { border-left: 4px solid #ef4444; }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 16px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content { padding: 1rem 0.5rem; }
+            .form-row { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .search-box {
+                min-width: unset;
+                width: 100%;
+            }
+            .filter-select {
+                width: 100%;
+            }
+            .btn-export-pdf {
+                width: 100%;
+                justify-content: center;
+            }
+            .card-title-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            .card-title-actions button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            html, body { display: block !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+            body > *:not(#modalPdf) { display: none !important; }
+            #modalPdf { display: block !important; position: static !important;
+                background: transparent !important; padding: 0 !important;
+                width: auto !important; height: auto !important; }
+            #modalPdf:not(.active) { display: none !important; }
+            .pdf-box { box-shadow: none !important; border-radius: 0 !important;
+                max-width: 100% !important; width: 100% !important;
+                overflow: visible !important; height: auto !important; }
+            .pdf-header-bar { display: none !important; }
+            .pdf-body { padding: 0 !important; max-height: none !important; overflow: visible !important; height: auto !important; }
+            .pdf-tabel { border: 1.5px solid #000 !important; }
+            .pdf-tabel thead th { background: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .pdf-tabel tbody tr:nth-child(even) td { background: #fef2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .pdf-summary-box { border: 1.5px solid #000 !important; }
+        }
+
+        /* Modal Export PDF */
+        .modal-pdf-overlay {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        .modal-pdf-overlay.active { display: flex; }
+
+        .pdf-box {
+            background: white;
+            width: 100%;
+            max-width: 720px;
+            border-radius: 14px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+            animation: slideDown 0.3s ease;
+            overflow: hidden;
+        }
+
+        .pdf-header-bar {
+            background: linear-gradient(135deg, #7f1d1d, #dc2626);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+        }
+        .pdf-header-bar h3 {
+            font-size: 0.92rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pdf-header-bar .pdf-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .btn-print-pdf {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.22);
+            color: white;
+            border: 1.5px solid rgba(255,255,255,0.4);
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-print-pdf:hover { background: rgba(255,255,255,0.38); }
+        .btn-close-pdf {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .btn-close-pdf:hover { background: rgba(255,255,255,0.4); }
+
+        .pdf-body {
+            padding: 24px 28px 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .pdf-tabel {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.77rem;
+            margin-top: 14px;
+            border: 1.5px solid #7f1d1d;
+        }
+        .pdf-tabel thead th {
+            background: #7f1d1d;
+            color: white;
+            padding: 7px 9px;
+            text-align: left;
+            font-size: 0.73rem;
+            font-weight: 700;
+        }
+        .pdf-tabel tbody td {
+            padding: 6px 9px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #374151;
+            vertical-align: middle;
+        }
+        .pdf-tabel tbody tr:last-child td { border-bottom: none; }
+        .pdf-tabel tbody tr:nth-child(even) td { background: #fef2f2; }
+
+        .pdf-summary {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #374151;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .pdf-summary-box {
+            border: 1.5px solid #7f1d1d;
+            border-radius: 6px;
+            padding: 8px 16px;
+            text-align: right;
+        }
+        .pdf-summary-box .total-label { font-weight: 600; color: #7f1d1d; }
+        .pdf-summary-box .total-val { font-weight: 800; color: #dc2626; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="admintu.html" class="navbar-brand">
+            <img src="" alt="Logo" id="navLogo" style="display:none;">
+            <span id="navSchoolName">SMKN 1 Simpang Teritip</span>
+        </a>
+        <div class="navbar-right">
+            <a href="admintu.html" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" style="margin-top: calc(var(--header-height) + 1.5rem);">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title">
+                <h2><i class="fas fa-money-bill-wave" style="color:#dc2626;"></i> Pengeluaran Sumbangan Komite</h2>
+                <p>Catat dan kelola pengeluaran dana sumbangan komite</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card c-red">
+                <div class="stat-icon si-red"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info">
+                    <h3 id="statTotal">—</h3>
+                    <p>Total Transaksi</p>
+                </div>
+            </div>
+            <div class="stat-card c-blue">
+                <div class="stat-icon si-blue"><i class="fas fa-wallet"></i></div>
+                <div class="stat-info">
+                    <h3 id="statTotalNominal">—</h3>
+                    <p>Total Pengeluaran</p>
+                </div>
+            </div>
+            <div class="stat-card c-amber">
+                <div class="stat-icon si-amber"><i class="fas fa-calendar-day"></i></div>
+                <div class="stat-info">
+                    <h3 id="statBulanIni">—</h3>
+                    <p>Pengeluaran Bulan Ini</p>
+                </div>
+            </div>
+            <div class="stat-card c-purple">
+                <div class="stat-icon si-purple"><i class="fas fa-user-tie"></i></div>
+                <div class="stat-info">
+                    <h3 id="statPurchaser">—</h3>
+                    <p>Purchaser Aktif</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="dashboard-card">
+            <div class="card-title">
+                <div class="card-title-left">
+                    <i class="fas fa-list-ul"></i>
+                    <span>Daftar Pengeluaran Sumbangan</span>
+                </div>
+                <div class="card-title-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn-export-pdf" onclick="exportPdf()">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button class="btn-primary" onclick="openModal()">
+                        <i class="fas fa-plus"></i> Tambah Pengeluaran
+                    </button>
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Cari nama barang/jasa / purchaser..." oninput="filterData()">
+                </div>
+                <select class="filter-select" id="filterBulan" onchange="filterData()">
+                    <option value="">Semua Bulan</option>
+                </select>
+                <select class="filter-select" id="filterPurchaser" onchange="filterData()">
+                    <option value="">Semua Purchaser</option>
+                </select>
+            </div>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Tanggal</th>
+                            <th>Nama Barang/Jasa</th>
+                            <th>Harga Satuan</th>
+                            <th>Jumlah</th>
+                            <th>Total</th>
+                            <th>Purchaser</th>
+                            <th>Nota</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr class="loading-row">
+                            <td colspan="9"><i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <div class="pagination-info" id="paginationInfo">—</div>
+                <div class="pagination-btns" id="paginationBtns"></div>
+            </div>
+        </div>
+
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP. CopyRight Kenji Studio Developer.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Tambah/Edit Pengeluaran -->
+    <div class="modal-overlay" id="modalForm">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fas fa-plus-circle"></i> Tambah Pengeluaran</h3>
+                <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-alt" style="margin-right:4px;color:#dc2626"></i>Tanggal Pengeluaran</label>
+                        <input type="date" id="fTanggal">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-user-tie" style="margin-right:4px;color:#dc2626"></i>Purchaser</label>
+                        <input type="text" id="fPurchaser" placeholder="Nama pembeli/pelaksana">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-box-open" style="margin-right:4px;color:#dc2626"></i>Nama Barang/Jasa</label>
+                    <input type="text" id="fNamaBarang" placeholder="Contoh: ATK, Konsumsi rapat, dll">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-tag" style="margin-right:4px;color:#dc2626"></i>Harga Satuan (Rp)</label>
+                        <input type="number" id="fHargaSatuan" placeholder="0" min="0" oninput="updateTotalPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-cubes" style="margin-right:4px;color:#dc2626"></i>Jumlah Pembelian</label>
+                        <input type="number" id="fJumlah" placeholder="0" min="1" value="1" oninput="updateTotalPreview()">
+                    </div>
+                </div>
+
+                <div class="total-preview">
+                    <span><i class="fas fa-calculator" style="margin-right:5px;"></i>Total Pengeluaran</span>
+                    <span id="previewTotal">Rp 0</span>
+                </div>
+
+                <!-- Upload Nota ke Cloudinary -->
+                <div class="form-group">
+                    <label><i class="fas fa-receipt" style="margin-right:4px;color:#dc2626"></i>Nota / Bukti Pembelian <span style="color:#aaa;font-weight:400;font-size:0.75rem;">(opsional, maks. 5MB)</span></label>
+                    <div class="nota-upload-wrapper" id="notaWrapper" onclick="document.getElementById('notaInput').click()">
+                        <div class="nota-icon" id="notaIconBox"><i class="fas fa-camera"></i></div>
+                        <div class="nota-upload-text">
+                            <strong id="notaUploadLabel">Klik untuk pilih foto nota</strong>
+                            <span>Format JPG/PNG · Maks. 5MB</span>
+                        </div>
+                        <span class="nota-filename" id="notaFilename"></span>
+                    </div>
+                    <div class="upload-progress" id="uploadProgress">
+                        <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                    </div>
+                    <!-- URL Cloudinary tampil setelah upload berhasil -->
+                    <div id="notaUrlBox" class="nota-url-box">
+                        <div class="label-row">
+                            <i class="fas fa-check-circle" style="color:#22c55e;"></i> URL Nota Cloudinary
+                        </div>
+                        <div class="row">
+                            <input type="text" id="notaUrlDisplay" readonly onclick="this.select()">
+                            <a id="btnViewNota" class="btn-mini btn-mini-view" href="#" target="_blank">
+                                <i class="fas fa-eye"></i> Lihat
+                            </a>
+                            <button type="button" class="btn-mini btn-mini-remove" onclick="removeNota()">
+                                <i class="fas fa-times"></i> Hapus
+                            </button>
+                        </div>
+                    </div>
+                    <input type="file" id="notaInput" accept="image/*" style="display:none;">
+                    <input type="hidden" id="fNotaUrl">
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal()">Batal</button>
+                <button class="btn-save" id="btnSimpan" onclick="saveData()">
+                    <i class="fas fa-save"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hapus -->
+    <div class="modal-overlay" id="modalConfirm">
+        <div class="modal-box" style="max-width:380px;">
+            <div class="modal-header" style="background:linear-gradient(135deg, #b91c1c, #ef4444);">
+                <h3><i class="fas fa-exclamation-triangle"></i> Konfirmasi Hapus</h3>
+                <button class="modal-close" onclick="closeConfirm()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="confirm-body">
+                <i class="fas fa-trash-alt confirm-icon"></i>
+                <h4>Hapus Data Pengeluaran?</h4>
+                <p id="confirmText">Data tidak dapat dikembalikan.</p>
+            </div>
+            <div class="modal-footer" style="justify-content:center;">
+                <button class="btn-cancel" onclick="closeConfirm()">Batal</button>
+                <button class="btn-danger" id="btnHapus" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i> Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Export PDF -->
+    <div class="modal-pdf-overlay" id="modalPdf">
+        <div class="pdf-box">
+            <div class="pdf-header-bar">
+                <h3><i class="fas fa-file-pdf"></i> Laporan Pengeluaran Sumbangan</h3>
+                <div class="pdf-actions">
+                    <button class="btn-print-pdf" onclick="printPdf()">
+                        <i class="fas fa-print"></i> Cetak / Simpan PDF
+                    </button>
+                    <button class="btn-close-pdf" onclick="closePdf()"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="pdf-body" id="pdfContent"></div>
+        </div>
+    </div>
+
+    <!-- Lightbox Nota -->
+    <div class="lightbox-overlay" id="lightboxNota" onclick="closeLightbox(event)">
+        <button class="lightbox-close" onclick="closeLightbox(event)"><i class="fas fa-times"></i></button>
+        <img id="lightboxImg" src="" alt="Nota">
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // =============================================
+        // Supabase Init
+        // =============================================
+        const SUPA_URL = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+        const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+        const simpedikUrl = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const simpedikKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+        const simpedikClient = supabase.createClient(simpedikUrl, simpedikKey);
+
+        // =============================================
+        // Cloudinary Config (sama seperti arsipsekolah.html)
+        // =============================================
+        const CLOUDINARY_CLOUD_NAME    = 'dkmwenvpf';
+        const CLOUDINARY_UPLOAD_PRESET = 'file_sekolah';
+        const CLOUDINARY_FOLDER        = 'nota_pengeluaran_sumbangan';
+
+        // =============================================
+        // State
+        // =============================================
+        let allData = [];
+        let filteredData = [];
+        let schoolName = 'SMKN 1 Simpang Teritip';
+        let schoolLogo = '';
+        let deleteTargetId = null;
+        let currentNotaUrl = '';
+        const PAGE_SIZE = 15;
+        let currentPage = 1;
+
+        // =============================================
+        // Load School Identity
+        // =============================================
+        async function loadSchoolIdentity() {
+            try {
+                const { data } = await simpedikClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo')
+                    .limit(1).single();
+                if (data) {
+                    if (data.nama_sekolah) {
+                        schoolName = data.nama_sekolah;
+                        document.getElementById('navSchoolName').textContent = data.nama_sekolah;
+                    }
+                    if (data.logo) {
+                        schoolLogo = data.logo;
+                        const img = document.getElementById('navLogo');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch(e) {}
+        }
+
+        // =============================================
+        // Load Data
+        // =============================================
+        async function loadData() {
+            try {
+                const { data, error } = await db
+                    .from('pengeluaransumbangan')
+                    .select('*')
+                    .order('tanggal_pengeluaran', { ascending: false });
+
+                if (error) throw error;
+                allData = data || [];
+                buildFilters();
+                updateStats();
+                filterData();
+            } catch(err) {
+                document.getElementById('tableBody').innerHTML =
+                    `<tr class="loading-row"><td colspan="9" style="color:#ef4444;"><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // =============================================
+        // Build Filters
+        // =============================================
+        function buildFilters() {
+            const bulanSet = new Set(allData
+                .filter(d => d.tanggal_pengeluaran)
+                .map(d => {
+                    const dt = new Date(d.tanggal_pengeluaran);
+                    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+                }));
+            const bulanList = [...bulanSet].sort().reverse();
+            const bulanLabel = (ym) => {
+                const [y, m] = ym.split('-');
+                const dt = new Date(parseInt(y), parseInt(m)-1, 1);
+                return dt.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+            };
+
+            document.getElementById('filterBulan').innerHTML = '<option value="">Semua Bulan</option>' +
+                bulanList.map(ym => `<option value="${ym}">${bulanLabel(ym)}</option>`).join('');
+
+            const purchaserList = [...new Set(allData.map(d => d.purchaser).filter(Boolean))].sort();
+            document.getElementById('filterPurchaser').innerHTML = '<option value="">Semua Purchaser</option>' +
+                purchaserList.map(p => `<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('');
+        }
+
+        // =============================================
+        // Stats
+        // =============================================
+        function updateStats() {
+            const total = allData.length;
+            const totalNominal = allData.reduce((s, d) => s + (parseFloat(d.total_pengeluaran) || 0), 0);
+
+            const now = new Date();
+            const bulanIni = allData
+                .filter(d => {
+                    if (!d.tanggal_pengeluaran) return false;
+                    const dt = new Date(d.tanggal_pengeluaran);
+                    return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+                })
+                .reduce((s, d) => s + (parseFloat(d.total_pengeluaran) || 0), 0);
+
+            const uniquePurchaser = new Set(allData.map(d => d.purchaser).filter(Boolean)).size;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statTotalNominal').textContent = 'Rp ' + totalNominal.toLocaleString('id-ID');
+            document.getElementById('statBulanIni').textContent = 'Rp ' + bulanIni.toLocaleString('id-ID');
+            document.getElementById('statPurchaser').textContent = uniquePurchaser;
+        }
+
+        // =============================================
+        // Filter & Render
+        // =============================================
+        function filterData() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const bulan = document.getElementById('filterBulan').value;
+            const purchaser = document.getElementById('filterPurchaser').value;
+
+            filteredData = allData.filter(d => {
+                const matchQ = !q ||
+                    (d.nama_barang || '').toLowerCase().includes(q) ||
+                    (d.purchaser || '').toLowerCase().includes(q);
+                let matchB = true;
+                if (bulan) {
+                    if (!d.tanggal_pengeluaran) { matchB = false; }
+                    else {
+                        const dt = new Date(d.tanggal_pengeluaran);
+                        const ym = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+                        matchB = ym === bulan;
+                    }
+                }
+                const matchP = !purchaser || d.purchaser === purchaser;
+                return matchQ && matchB && matchP;
+            });
+
+            currentPage = 1;
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const total = filteredData.length;
+
+            if (total === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="9">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>Tidak ada data pengeluaran yang ditemukan.</p>
+                        </div>
+                    </td></tr>`;
+                document.getElementById('paginationInfo').textContent = 'Tidak ada data';
+                document.getElementById('paginationBtns').innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.ceil(total / PAGE_SIZE);
+            if (currentPage > totalPages) currentPage = totalPages;
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const slice = filteredData.slice(start, start + PAGE_SIZE);
+
+            tbody.innerHTML = slice.map((d, i) => `
+                <tr>
+                    <td style="color:#94a3b8;font-size:0.8rem;">${start + i + 1}</td>
+                    <td style="font-size:0.82rem;color:#475569;white-space:nowrap;">${d.tanggal_pengeluaran ? fmtDate(d.tanggal_pengeluaran) : '-'}</td>
+                    <td><strong>${escHtml(d.nama_barang || '-')}</strong></td>
+                    <td style="font-size:0.84rem;color:#475569;">Rp ${(parseFloat(d.harga_satuan)||0).toLocaleString('id-ID')}</td>
+                    <td style="text-align:center;">${d.jumlah || 0}</td>
+                    <td class="nominal-text">Rp ${(parseFloat(d.total_pengeluaran)||0).toLocaleString('id-ID')}</td>
+                    <td style="font-size:0.84rem;color:#475569;">${escHtml(d.purchaser || '-')}</td>
+                    <td>
+                        ${d.nota_url
+                            ? `<img src="${d.nota_url}" class="nota-thumb" onclick="openLightbox('${d.nota_url}')" alt="Nota">`
+                            : `<span class="nota-empty">—</span>`}
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn-icon btn-edit" onclick="openModal('${d.id}')" title="Edit">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button class="btn-icon btn-delete" onclick="openConfirm('${d.id}', '${escHtml(d.nama_barang||'')}')" title="Hapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('paginationInfo').textContent =
+                `Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, total)} dari ${total} pengeluaran`;
+
+            const btnsEl = document.getElementById('paginationBtns');
+            let btnsHtml = `<button class="btn-page" onclick="goPage(${currentPage-1})" ${currentPage<=1?'disabled':''}><i class="fas fa-chevron-left"></i></button>`;
+            for (let p = 1; p <= totalPages; p++) {
+                if (totalPages <= 7 || Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages) {
+                    btnsHtml += `<button class="btn-page ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+                } else if (Math.abs(p - currentPage) === 3) {
+                    btnsHtml += `<span style="padding:4px;color:#94a3b8;">…</span>`;
+                }
+            }
+            btnsHtml += `<button class="btn-page" onclick="goPage(${currentPage+1})" ${currentPage>=totalPages?'disabled':''}><i class="fas fa-chevron-right"></i></button>`;
+            btnsEl.innerHTML = btnsHtml;
+        }
+
+        function goPage(p) {
+            const totalPages = Math.ceil(filteredData.length / PAGE_SIZE);
+            if (p < 1 || p > totalPages) return;
+            currentPage = p;
+            renderTable();
+        }
+
+        // =============================================
+        // Total Preview (Harga Satuan x Jumlah)
+        // =============================================
+        function updateTotalPreview() {
+            const harga = parseFloat(document.getElementById('fHargaSatuan').value) || 0;
+            const jumlah = parseFloat(document.getElementById('fJumlah').value) || 0;
+            const total = harga * jumlah;
+            document.getElementById('previewTotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
+            return total;
+        }
+
+        // =============================================
+        // Modal Tambah/Edit
+        // =============================================
+        function openModal(id = null) {
+            resetForm();
+            if (id) {
+                const d = allData.find(x => String(x.id) === String(id));
+                if (!d) { showToast('Data tidak ditemukan.', 'error'); return; }
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-pen"></i> Edit Pengeluaran';
+                document.getElementById('editId').value = d.id;
+                document.getElementById('fTanggal').value = d.tanggal_pengeluaran ? d.tanggal_pengeluaran.substring(0,10) : '';
+                document.getElementById('fPurchaser').value = d.purchaser || '';
+                document.getElementById('fNamaBarang').value = d.nama_barang || '';
+                document.getElementById('fHargaSatuan').value = d.harga_satuan || '';
+                document.getElementById('fJumlah').value = d.jumlah || 1;
+                updateTotalPreview();
+                if (d.nota_url) {
+                    setNotaPreview(d.nota_url);
+                }
+            } else {
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus-circle"></i> Tambah Pengeluaran';
+                const today = new Date().toISOString().substring(0,10);
+                document.getElementById('fTanggal').value = today;
+                document.getElementById('fJumlah').value = 1;
+                updateTotalPreview();
+            }
+            document.getElementById('modalForm').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalForm').classList.remove('active');
+            resetForm();
+        }
+
+        function resetForm() {
+            document.getElementById('editId').value = '';
+            document.getElementById('fTanggal').value = '';
+            document.getElementById('fPurchaser').value = '';
+            document.getElementById('fNamaBarang').value = '';
+            document.getElementById('fHargaSatuan').value = '';
+            document.getElementById('fJumlah').value = 1;
+            document.getElementById('previewTotal').textContent = 'Rp 0';
+            removeNota();
+        }
+
+        async function saveData() {
+            const id = document.getElementById('editId').value;
+            const tanggal = document.getElementById('fTanggal').value;
+            const purchaser = document.getElementById('fPurchaser').value.trim();
+            const namaBarang = document.getElementById('fNamaBarang').value.trim();
+            const hargaSatuan = parseFloat(document.getElementById('fHargaSatuan').value) || 0;
+            const jumlah = parseFloat(document.getElementById('fJumlah').value) || 0;
+            const total = hargaSatuan * jumlah;
+            const notaUrl = document.getElementById('fNotaUrl').value || null;
+
+            if (!tanggal) { showToast('Tanggal pengeluaran wajib diisi.', 'error'); return; }
+            if (!namaBarang) { showToast('Nama barang/jasa wajib diisi.', 'error'); return; }
+            if (!purchaser) { showToast('Purchaser wajib diisi.', 'error'); return; }
+            if (hargaSatuan <= 0) { showToast('Harga satuan harus lebih dari 0.', 'error'); return; }
+            if (jumlah <= 0) { showToast('Jumlah pembelian harus lebih dari 0.', 'error'); return; }
+
+            const payload = {
+                tanggal_pengeluaran: tanggal,
+                nama_barang: namaBarang,
+                harga_satuan: hargaSatuan,
+                jumlah: jumlah,
+                total_pengeluaran: total,
+                purchaser: purchaser,
+                nota_url: notaUrl
+            };
+
+            const btn = document.getElementById('btnSimpan');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            try {
+                let error;
+                if (id) {
+                    ({ error } = await db.from('pengeluaransumbangan').update(payload).eq('id', id));
+                } else {
+                    ({ error } = await db.from('pengeluaransumbangan').insert(payload));
+                }
+                if (error) throw error;
+                showToast(id ? 'Pengeluaran berhasil diperbarui!' : 'Pengeluaran berhasil ditambahkan!', 'success');
+                closeModal();
+                await loadData();
+            } catch(err) {
+                showToast('Gagal menyimpan: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Simpan';
+            }
+        }
+
+        // =============================================
+        // Upload Nota ke Cloudinary
+        // =============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('notaInput').addEventListener('change', async function() {
+                const file = this.files[0];
+                if (!file) return;
+
+                if (!file.type.startsWith('image/')) {
+                    showToast('Hanya file gambar (JPG/PNG) yang diperbolehkan.', 'error');
+                    this.value = '';
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    showToast('Ukuran file maksimal 5MB.', 'error');
+                    this.value = '';
+                    return;
+                }
+
+                const progress = document.getElementById('uploadProgress');
+                const bar      = document.getElementById('uploadProgressBar');
+                const label    = document.getElementById('notaUploadLabel');
+                const fname    = document.getElementById('notaFilename');
+
+                progress.style.display = 'block';
+                bar.style.width = '20%';
+                label.textContent = 'Mengunggah nota...';
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                formData.append('folder', CLOUDINARY_FOLDER);
+
+                try {
+                    bar.style.width = '55%';
+
+                    const response = await fetch(
+                        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+                        { method: 'POST', body: formData }
+                    );
+
+                    bar.style.width = '85%';
+
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.error?.message || 'Upload gagal.');
+                    }
+
+                    const result = await response.json();
+                    bar.style.width = '100%';
+
+                    const publicUrl = result.secure_url;
+                    setNotaPreview(publicUrl);
+                    fname.textContent = file.name;
+                    fname.style.display = 'inline-block';
+                    label.textContent = '✓ Nota berhasil diunggah';
+
+                    setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 700);
+                    showToast('Nota berhasil diunggah!', 'success');
+
+                } catch(err) {
+                    progress.style.display = 'none';
+                    bar.style.width = '0%';
+                    label.textContent = 'Klik untuk pilih foto nota';
+                    fname.style.display = 'none';
+                    this.value = '';
+                    showToast('Gagal upload nota: ' + err.message, 'error');
+                }
+            });
+        });
+
+        function setNotaPreview(url) {
+            currentNotaUrl = url;
+            document.getElementById('fNotaUrl').value = url;
+            document.getElementById('notaUrlDisplay').value = url;
+            document.getElementById('btnViewNota').href = url;
+            document.getElementById('notaUrlBox').classList.add('show');
+            document.getElementById('notaIconBox').innerHTML = `<img src="${url}" alt="Preview">`;
+        }
+
+        function removeNota() {
+            currentNotaUrl = '';
+            document.getElementById('fNotaUrl').value = '';
+            document.getElementById('notaUrlDisplay').value = '';
+            document.getElementById('notaUrlBox').classList.remove('show');
+            document.getElementById('notaIconBox').innerHTML = '<i class="fas fa-camera"></i>';
+            document.getElementById('notaInput').value = '';
+            document.getElementById('notaFilename').style.display = 'none';
+            document.getElementById('notaUploadLabel').textContent = 'Klik untuk pilih foto nota';
+        }
+
+        // =============================================
+        // Lightbox Nota
+        // =============================================
+        function openLightbox(url) {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightboxNota').classList.add('active');
+        }
+        function closeLightbox(e) {
+            if (e) e.stopPropagation();
+            document.getElementById('lightboxNota').classList.remove('active');
+        }
+
+        // =============================================
+        // Hapus Data
+        // =============================================
+        function openConfirm(id, nama) {
+            deleteTargetId = id;
+            document.getElementById('confirmText').textContent =
+                `Hapus pengeluaran "${nama}"? Data tidak dapat dikembalikan.`;
+            document.getElementById('modalConfirm').classList.add('active');
+        }
+
+        function closeConfirm() {
+            deleteTargetId = null;
+            document.getElementById('modalConfirm').classList.remove('active');
+        }
+
+        async function confirmDelete() {
+            if (!deleteTargetId) return;
+            const btn = document.getElementById('btnHapus');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghapus...';
+            try {
+                const { error } = await db.from('pengeluaransumbangan').delete().eq('id', deleteTargetId);
+                if (error) throw error;
+                showToast('Pengeluaran berhasil dihapus!', 'success');
+                closeConfirm();
+                await loadData();
+            } catch(err) {
+                showToast('Gagal menghapus: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-trash"></i> Hapus';
+            }
+        }
+
+        // =============================================
+        // Export PDF Laporan Pengeluaran
+        // =============================================
+        function exportPdf() {
+            if (filteredData.length === 0) {
+                showToast('Tidak ada data untuk diekspor.', 'error');
+                return;
+            }
+
+            const now = new Date();
+            const tglCetak = now.toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' });
+            const jamCetak = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+
+            const rowsHtml = filteredData.map((d, i) => `
+                <tr>
+                    <td style="text-align:center;">${i + 1}</td>
+                    <td>${d.tanggal_pengeluaran ? fmtDate(d.tanggal_pengeluaran) : '-'}</td>
+                    <td>${escHtml(d.nama_barang || '-')}</td>
+                    <td>Rp ${(parseFloat(d.harga_satuan)||0).toLocaleString('id-ID')}</td>
+                    <td style="text-align:center;">${d.jumlah || 0}</td>
+                    <td style="font-weight:700;color:#dc2626;">Rp ${(parseFloat(d.total_pengeluaran)||0).toLocaleString('id-ID')}</td>
+                    <td>${escHtml(d.purchaser || '-')}</td>
+                </tr>
+            `).join('');
+
+            const totalSemua = filteredData.reduce((s, d) => s + (parseFloat(d.total_pengeluaran)||0), 0);
+
+            document.getElementById('pdfContent').innerHTML = `
+                <div class="struk-kop" style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+                    <img src="${schoolLogo || ''}" alt="Logo Sekolah" style="height:54px;flex-shrink:0;${schoolLogo ? '' : 'display:none;'}" onerror="this.style.display='none'">
+                    <div style="text-align:center;flex:1;">
+                        <h2 style="font-size:1.05rem;color:#7f1d1d;">Laporan Pengeluaran Sumbangan Komite<br>${escHtml(schoolName)}</h2>
+                    </div>
+                    <img src="logo komite.png" alt="Logo Komite" style="height:54px;flex-shrink:0;" onerror="this.style.display='none'">
+                </div>
+                <div style="width:100%;border-bottom:2px solid #7f1d1d;padding-bottom:12px;margin-bottom:12px;"></div>
+                <div style="font-size:0.78rem;color:#64748b;margin-bottom:10px;">
+                    Dicetak: ${tglCetak}, ${jamCetak} WIB &nbsp;|&nbsp; Total Data: ${filteredData.length}
+                </div>
+                <table class="pdf-tabel">
+                    <thead>
+                        <tr>
+                            <th style="width:28px;text-align:center;">No</th>
+                            <th>Tanggal</th>
+                            <th>Nama Barang/Jasa</th>
+                            <th>Harga Satuan</th>
+                            <th>Jumlah</th>
+                            <th>Total</th>
+                            <th>Purchaser</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+                <div class="pdf-summary">
+                    <div class="pdf-summary-box">
+                        <div class="total-label">Total Pengeluaran</div>
+                        <div class="total-val">Rp ${totalSemua.toLocaleString('id-ID')}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modalPdf').classList.add('active');
+        }
+
+        function closePdf() {
+            document.getElementById('modalPdf').classList.remove('active');
+        }
+
+        function printPdf() {
+            const judulAsli = document.title;
+            const pdfContent = document.getElementById('pdfContent');
+
+            waitForImages(pdfContent).then(() => {
+                document.title = 'Laporan Pengeluaran Sumbangan Komite';
+                window.print();
+                document.title = judulAsli;
+            });
+        }
+
+        // Menunggu semua gambar di dalam elemen selesai dimuat (atau gagal dimuat)
+        // sebelum lanjut, agar hasil cetak/PDF tidak blank karena print
+        // terpanggil saat gambar belum selesai di-resolve oleh browser.
+        function waitForImages(container) {
+            const imgs = Array.from(container.querySelectorAll('img'));
+            if (imgs.length === 0) return Promise.resolve();
+            return Promise.all(imgs.map(img => {
+                if (img.complete) return Promise.resolve();
+                return new Promise(resolve => {
+                    img.addEventListener('load', resolve, { once: true });
+                    img.addEventListener('error', resolve, { once: true });
+                });
+            }));
+        }
+
+        // =============================================
+        // Toast & Utils
+        // =============================================
+        let toastTimer;
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast ${type} show`;
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g,'&amp;')
+                .replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;')
+                .replace(/"/g,'&quot;')
+                .replace(/'/g,'&#039;');
+        }
+
+        function fmtDate(d) {
+            if (!d) return '-';
+            const dt = new Date(d);
+            return dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        // =============================================
+        // Modal close saat klik backdrop
+        // =============================================
+        document.getElementById('modalForm').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        document.getElementById('modalConfirm').addEventListener('click', function(e) {
+            if (e.target === this) closeConfirm();
+        });
+        document.getElementById('modalPdf').addEventListener('click', function(e) {
+            if (e.target === this) closePdf();
+        });
+
+        // =============================================
+        // Init
+        // =============================================
+        loadSchoolIdentity();
+        loadData();
+    </script>
+</body>
+</html>

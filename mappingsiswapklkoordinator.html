@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapping Siswa PKL - Koordinator PKL - SMKN 1 Simpang Teritip</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --header-height: 60px;
+            --navbar-bg: #dc2626;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: url('bg2.jpg') no-repeat center center;
+            background-size: cover;
+            filter: blur(5px);
+            transform: scale(1.05);
+            z-index: -1;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--navbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1002;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #fff;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .navbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-dashboard {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            background: rgba(255,255,255,0.18);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.35);
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .btn-dashboard:hover { background: rgba(255,255,255,0.3); transform: translateY(-1px); }
+
+        .navbar-date {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* --- Dashboard Card --- */
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: visible;
+        }
+
+        .card-header {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-header h3 { font-size: 1rem; color: #444; }
+
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* --- Form --- */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            align-items: start;
+        }
+
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .pembimbing-block {
+            background: #f8f9fc;
+            border: 1px solid #eaedf3;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .pembimbing-block-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pembimbing-inner-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #444;
+        }
+
+        .form-group label small { font-weight: 400; color: #999; }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dfe3e8;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: #333;
+            background-color: #fff;
+        }
+
+        textarea.form-control { resize: vertical; min-height: 44px; }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+        }
+
+        .form-control:disabled {
+            background-color: #f4f6f9;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        /* --- Autocomplete --- */
+        .autocomplete-wrapper { position: relative; }
+
+        .suggestion-list {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0; right: 0;
+            background: #fff;
+            border: 1px solid #dfe3e8;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            z-index: 200;
+            display: none;
+        }
+
+        .suggestion-list.show { display: block; }
+
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            font-size: 0.86rem;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .suggestion-item:hover { background-color: #f4f6f9; }
+
+        .suggestion-avatar-fallback {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background-color: #f1f3f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #b0b6bd;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+        }
+
+        .suggestion-empty {
+            padding: 10px 12px;
+            font-size: 0.83rem;
+            color: #999;
+        }
+
+        /* --- Date Picker --- */
+        .date-picker-wrapper { position: relative; }
+
+        .date-picker-input-wrap { position: relative; }
+
+        .date-picker-input { padding-right: 40px; cursor: pointer; }
+
+        .date-picker-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            pointer-events: none;
+            font-size: 0.95rem;
+        }
+
+        .date-picker-calendar {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+            padding: 16px;
+            width: 280px;
+            z-index: 300;
+        }
+
+        .date-picker-calendar.show {
+            display: block;
+            animation: dpFadeIn 0.15s ease-out;
+        }
+
+        @keyframes dpFadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .dp-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .dp-nav-btn {
+            background-color: #f1f3f5;
+            border: none;
+            width: 30px; height: 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .dp-nav-btn:hover {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+        }
+
+        .dp-header-selects { display: flex; gap: 6px; flex: 1; }
+
+        .dp-select {
+            flex: 1; min-width: 0;
+            padding: 6px 4px;
+            border: 1px solid #dfe3e8;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #444;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .dp-select:focus { outline: none; border-color: var(--primary-color); }
+
+        .dp-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #aaa;
+            margin-bottom: 6px;
+        }
+
+        .dp-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+
+        .dp-day {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 32px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            color: #333;
+            border: none;
+            background: transparent;
+            transition: background-color 0.15s, color 0.15s;
+        }
+
+        .dp-day:hover { background-color: #eef0ff; color: var(--primary-color); }
+        .dp-day.dp-other-month { color: #d6d9de; }
+        .dp-day.dp-today { font-weight: 700; color: var(--primary-color); box-shadow: inset 0 0 0 1.5px var(--primary-color); }
+        .dp-day.dp-selected {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .dp-footer {
+            margin-top: 10px;
+            text-align: center;
+            border-top: 1px solid #f1f1f1;
+            padding-top: 10px;
+        }
+
+        .dp-today-btn {
+            background: none; border: none;
+            color: var(--primary-color);
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .dp-today-btn:hover { text-decoration: underline; }
+
+        /* --- Form Actions --- */
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+
+        .btn:hover { opacity: 0.9; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-primary  { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: #fff; }
+        .btn-secondary { background-color: #eef0f3; color: #555; }
+        .btn-danger   { background-color: #fdecea; color: #e74c3c; }
+        .btn-sm { padding: 6px 12px; font-size: 0.78rem; border-radius: 5px; }
+
+        /* --- Status --- */
+        .status-msg {
+            font-size: 0.85rem;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-top: 14px;
+            display: none;
+        }
+
+        .status-msg.show   { display: block; }
+        .status-msg.success { background-color: #eafaf1; color: #1e8449; }
+        .status-msg.error   { background-color: #fdecea; color: #c0392b; }
+
+        /* --- Table --- */
+        .table-responsive { overflow-x: auto; }
+
+        .custom-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+
+        .custom-table th, .custom-table td {
+            padding: 11px 14px;
+            text-align: left;
+            border-bottom: 1px solid #f1f1f1;
+            vertical-align: middle;
+        }
+
+        .custom-table th { background-color: #f8f9fa; color: #555; font-weight: 600; }
+        .custom-table tr:hover { background-color: #f9f9f9; }
+
+        .id-badge {
+            display: inline-block;
+            background-color: #eef0ff;
+            color: var(--secondary-color);
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+
+        .action-cell { display: flex; gap: 8px; }
+
+        /* --- Divider between containers --- */
+        .form-section-divider {
+            border: none;
+            border-top: 1px dashed #e0e3ea;
+            margin: 20px 0;
+        }
+
+        /* --- Footer --- */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 900px) {
+            .form-grid-2 { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 0 0.75rem; }
+            .navbar-brand img { height: 32px; }
+            .navbar-brand span {
+                font-size: 0.95rem;
+                max-width: 130px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .navbar-right { gap: 8px; }
+            .navbar-date { display: none !important; }
+            .btn-dashboard { padding: 8px 10px; }
+            .btn-dashboard span.btn-label { display: none; }
+
+            .main-content { padding: 1rem; }
+            .dashboard-card { padding: 16px; }
+            .form-grid { grid-template-columns: 1fr; gap: 16px; }
+            .form-actions { flex-direction: column; }
+            .form-actions .btn { width: 100%; justify-content: center; }
+            .custom-table th, .custom-table td { padding: 9px 8px; font-size: 0.78rem; }
+            .action-cell { flex-direction: column; gap: 6px; }
+            .action-cell .btn { width: 100%; justify-content: center; }
+        }
+
+        @media (max-width: 480px) {
+            .main-content { padding: 0.75rem; }
+            .dashboard-card { padding: 14px; border-radius: 10px; }
+            .id-badge { font-size: 0.7rem; padding: 3px 8px; }
+            .date-picker-calendar { width: 250px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="koordinatorpklguru.html" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display:none;">
+            <span></span>
+        </a>
+        <div class="navbar-right">
+            <a href="koordinatorpklguru.html" class="btn-dashboard">
+                <i class="fas fa-th-large"></i>
+                <span class="btn-label">Dashboard</span>
+            </a>
+            <div class="navbar-date">
+                <i class="far fa-calendar-alt" style="color: #fff;"></i>
+                <span id="navbarDate"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Page Title -->
+        <div class="dashboard-card">
+            <h2><i class="fas fa-map-marked-alt" style="color: var(--primary-color);"></i> Mapping Siswa PKL</h2>
+            <p style="color:#666; margin-top:10px;">Kelola data pemetaan siswa ke tempat Praktik Kerja Lapangan (PKL) beserta pembimbing industri dan sekolah.</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3 id="formTitle"><i class="fas fa-plus" style="color: var(--primary-color);"></i> Tambah Mapping Siswa PKL</h3>
+            </div>
+
+            <form id="mappingForm">
+
+                <!-- ===== CONTAINER 1: Data Siswa & Tempat PKL ===== -->
+                <div class="card-header" style="border-bottom:none; padding-bottom:0; margin-bottom:12px;">
+                    <span class="section-badge">1</span>
+                    <h3 style="font-size:0.9rem; color:#555;">Data Siswa &amp; Tempat PKL</h3>
+                </div>
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label>Kode Mapping <small>(Otomatis)</small></label>
+                        <input type="text" id="formKode" class="form-control" disabled placeholder="Dibuat otomatis oleh sistem">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formNamaSiswa">Nama Siswa</label>
+                        <div class="autocomplete-wrapper" id="wrapperNamaSiswa">
+                            <input type="text" id="formNamaSiswa" class="form-control"
+                                placeholder="Klik atau ketik untuk mencari nama siswa" required autocomplete="off">
+                            <div class="suggestion-list" id="suggestionNamaSiswa"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formNisn">NISN</label>
+                        <input type="text" id="formNisn" class="form-control" placeholder="Terisi otomatis atau ketik manual" inputmode="numeric" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formKelas">Kelas</label>
+                        <input type="text" id="formKelas" class="form-control" placeholder="Terisi otomatis atau ketik manual" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formTempatPkl">Tempat PKL</label>
+                        <div class="autocomplete-wrapper" id="wrapperTempatPkl">
+                            <input type="text" id="formTempatPkl" class="form-control"
+                                placeholder="Klik atau ketik untuk mencari nama perusahaan" required autocomplete="off">
+                            <div class="suggestion-list" id="suggestionTempatPkl"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formAlamatPkl">Alamat Tempat PKL</label>
+                        <textarea id="formAlamatPkl" class="form-control" rows="2" placeholder="Terisi otomatis atau ketik manual" required></textarea>
+                    </div>
+
+                </div>
+
+                <hr class="form-section-divider">
+
+                <!-- ===== CONTAINER 2: Pembimbing ===== -->
+                <div class="card-header" style="border-bottom:none; padding-bottom:0; margin-bottom:12px;">
+                    <span class="section-badge">2</span>
+                    <h3 style="font-size:0.9rem; color:#555;">Data Pembimbing</h3>
+                </div>
+                <div class="form-grid-2">
+
+                    <!-- Pembimbing Industri -->
+                    <div class="pembimbing-block">
+                        <div class="pembimbing-block-title">
+                            <i class="fas fa-industry"></i> Pembimbing Industri
+                        </div>
+                        <div class="pembimbing-inner-grid">
+
+                            <div class="form-group">
+                                <label for="formPembimbingIndustri">Nama Pembimbing Industri</label>
+                                <div class="autocomplete-wrapper" id="wrapperPembimbingIndustri">
+                                    <input type="text" id="formPembimbingIndustri" class="form-control"
+                                        placeholder="Klik untuk pilih atau ketik manual" autocomplete="off">
+                                    <div class="suggestion-list" id="suggestionPembimbingIndustri"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="formNipIndustri">NIP Pembimbing Industri</label>
+                                <input type="text" id="formNipIndustri" class="form-control" placeholder="Terisi otomatis atau ketik manual" inputmode="numeric">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="formTlpIndustri">Nomor Telepon Pembimbing Industri</label>
+                                <input type="text" id="formTlpIndustri" class="form-control" placeholder="Terisi otomatis atau ketik manual" inputmode="numeric">
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Pembimbing Sekolah -->
+                    <div class="pembimbing-block">
+                        <div class="pembimbing-block-title">
+                            <i class="fas fa-chalkboard-teacher"></i> Pembimbing Sekolah
+                        </div>
+                        <div class="pembimbing-inner-grid">
+
+                            <div class="form-group">
+                                <label for="formPembimbingSekolah">Nama Pembimbing Sekolah</label>
+                                <div class="autocomplete-wrapper" id="wrapperPembimbingSekolah">
+                                    <input type="text" id="formPembimbingSekolah" class="form-control"
+                                        placeholder="Klik untuk pilih atau ketik manual" autocomplete="off">
+                                    <div class="suggestion-list" id="suggestionPembimbingSekolah"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="formNipSekolah">NIP Pembimbing Sekolah</label>
+                                <input type="text" id="formNipSekolah" class="form-control" placeholder="Terisi otomatis atau ketik manual" inputmode="numeric">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="formTlpSekolah">Nomor Telepon Pembimbing Sekolah</label>
+                                <input type="text" id="formTlpSekolah" class="form-control" placeholder="Terisi otomatis atau ketik manual" inputmode="numeric">
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <hr class="form-section-divider">
+
+                <!-- ===== CONTAINER 3: Tanggal PKL ===== -->
+                <div class="card-header" style="border-bottom:none; padding-bottom:0; margin-bottom:12px;">
+                    <span class="section-badge">3</span>
+                    <h3 style="font-size:0.9rem; color:#555;">Periode PKL</h3>
+                </div>
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label for="formTanggalMulaiDisplay">Tanggal Mulai PKL</label>
+                        <div class="date-picker-wrapper" id="wrapperDpMulai">
+                            <div class="date-picker-input-wrap">
+                                <input type="text" id="formTanggalMulaiDisplay" class="form-control date-picker-input"
+                                    placeholder="Pilih tanggal mulai" readonly autocomplete="off" required>
+                                <input type="hidden" id="formTanggalMulai">
+                                <i class="fas fa-calendar-alt date-picker-icon"></i>
+                            </div>
+                            <div class="date-picker-calendar" id="dpCalendarMulai">
+                                <div class="dp-header">
+                                    <button type="button" class="dp-nav-btn" id="dpMulaiPrev"><i class="fas fa-chevron-left"></i></button>
+                                    <div class="dp-header-selects">
+                                        <select class="dp-select" id="dpMulaiMonth"></select>
+                                        <select class="dp-select" id="dpMulaiYear"></select>
+                                    </div>
+                                    <button type="button" class="dp-nav-btn" id="dpMulaiNext"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                                <div class="dp-weekdays"><span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span></div>
+                                <div class="dp-days" id="dpMulaiDays"></div>
+                                <div class="dp-footer"><button type="button" class="dp-today-btn" id="dpMulaiToday">Hari ini</button></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formTanggalSelesaiDisplay">Tanggal Selesai PKL</label>
+                        <div class="date-picker-wrapper" id="wrapperDpSelesai">
+                            <div class="date-picker-input-wrap">
+                                <input type="text" id="formTanggalSelesaiDisplay" class="form-control date-picker-input"
+                                    placeholder="Pilih tanggal selesai" readonly autocomplete="off" required>
+                                <input type="hidden" id="formTanggalSelesai">
+                                <i class="fas fa-calendar-alt date-picker-icon"></i>
+                            </div>
+                            <div class="date-picker-calendar" id="dpCalendarSelesai">
+                                <div class="dp-header">
+                                    <button type="button" class="dp-nav-btn" id="dpSelesaiPrev"><i class="fas fa-chevron-left"></i></button>
+                                    <div class="dp-header-selects">
+                                        <select class="dp-select" id="dpSelesaiMonth"></select>
+                                        <select class="dp-select" id="dpSelesaiYear"></select>
+                                    </div>
+                                    <button type="button" class="dp-nav-btn" id="dpSelesaiNext"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                                <div class="dp-weekdays"><span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span></div>
+                                <div class="dp-days" id="dpSelesaiDays"></div>
+                                <div class="dp-footer"><button type="button" class="dp-today-btn" id="dpSelesaiToday">Hari ini</button></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Tombol -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-save"></i> Simpan
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="display:none;">
+                        <i class="fas fa-times"></i> Batal Edit
+                    </button>
+                </div>
+
+                <div class="status-msg" id="statusMsg"></div>
+            </form>
+        </div>
+
+        <!-- Table Card -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h3><i class="fas fa-list" style="color: var(--primary-color);"></i> Daftar Mapping Siswa PKL</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Kode</th>
+                            <th>Nama Siswa</th>
+                            <th>NISN</th>
+                            <th>Kelas</th>
+                            <th>Tempat PKL</th>
+                            <th>Alamat PKL</th>
+                            <th>Pembimbing Industri</th>
+                            <th>NIP Industri</th>
+                            <th>Tlp Industri</th>
+                            <th>Pembimbing Sekolah</th>
+                            <th>NIP Sekolah</th>
+                            <th>Tlp Sekolah</th>
+                            <th>Tgl Mulai</th>
+                            <th>Tgl Selesai</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mappingTableBody">
+                        <tr><td colspan="16" style="text-align:center;">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2026 SMKN 1 SIMPANG TERITIP.</p>
+            <p>CopyRight Kenji Studio Developer.</p>
+        </footer>
+
+    </main>
+
+    <script>
+        // =====================================================
+        // --- Supabase Config ---
+        // =====================================================
+        const supabaseUrl     = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const supabaseKey     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+
+        const mappingSupabaseUrl  = 'https://ixccpgfllwerlifpcpdp.supabase.co';
+        const mappingSupabaseKey  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4Y2NwZ2ZsbHdlcmxpZnBjcGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTE3MTEsImV4cCI6MjA5ODQyNzcxMX0.CwrrPcl0RkDK4zRWhfp7oTqwNlxOIZIb3IGUUzKTE9Q';
+
+        const TABLE_NAME = 'mappingsiswapkl';
+
+        let supabaseClient  = null;
+        let mappingClient   = null;
+        let editingId       = null;
+        let mappingCache    = [];
+        let cacheIndustri   = [];   // dari tabel pembimbingindustri
+        let cacheSekolah    = [];   // dari tabel pembimbingsekolah
+        let cacheSiswa      = [];   // dari tabel mappingsiswa (nama_siswa, nisn, kelas)
+        let cacheDudi       = [];   // dari tabel datadudi (nama_perusahaan, alamat)
+
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            mappingClient  = supabase.createClient(mappingSupabaseUrl, mappingSupabaseKey);
+        }
+
+        // =====================================================
+        // --- Navbar ---
+        // =====================================================
+        async function loadSchoolIdentity() {
+            if (!supabaseClient) return;
+            try {
+                const { data } = await supabaseClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo')
+                    .limit(1).single();
+                if (data) {
+                    if (data.nama_sekolah) document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function updateNavbarDate() {
+            const now = new Date();
+            document.getElementById('navbarDate').textContent =
+                now.toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+        }
+
+        // =====================================================
+        // --- Status ---
+        // =====================================================
+        function showStatus(msg, type) {
+            const el = document.getElementById('statusMsg');
+            el.textContent = msg;
+            el.className = 'status-msg show ' + type;
+            setTimeout(() => el.classList.remove('show'), 4000);
+        }
+
+        // =====================================================
+        // --- Load Data Pembimbing (untuk Autocomplete) ---
+        // =====================================================
+        async function loadCachePembimbingIndustri() {
+            if (!mappingClient) return;
+            try {
+                const { data, error } = await mappingClient
+                    .from('pembimbingindustri')
+                    .select('nama, nip, tlp')
+                    .order('nama', { ascending: true });
+                if (error) throw error;
+                cacheIndustri = data || [];
+            } catch (e) { console.error('Error load pembimbing industri:', e); }
+        }
+
+        async function loadCachePembimbingSekolah() {
+            if (!mappingClient) return;
+            try {
+                const { data, error } = await mappingClient
+                    .from('pembimbingsekolah')
+                    .select('nama, nip, tlp')
+                    .order('nama', { ascending: true });
+                if (error) throw error;
+                cacheSekolah = data || [];
+            } catch (e) { console.error('Error load pembimbing sekolah:', e); }
+        }
+
+        async function loadCacheSiswa() {
+            if (!mappingClient) return;
+            try {
+                const { data, error } = await mappingClient
+                    .from('mappingsiswa')
+                    .select('nama_siswa, nisn, kelas')
+                    .order('nama_siswa', { ascending: true });
+                if (error) throw error;
+                cacheSiswa = data || [];
+            } catch (e) { console.error('Error load data siswa:', e); }
+        }
+
+        async function loadCacheDudi() {
+            if (!mappingClient) return;
+            try {
+                const { data, error } = await mappingClient
+                    .from('datadudi')
+                    .select('nama_perusahaan, alamat')
+                    .order('nama_perusahaan', { ascending: true });
+                if (error) throw error;
+                cacheDudi = data || [];
+            } catch (e) { console.error('Error load data dudi:', e); }
+        }
+
+        // =====================================================
+        // --- Autocomplete Helper ---
+        // =====================================================
+        function buildSuggestionList(listEl, dataArr, filterText, onSelect, opts) {
+            opts = opts || {};
+            const labelKey = opts.labelKey || 'nama';
+            const subtitleKey = opts.subtitleKey || null;
+
+            listEl.innerHTML = '';
+            const q = (filterText || '').trim().toLowerCase();
+            const filtered = q
+                ? dataArr.filter(d => (d[labelKey] || '').toLowerCase().includes(q))
+                : dataArr;
+
+            if (filtered.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'suggestion-empty';
+                empty.textContent = dataArr.length === 0 ? 'Data belum tersedia.' : 'Nama tidak ditemukan.';
+                listEl.appendChild(empty);
+            } else {
+                filtered.slice(0, 8).forEach(d => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+                    const fallback = document.createElement('span');
+                    fallback.className = 'suggestion-avatar-fallback';
+                    fallback.innerHTML = '<i class="fas fa-user"></i>';
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = d[labelKey] || '(Tanpa nama)';
+                    if (subtitleKey && d[subtitleKey]) {
+                        nameSpan.textContent += ` (${d[subtitleKey]})`;
+                    }
+                    item.appendChild(fallback);
+                    item.appendChild(nameSpan);
+                    item.addEventListener('click', () => { onSelect(d); listEl.classList.remove('show'); });
+                    listEl.appendChild(item);
+                });
+            }
+            listEl.classList.add('show');
+        }
+
+        function setupAutocomplete(inputEl, listEl, wrapperEl, dataGetter, onSelect, opts) {
+            inputEl.addEventListener('focus', () => buildSuggestionList(listEl, dataGetter(), inputEl.value, onSelect, opts));
+            inputEl.addEventListener('click', () => buildSuggestionList(listEl, dataGetter(), inputEl.value, onSelect, opts));
+            inputEl.addEventListener('input', () => buildSuggestionList(listEl, dataGetter(), inputEl.value, onSelect, opts));
+            document.addEventListener('click', (e) => {
+                if (!wrapperEl.contains(e.target)) listEl.classList.remove('show');
+            });
+        }
+
+        // Inisialisasi autocomplete setelah DOM siap
+        function initAutocomplete() {
+            // Nama Siswa (dari tabel mappingsiswa)
+            setupAutocomplete(
+                document.getElementById('formNamaSiswa'),
+                document.getElementById('suggestionNamaSiswa'),
+                document.getElementById('wrapperNamaSiswa'),
+                () => cacheSiswa,
+                (d) => {
+                    document.getElementById('formNamaSiswa').value = d.nama_siswa || '';
+                    document.getElementById('formNisn').value      = d.nisn || '';
+                    document.getElementById('formKelas').value     = d.kelas || '';
+                },
+                { labelKey: 'nama_siswa', subtitleKey: 'kelas' }
+            );
+
+            // Tempat PKL (dari tabel datadudi)
+            setupAutocomplete(
+                document.getElementById('formTempatPkl'),
+                document.getElementById('suggestionTempatPkl'),
+                document.getElementById('wrapperTempatPkl'),
+                () => cacheDudi,
+                (d) => {
+                    document.getElementById('formTempatPkl').value = d.nama_perusahaan || '';
+                    document.getElementById('formAlamatPkl').value = d.alamat || '';
+                },
+                { labelKey: 'nama_perusahaan' }
+            );
+
+            // Pembimbing Industri
+            setupAutocomplete(
+                document.getElementById('formPembimbingIndustri'),
+                document.getElementById('suggestionPembimbingIndustri'),
+                document.getElementById('wrapperPembimbingIndustri'),
+                () => cacheIndustri,
+                (d) => {
+                    document.getElementById('formPembimbingIndustri').value = d.nama || '';
+                    document.getElementById('formNipIndustri').value  = (d.nip && d.nip !== '-') ? d.nip : '';
+                    document.getElementById('formTlpIndustri').value  = (d.tlp && /^\d/.test(d.tlp)) ? d.tlp : '';
+                }
+            );
+
+            // Pembimbing Sekolah
+            setupAutocomplete(
+                document.getElementById('formPembimbingSekolah'),
+                document.getElementById('suggestionPembimbingSekolah'),
+                document.getElementById('wrapperPembimbingSekolah'),
+                () => cacheSekolah,
+                (d) => {
+                    document.getElementById('formPembimbingSekolah').value = d.nama || '';
+                    document.getElementById('formNipSekolah').value  = (d.nip && d.nip !== '-') ? d.nip : '';
+                    document.getElementById('formTlpSekolah').value  = (d.tlp && /^\d/.test(d.tlp)) ? d.tlp : '';
+                }
+            );
+        }
+
+        // =====================================================
+        // --- Custom Date Picker Factory ---
+        // =====================================================
+        const monthNamesID = Array.from({ length: 12 }, (_, i) =>
+            new Date(2000, i, 1).toLocaleDateString('id-ID', { month: 'long' })
+        );
+
+        function createDatePicker(cfg) {
+            // cfg: { displayId, hiddenId, calendarId, prevId, nextId, monthSelectId, yearSelectId, daysGridId, todayBtnId, wrapperEl }
+            const displayInput  = document.getElementById(cfg.displayId);
+            const hiddenInput   = document.getElementById(cfg.hiddenId);
+            const calendar      = document.getElementById(cfg.calendarId);
+            const monthSelect   = document.getElementById(cfg.monthSelectId);
+            const yearSelect    = document.getElementById(cfg.yearSelectId);
+            const daysGrid      = document.getElementById(cfg.daysGridId);
+
+            const today = new Date(); today.setHours(0,0,0,0);
+            let viewDate     = new Date(today.getFullYear(), today.getMonth(), 1);
+            let selectedDate = null;
+
+            function toISO(d) {
+                return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            }
+
+            function populateSelects() {
+                monthSelect.innerHTML = monthNamesID.map((n,i) => `<option value="${i}">${n}</option>`).join('');
+                const cy = today.getFullYear();
+                let opts = '';
+                for (let y = cy + 5; y >= cy - 20; y--) opts += `<option value="${y}">${y}</option>`;
+                yearSelect.innerHTML = opts;
+            }
+
+            function render() {
+                monthSelect.value = String(viewDate.getMonth());
+                yearSelect.value  = String(viewDate.getFullYear());
+                const yr = viewDate.getFullYear(), mo = viewDate.getMonth();
+                const first = new Date(yr, mo, 1);
+                const offset = first.getDay();
+                const daysInMo   = new Date(yr, mo+1, 0).getDate();
+                const daysInPrev = new Date(yr, mo, 0).getDate();
+                const cells = [];
+                for (let i = 0; i < offset; i++) cells.push({ date: new Date(yr, mo-1, daysInPrev - offset + i + 1), other: true });
+                for (let d = 1; d <= daysInMo; d++) cells.push({ date: new Date(yr, mo, d), other: false });
+                while (cells.length < 42) { cells.push({ date: new Date(yr, mo+1, cells.length - offset - daysInMo + 1), other: true }); }
+                daysGrid.innerHTML = cells.map(c => {
+                    const cls = ['dp-day'];
+                    if (c.other) cls.push('dp-other-month');
+                    if (c.date.getTime() === today.getTime()) cls.push('dp-today');
+                    if (selectedDate && c.date.getTime() === selectedDate.getTime()) cls.push('dp-selected');
+                    return `<button type="button" class="${cls.join(' ')}" data-date="${toISO(c.date)}">${c.date.getDate()}</button>`;
+                }).join('');
+            }
+
+            function open()  { render(); calendar.classList.add('show'); }
+            function close() { calendar.classList.remove('show'); }
+
+            function selectDate(d) {
+                selectedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                hiddenInput.value   = toISO(selectedDate);
+                displayInput.value  = selectedDate.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
+                close();
+            }
+
+            function setFromISO(iso) {
+                if (!iso) { selectedDate = null; hiddenInput.value = ''; displayInput.value = ''; viewDate = new Date(today.getFullYear(), today.getMonth(), 1); return; }
+                const p = new Date(iso);
+                if (isNaN(p.getTime())) return;
+                selectedDate = new Date(p.getFullYear(), p.getMonth(), p.getDate());
+                hiddenInput.value  = toISO(selectedDate);
+                displayInput.value = selectedDate.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
+                viewDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+            }
+
+            populateSelects();
+
+            displayInput.addEventListener('click', (e) => { e.stopPropagation(); open(); });
+            document.getElementById(cfg.prevId).addEventListener('click', () => { viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 1); render(); });
+            document.getElementById(cfg.nextId).addEventListener('click', () => { viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 1); render(); });
+            monthSelect.addEventListener('change', () => { viewDate = new Date(viewDate.getFullYear(), parseInt(monthSelect.value), 1); render(); });
+            yearSelect.addEventListener('change',  () => { viewDate = new Date(parseInt(yearSelect.value), viewDate.getMonth(), 1); render(); });
+            document.getElementById(cfg.todayBtnId).addEventListener('click', () => { viewDate = new Date(today.getFullYear(), today.getMonth(), 1); selectDate(today); });
+            daysGrid.addEventListener('click', (e) => {
+                const btn = e.target.closest('.dp-day');
+                if (!btn) return;
+                const [y, m, d] = btn.dataset.date.split('-').map(Number);
+                selectDate(new Date(y, m-1, d));
+            });
+            calendar.addEventListener('click', e => e.stopPropagation());
+            document.addEventListener('click', () => close());
+
+            return { setFromISO, close };
+        }
+
+        // =====================================================
+        // --- CRUD ---
+        // =====================================================
+        function formatTgl(iso) {
+            if (!iso) return '-';
+            const d = new Date(iso);
+            return isNaN(d.getTime()) ? iso : d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
+        }
+
+        // Load list
+        async function loadMappingList() {
+            const tbody = document.getElementById('mappingTableBody');
+            if (!mappingClient) {
+                tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;color:#e74c3c;">Supabase belum termuat.</td></tr>';
+                return;
+            }
+            try {
+                const { data, error } = await mappingClient.from(TABLE_NAME).select('*');
+                if (error) throw error;
+
+                mappingCache = (data || []).slice().sort((a, b) => {
+                    const nA = parseInt(a.kode_mapping, 10), nB = parseInt(b.kode_mapping, 10);
+                    if (!isNaN(nA) && !isNaN(nB)) return nA - nB;
+                    return String(a.kode_mapping).localeCompare(String(b.kode_mapping));
+                });
+
+                tbody.innerHTML = '';
+                if (mappingCache.length > 0) {
+                    mappingCache.forEach((item, idx) => {
+                        tbody.innerHTML += `<tr>
+                            <td>${idx + 1}</td>
+                            <td><span class="id-badge">${item.kode_mapping || '-'}</span></td>
+                            <td>${item.nama_siswa || '-'}</td>
+                            <td>${item.nisn || '-'}</td>
+                            <td>${item.kelas || '-'}</td>
+                            <td>${item.tempat_pkl || '-'}</td>
+                            <td>${item.alamat || '-'}</td>
+                            <td>${item.pembimbing_industri || '-'}</td>
+                            <td>${item.nip_pi || '-'}</td>
+                            <td>${(item.tlp_pi && /^\d/.test(item.tlp_pi)) ? item.tlp_pi : '-'}</td>
+                            <td>${item.pembimbing_sekolah || '-'}</td>
+                            <td>${item.nip_ps || '-'}</td>
+                            <td>${(item.tlp_ps && /^\d/.test(item.tlp_ps)) ? item.tlp_ps : '-'}</td>
+                            <td>${formatTgl(item.tanggal_mulai)}</td>
+                            <td>${formatTgl(item.tanggal_selesai)}</td>
+                            <td class="action-cell">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="editMapping('${item.kode_mapping}')">
+                                    <i class="fas fa-pen"></i> Edit
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteMapping('${item.kode_mapping}')">
+                                    <i class="fas fa-trash"></i> Hapus
+                                </button>
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;">Belum ada data Mapping Siswa PKL.</td></tr>';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('mappingTableBody').innerHTML =
+                    `<tr><td colspan="16" style="text-align:center;color:#e74c3c;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        // Generate kode
+        function generateNextKode() {
+            const nums = mappingCache.map(i => parseInt(i.kode_mapping, 10)).filter(n => !isNaN(n));
+            return String(nums.length > 0 ? Math.max(...nums) + 1 : 1);
+        }
+
+        // Submit
+        document.getElementById('mappingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const namaSiswa = document.getElementById('formNamaSiswa').value.trim();
+            const nisn      = document.getElementById('formNisn').value.trim();
+            const kelas     = document.getElementById('formKelas').value.trim();
+            const tempatPkl = document.getElementById('formTempatPkl').value.trim();
+            const alamatPkl = document.getElementById('formAlamatPkl').value.trim();
+            const pbIndustri = document.getElementById('formPembimbingIndustri').value.trim();
+            const nipIndustri = document.getElementById('formNipIndustri').value.trim() || '-';
+            const tlpIndustri = document.getElementById('formTlpIndustri').value.trim() || '-';
+            const pbSekolah  = document.getElementById('formPembimbingSekolah').value.trim();
+            const nipSekolah = document.getElementById('formNipSekolah').value.trim() || '-';
+            const tlpSekolah = document.getElementById('formTlpSekolah').value.trim() || '-';
+            const tglMulai   = document.getElementById('formTanggalMulai').value;
+            const tglSelesai = document.getElementById('formTanggalSelesai').value;
+
+            if (!namaSiswa || !nisn || !kelas || !tempatPkl || !alamatPkl || !tglMulai || !tglSelesai) {
+                showStatus('Nama Siswa, NISN, Kelas, Tempat PKL, Alamat, Tanggal Mulai, dan Tanggal Selesai wajib diisi.', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            try {
+                const kodeToUse = editingId || generateNextKode();
+                const { error } = await mappingClient.from(TABLE_NAME).upsert({
+                    kode_mapping        : kodeToUse,
+                    nama_siswa          : namaSiswa,
+                    nisn                : nisn,
+                    kelas               : kelas,
+                    tempat_pkl          : tempatPkl,
+                    alamat              : alamatPkl,
+                    pembimbing_industri : pbIndustri || '-',
+                    nip_pi              : nipIndustri,
+                    tlp_pi              : tlpIndustri,
+                    pembimbing_sekolah  : pbSekolah || '-',
+                    nip_ps              : nipSekolah,
+                    tlp_ps              : tlpSekolah,
+                    tanggal_mulai       : tglMulai,
+                    tanggal_selesai     : tglSelesai
+                }, { onConflict: 'kode_mapping' });
+
+                if (error) throw error;
+
+                showStatus(editingId ? 'Data berhasil diperbarui.' : 'Data berhasil ditambahkan.', 'success');
+                resetForm();
+                loadMappingList();
+            } catch (err) {
+                console.error(err);
+                showStatus('Gagal menyimpan data: ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = editingId ? '<i class="fas fa-save"></i> Update' : '<i class="fas fa-save"></i> Simpan';
+            }
+        });
+
+        // Edit
+        function editMapping(kode) {
+            const item = mappingCache.find(d => String(d.kode_mapping) === String(kode));
+            if (!item) return;
+            editingId = item.kode_mapping;
+
+            document.getElementById('formKode').value                 = item.kode_mapping;
+            document.getElementById('formNamaSiswa').value            = item.nama_siswa || '';
+            document.getElementById('formNisn').value                 = item.nisn || '';
+            document.getElementById('formKelas').value                = item.kelas || '';
+            document.getElementById('formTempatPkl').value            = item.tempat_pkl || '';
+            document.getElementById('formAlamatPkl').value            = item.alamat || '';
+            document.getElementById('formPembimbingIndustri').value   = item.pembimbing_industri !== '-' ? item.pembimbing_industri || '' : '';
+            document.getElementById('formNipIndustri').value          = item.nip_pi !== '-' ? item.nip_pi || '' : '';
+            document.getElementById('formTlpIndustri').value          = (item.tlp_pi && /^\d/.test(item.tlp_pi)) ? item.tlp_pi : '';
+            document.getElementById('formPembimbingSekolah').value    = item.pembimbing_sekolah !== '-' ? item.pembimbing_sekolah || '' : '';
+            document.getElementById('formNipSekolah').value           = item.nip_ps !== '-' ? item.nip_ps || '' : '';
+            document.getElementById('formTlpSekolah').value           = (item.tlp_ps && /^\d/.test(item.tlp_ps)) ? item.tlp_ps : '';
+
+            dpMulai.setFromISO(item.tanggal_mulai || '');
+            dpSelesai.setFromISO(item.tanggal_selesai || '');
+
+            document.getElementById('formTitle').innerHTML = '<i class="fas fa-pen" style="color:var(--primary-color);"></i> Edit Mapping Siswa PKL';
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Update';
+            document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Cancel
+        document.getElementById('cancelEditBtn').addEventListener('click', resetForm);
+
+        function resetForm() {
+            editingId = null;
+            document.getElementById('mappingForm').reset();
+            document.getElementById('formKode').value = '';
+            dpMulai.setFromISO('');
+            dpSelesai.setFromISO('');
+            document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus" style="color:var(--primary-color);"></i> Tambah Mapping Siswa PKL';
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Simpan';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            document.getElementById('suggestionPembimbingIndustri').classList.remove('show');
+            document.getElementById('suggestionPembimbingSekolah').classList.remove('show');
+            document.getElementById('suggestionNamaSiswa').classList.remove('show');
+            document.getElementById('suggestionTempatPkl').classList.remove('show');
+        }
+
+        // Delete
+        async function deleteMapping(kode) {
+            if (!confirm('Yakin ingin menghapus data mapping ini?')) return;
+            try {
+                const { error } = await mappingClient.from(TABLE_NAME).delete().eq('kode_mapping', kode);
+                if (error) throw error;
+                showStatus('Data berhasil dihapus.', 'success');
+                loadMappingList();
+            } catch (err) {
+                console.error(err);
+                showStatus('Gagal menghapus data: ' + err.message, 'error');
+            }
+        }
+
+        // =====================================================
+        // --- Init ---
+        // =====================================================
+        let dpMulai, dpSelesai;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateNavbarDate();
+            loadSchoolIdentity();
+
+            dpMulai = createDatePicker({
+                displayId    : 'formTanggalMulaiDisplay',
+                hiddenId     : 'formTanggalMulai',
+                calendarId   : 'dpCalendarMulai',
+                prevId       : 'dpMulaiPrev',
+                nextId       : 'dpMulaiNext',
+                monthSelectId: 'dpMulaiMonth',
+                yearSelectId : 'dpMulaiYear',
+                daysGridId   : 'dpMulaiDays',
+                todayBtnId   : 'dpMulaiToday'
+            });
+
+            dpSelesai = createDatePicker({
+                displayId    : 'formTanggalSelesaiDisplay',
+                hiddenId     : 'formTanggalSelesai',
+                calendarId   : 'dpCalendarSelesai',
+                prevId       : 'dpSelesaiPrev',
+                nextId       : 'dpSelesaiNext',
+                monthSelectId: 'dpSelesaiMonth',
+                yearSelectId : 'dpSelesaiYear',
+                daysGridId   : 'dpSelesaiDays',
+                todayBtnId   : 'dpSelesaiToday'
+            });
+
+            initAutocomplete();
+
+            Promise.all([
+                loadCacheSiswa(),
+                loadCacheDudi(),
+                loadCachePembimbingIndustri(),
+                loadCachePembimbingSekolah()
+            ]);
+
+            loadMappingList();
+        });
+    </script>
+</body>
+</html>

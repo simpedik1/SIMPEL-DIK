@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kasus Siswa - SMKN 1 Simpang Teritip</title>
+    <!-- Font Awesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- jsPDF & AutoTable for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --sidebar-bg: #2c3e50;
+            --sidebar-text: #ecf0f1;
+            --sidebar-hover: #34495e;
+            --header-height: 60px;
+            --sidebar-width: 260px;
+            --bg-light: #f4f6f9;
+            --navbar-bg: #dc2626; /* Warna Merah untuk Navbar Guru */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Navbar (Custom Red - Sama dengan Admin Guru) --- */
+        .navbar {
+            height: var(--header-height);
+            background-color: var(--navbar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1002;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            background-color: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .navbar-brand span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        /* Tombol Kembali Ke Dashboard */
+        .btn-back-dashboard {
+            margin-left: auto;
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        .btn-back-dashboard:hover {
+            background-color: white;
+            color: var(--navbar-bg);
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-top: var(--header-height);
+            margin-left: 0 !important; /* Full width */
+            padding: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* Table Styles */
+        .table-responsive {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 550px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        
+        /* Styling Scrollbar agar terlihat rapi */
+        .table-responsive::-webkit-scrollbar {
+            height: 8px; /* Tinggi scrollbar horizontal */
+            width: 8px;  /* Lebar scrollbar vertical */
+        }
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            white-space: nowrap; /* Penting: Memaksa tabel melebar ke samping */
+        }
+
+        .custom-table th, .custom-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        .custom-table th {
+            background-color: #f8fafc;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        .custom-table tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Buttons */
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; color: white; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-danger { background-color: #ef4444; }
+        .btn-success { background-color: #10b981; }
+        .btn-secondary { background-color: #6c757d; }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 0.85rem;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
+        }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background-color: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: slideDown 0.3s ease; max-height: 90vh; overflow-y: auto; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-header h3 { margin: 0; color: #333; font-size: 1.2rem; }
+        .close-modal { font-size: 1.5rem; cursor: pointer; color: #888; transition: color 0.2s; }
+        .close-modal:hover { color: #ef4444; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #666; font-size: 0.9rem; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; transition: border-color 0.3s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+
+        /* Searchable Dropdown Styles */
+        .searchable-dropdown { position: relative; }
+        .dropdown-options { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 0 0 6px 6px; max-height: 200px; overflow-y: auto; z-index: 10; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .dropdown-options.show { display: block; }
+        .dropdown-option { padding: 10px; cursor: pointer; border-bottom: 1px solid #f1f1f1; font-size: 0.95rem; color: #333; }
+        .dropdown-option:hover { background-color: #f3f4f6; color: var(--primary-color); }
+        .no-results { padding: 10px; color: #888; font-size: 0.9rem; text-align: center; }
+
+        @media (max-width: 768px) {
+            .navbar-brand span { font-size: 1rem; }
+
+            .main-content {
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+
+            .kasus-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .kasus-buttons {
+                width: 100%;
+            }
+
+            .kasus-buttons .btn {
+                flex: 1;
+                justify-content: center;
+            }
+
+            .kasus-search {
+                width: 100%;
+            }
+
+            .kasus-search input {
+                width: 100%;
+            }
+
+            .modal-footer {
+                flex-direction: column-reverse;
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <img src="" alt="Logo Sekolah" style="display: none;">
+            <span></span>
+        </a>
+        <a href="adminguru.html" class="btn-back-dashboard">Kembali Ke Dashboard</a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+            <div style="background: white; padding: 10px 20px; border-radius: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: #555; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;">
+                <i class="far fa-clock" style="color: var(--navbar-bg);"></i>
+                <span id="liveDateTime"></span>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <h2>Kasus Pembelajaran Siswa</h2>
+            <p style="color: #666; margin-top: 10px;">Kelola data pelanggaran dan kasus siswa di sini.</p>
+        </div>
+        
+        <!-- Container Data -->
+        <div class="dashboard-card">
+            <div class="kasus-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <div class="kasus-buttons" style="display: flex; gap: 10px;">
+                    <button id="addKasusBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Tambah Kasus</button>
+                    <button id="exportPdfBtn" class="btn btn-danger"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                </div>
+                <div class="kasus-search">
+                    <input type="text" id="searchInput" placeholder="Cari Siswa..." style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 250px;">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="custom-table" id="kasusTable">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Id Kasus</th>
+                            <th>Nama Siswa</th>
+                            <th>NISN</th>
+                            <th>Tanggal</th>
+                            <th>Kelas</th>
+                            <th>Mata Pelajaran</th>
+                            <th>Pelapor</th>
+                            <th>Jenis Kasus</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="8" style="text-align: center;">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>&copy; 2024 SMK Negeri 1 Simpang Teritip. All rights reserved.</p>
+            <p>Dikembangkan oleh Tim IT Sekolah.</p>
+        </footer>
+    </main>
+
+    <!-- Modal Tambah/Edit Kasus -->
+    <div id="kasusModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Tambah Kasus Siswa</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <form id="kasusForm">
+                <input type="hidden" id="originalKasusId">
+                <div class="form-group">
+                    <label for="kasusId">Id Kasus</label>
+                    <input type="text" id="kasusId" name="kasusId" placeholder="Otomatis" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label for="guruPelapor">Guru Yang Melaporkan</label>
+                    <input type="text" id="guruPelapor" name="guruPelapor" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label for="tanggal">Tanggal Kejadian</label>
+                    <input type="date" id="tanggal" name="tanggal" required>
+                </div>
+                <div class="form-group">
+                    <label for="namaSiswa">Nama Siswa</label>
+                    <div class="searchable-dropdown">
+                        <input type="text" id="namaSiswaSearch" placeholder="Ketik nama siswa..." autocomplete="off" required>
+                        <input type="hidden" id="namaSiswa" name="namaSiswa">
+                        <div id="siswaDropdown" class="dropdown-options"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="nisn">NISN</label>
+                    <input type="text" id="nisn" name="nisn" placeholder="Nomor Induk Siswa Nasional">
+                </div>
+                <div class="form-group">
+                    <label for="kelas">Kelas</label>
+                    <input type="text" id="kelas" name="kelas" placeholder="Otomatis terisi" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label for="mataPelajaran">Mata Pelajaran</label>
+                    <select id="mataPelajaran" name="mataPelajaran" required>
+                        <option value="">Pilih Mata Pelajaran</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="jenisKasus">Jenis Kasus</label>
+                    <select id="jenisKasus" name="jenisKasus" required>
+                        <option value="">Pilih Jenis Kasus</option>
+                        <option value="Bolos">Bolos</option>
+                        <option value="Tidur saat pelajaran berlangsung">Tidur saat pelajaran berlangsung</option>
+                        <option value="Keluar tanpa izin saat pelajaran berlangsung">Keluar tanpa izin saat pelajaran berlangsung</option>
+                        <option value="Tidak Mengerjakan PR/Tugas">Tidak Mengerjakan PR/Tugas</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group" id="deskripsiKasusContainer" style="display: none;">
+                    <label for="deskripsiKasus">Deskripsikan Kasus Pembelajaran</label>
+                    <textarea id="deskripsiKasus" name="deskripsiKasus" placeholder="Jelaskan detail kasus..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; resize: vertical; min-height: 80px;"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary cancel-btn">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="simpanKasus">Simpan</button>
+                </div>
+             </form>
+        </div>
+    </div>
+
+    <script>
+        // --- Supabase Integration ---
+        const supabaseUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // --- Supabase Integration for Absensi (Kasus Siswa) ---
+        const absensiUrl = 'https://obamjophcayslmubcqrp.supabase.co';
+        const absensiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iYW1qb3BoY2F5c2xtdWJjcXJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODA3MDgsImV4cCI6MjA5OTg1NjcwOH0.-RSXTD3gXO_4iZNj1SIBppslskVrZYbIpOZKwt5or_I';
+        const absensiClient = supabase.createClient(absensiUrl, absensiKey);
+
+        let schoolData = {};
+
+        // --- Load School Identity ---
+        async function loadSchoolIdentity() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('identitassekolah')
+                    .select('nama_sekolah, logo, kop_sekolah')
+                    .limit(1)
+                    .single();
+                
+                if (data) {
+                    schoolData = data;
+                    if (data.nama_sekolah) {
+                        document.querySelector('.navbar-brand span').textContent = data.nama_sekolah;
+                    }
+                    if (data.logo) {
+                        const img = document.querySelector('.navbar-brand img');
+                        img.src = data.logo;
+                        img.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading school identity:", err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadSchoolIdentity);
+
+        // --- Fitur Jam & Tanggal Berjalan ---
+        function updateLiveTime() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('liveDateTime').textContent = `${now.toLocaleDateString('id-ID', dateOptions)} | ${now.toLocaleTimeString('id-ID', timeOptions).replace(/\./g, ':')} WIB`;
+        }
+        setInterval(updateLiveTime, 1000);
+        updateLiveTime();
+
+        // --- Load Siswa Data for Dropdown ---
+        let siswaList = [];
+        
+        async function loadSiswaData() {
+            try {
+                const { data, error } = await absensiClient
+                    .from('mappingsiswa')
+                    .select('nama_siswa, nisn, kelas')
+                    .order('nama_siswa');
+                
+                if (error) throw error;
+                siswaList = data || [];
+            } catch (err) {
+                console.error('Error loading siswa:', err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadSiswaData);
+
+        // --- Load Mapel Options ---
+        async function loadMapelOptions() {
+            const select = document.getElementById('mataPelajaran');
+            try {
+                const { data, error } = await absensiClient
+                    .from('matapelajaran')
+                    .select('nama_mapel')
+                    .order('nama_mapel');
+                
+                if (data) {
+                    const uniqueMapel = [...new Set(data.map(item => item.nama_mapel))];
+                    uniqueMapel.forEach(mapel => {
+                        const option = document.createElement('option');
+                        option.value = mapel;
+                        option.textContent = mapel;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (err) {
+                console.error('Error loading mapel:', err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadMapelOptions);
+
+        // --- Dropdown Logic ---
+        const namaSiswaSearch = document.getElementById('namaSiswaSearch');
+        const namaSiswaHidden = document.getElementById('namaSiswa');
+        const siswaDropdown = document.getElementById('siswaDropdown');
+        const nisnInput = document.getElementById('nisn');
+
+        if (namaSiswaSearch) {
+            namaSiswaSearch.addEventListener('input', function() {
+                const filter = this.value.toLowerCase();
+                const filtered = siswaList.filter(s => s.nama_siswa.toLowerCase().includes(filter));
+                renderDropdown(filtered);
+            });
+
+            namaSiswaSearch.addEventListener('focus', function() {
+                const filter = this.value.toLowerCase();
+                const filtered = filter ? siswaList.filter(s => s.nama_siswa.toLowerCase().includes(filter)) : siswaList;
+                renderDropdown(filtered);
+            });
+        }
+
+        function renderDropdown(data) {
+            siswaDropdown.innerHTML = '';
+            if (data.length === 0) {
+                siswaDropdown.innerHTML = '<div class="no-results">Tidak ditemukan</div>';
+            } else {
+                data.forEach(siswa => {
+                    const div = document.createElement('div');
+                    div.className = 'dropdown-option';
+                    div.textContent = `${siswa.nama_siswa} (${siswa.kelas || '-'})`;
+                    div.onclick = () => selectSiswa(siswa);
+                    siswaDropdown.appendChild(div);
+                });
+            }
+            siswaDropdown.classList.add('show');
+        }
+
+        function selectSiswa(siswa) {
+            namaSiswaSearch.value = siswa.nama_siswa;
+            namaSiswaHidden.value = siswa.nama_siswa;
+            if (nisnInput) nisnInput.value = siswa.nisn || '';
+            const kelasSelect = document.getElementById('kelas');
+            let kelasVal = '';
+            if (kelasSelect) {
+                kelasVal = siswa.kelas || '';
+                kelasSelect.value = kelasVal;
+            }
+            
+            // Generate ID Kasus: ID-[Nama]-[NISN]/[Kelas].[Random]
+            const random4 = Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('kasusId').value = `ID-${siswa.nama_siswa}-${siswa.nisn || ''}/${kelasVal}.${random4}`;
+            
+            siswaDropdown.classList.remove('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (namaSiswaSearch && !namaSiswaSearch.contains(e.target) && !siswaDropdown.contains(e.target)) {
+                siswaDropdown.classList.remove('show');
+            }
+        });
+
+        // --- Modal Logic ---
+        const modal = document.getElementById('kasusModal');
+        const addBtn = document.getElementById('addKasusBtn');
+        const closeSpan = document.querySelector('.close-modal');
+        const cancelBtn = document.querySelector('.cancel-btn');
+        const kasusForm = document.getElementById('kasusForm');
+
+        // Logic untuk Jenis Kasus Lainnya
+        const jenisKasusSelect = document.getElementById('jenisKasus');
+        const deskripsiContainer = document.getElementById('deskripsiKasusContainer');
+        const deskripsiInput = document.getElementById('deskripsiKasus');
+
+        jenisKasusSelect.addEventListener('change', function() {
+            if (this.value === 'Lainnya') {
+                deskripsiContainer.style.display = 'block';
+                deskripsiInput.required = true;
+            } else {
+                deskripsiContainer.style.display = 'none';
+                deskripsiInput.required = false;
+            }
+        });
+
+        addBtn.addEventListener('click', () => {
+            kasusForm.reset();
+            document.getElementById('namaSiswaSearch').value = '';
+            document.getElementById('namaSiswa').value = '';
+            document.getElementById('kasusId').value = '';
+            document.getElementById('originalKasusId').value = '';
+            document.getElementById('modalTitle').textContent = 'Tambah Kasus Siswa';
+            
+            // Set Guru Pelapor dari Session
+            const session = JSON.parse(sessionStorage.getItem('guru_session'));
+            if (session && session.nama) {
+                document.getElementById('guruPelapor').value = session.nama;
+            }
+
+            document.getElementById('tanggal').valueAsDate = new Date();
+            deskripsiContainer.style.display = 'none';
+            deskripsiInput.required = false;
+            modal.classList.add('active');
+        });
+
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+
+        closeSpan.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // --- CRUD Operations ---
+        async function loadKasusData() {
+            const tableBody = document.querySelector('#kasusTable tbody');
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Memuat data...</td></tr>';
+
+            try {
+                const { data, error } = await absensiClient
+                    .from('kasussiswa')
+                    .select('*')
+                    .order('tanggal', { ascending: false });
+
+                if (error) throw error;
+
+                tableBody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Belum ada data kasus.</td></tr>';
+                    return;
+                }
+
+                data.forEach((item, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${item.id_kasus}</td>
+                        <td>${item.nama_siswa}</td>
+                        <td>${item.nisn || '-'}</td>
+                        <td>${item.tanggal}</td>
+                        <td>${item.kelas}</td>
+                        <td>${item.mapel || '-'}</td>
+                        <td>${item.nama_guru || '-'}</td>
+                        <td>${item.jenis_kasus}</td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="editKasus('${item.id_kasus}')" title="Edit Kasus"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;" onclick="deleteKasus('${item.id_kasus}')" title="Hapus Kasus"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (err) {
+                console.error('Error loading data:', err);
+                tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red;">Gagal memuat data: ${err.message}</td></tr>`;
+            }
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'Selesai': return '#10b981';
+                case 'Proses': return '#f59e0b';
+                case 'Panggilan Orang Tua': return '#ef4444';
+                default: return '#6b7280';
+            }
+        }
+
+        kasusForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const originalId = document.getElementById('originalKasusId').value;
+            
+            let jenisKasusVal = document.getElementById('jenisKasus').value;
+            if (jenisKasusVal === 'Lainnya') {
+                jenisKasusVal = document.getElementById('deskripsiKasus').value;
+            }
+
+            const formData = {
+                id_kasus: document.getElementById('kasusId').value,
+                tanggal: document.getElementById('tanggal').value,
+                nama_siswa: document.getElementById('namaSiswa').value,
+                nisn: document.getElementById('nisn').value,
+                kelas: document.getElementById('kelas').value,
+                mapel: document.getElementById('mataPelajaran').value,
+                nama_guru: document.getElementById('guruPelapor').value,
+                jenis_kasus: jenisKasusVal
+            };
+
+            try {
+                let result;
+                if (originalId) {
+                    result = await absensiClient.from('kasussiswa').update(formData).eq('id_kasus', originalId);
+                } else {
+                    result = await absensiClient.from('kasussiswa').insert([formData]);
+                }
+
+                if (result.error) throw result.error;
+
+                alert('Data berhasil disimpan!');
+                closeModal();
+                loadKasusData();
+            } catch (err) {
+                alert('Gagal menyimpan: ' + err.message);
+            }
+        });
+
+        window.deleteKasus = async (id) => {
+            if(confirm('Hapus data kasus ini?')) {
+                const { error } = await absensiClient.from('kasussiswa').delete().eq('id_kasus', id);
+                if(error) alert('Gagal hapus: ' + error.message);
+                else loadKasusData();
+            }
+        };
+
+        window.editKasus = async (id) => {
+            const { data, error } = await absensiClient.from('kasussiswa').select('*').eq('id_kasus', id).single();
+            if(data) {
+                document.getElementById('kasusId').value = data.id_kasus;
+                document.getElementById('originalKasusId').value = data.id_kasus;
+                document.getElementById('tanggal').value = data.tanggal;
+                document.getElementById('namaSiswaSearch').value = data.nama_siswa;
+                document.getElementById('namaSiswa').value = data.nama_siswa;
+                document.getElementById('nisn').value = data.nisn || '';
+                document.getElementById('kelas').value = data.kelas;
+                document.getElementById('mataPelajaran').value = data.mapel || '';
+                document.getElementById('guruPelapor').value = data.nama_guru || '';
+                
+                // Cek apakah jenis kasus ada di opsi standar
+                const standardOptions = ["Bolos", "Tidur saat pelajaran berlangsung", "Keluar tanpa izin saat pelajaran berlangsung", "Tidak Mengerjakan PR/Tugas"];
+                if (standardOptions.includes(data.jenis_kasus)) {
+                    document.getElementById('jenisKasus').value = data.jenis_kasus;
+                    deskripsiContainer.style.display = 'none';
+                    deskripsiInput.required = false;
+                } else {
+                    document.getElementById('jenisKasus').value = 'Lainnya';
+                    deskripsiContainer.style.display = 'block';
+                    deskripsiInput.required = true;
+                    deskripsiInput.value = data.jenis_kasus;
+                }
+                
+                document.getElementById('modalTitle').textContent = 'Edit Kasus Siswa';
+                modal.classList.add('active');
+            }
+        };
+
+        // --- Export PDF ---
+        document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let yPos = 20;
+
+            // Tambahkan KOP Sekolah jika ada
+            if (schoolData.kop_sekolah) {
+                try {
+                    const response = await fetch(schoolData.kop_sekolah);
+                    const blob = await response.blob();
+                    const base64data = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+
+                    const imgProps = doc.getImageProperties(base64data);
+                    const pdfWidth = pageWidth - 20; 
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    doc.addImage(base64data, 'PNG', 10, 10, pdfWidth, imgHeight);
+                    yPos = 10 + imgHeight + 10;
+                } catch (err) {
+                    console.error("Gagal memuat KOP Sekolah:", err);
+                }
+            }
+            
+            doc.setFontSize(18);
+            doc.text("Laporan Kasus Siswa", pageWidth / 2, yPos, { align: 'center' });
+            yPos += 8;
+            
+            const schoolName = schoolData.nama_sekolah || document.querySelector('.navbar-brand span').textContent || 'SMK Negeri 1 Simpang Teritip';
+            doc.setFontSize(12);
+            doc.setTextColor(100);
+            doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+            yPos += 10;
+
+            doc.autoTable({
+                html: '#kasusTable',
+                startY: yPos,
+                theme: 'grid',
+                columns: [0, 1, 2, 3, 4, 5, 6, 7, 8], // Exclude Aksi
+                headStyles: { fillColor: [220, 38, 38] } // Red header
+            });
+
+            doc.save('Laporan_Kasus_Siswa.pdf');
+        });
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#kasusTable tbody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(term) ? '' : 'none';
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', loadKasusData);
+    </script>
+</body>
+</html>
